@@ -4,11 +4,17 @@
 
 > **Fora do escopo deste plano:** o agente de IA (prompts, LLM, SDK, visão) é desenvolvido em paralelo por outra pessoa, em outro ambiente. O back-end apenas define e consome o **contrato de integração** (seção 10) e funciona de forma independente com um stub até a integração.
 
-Referências: [HACKATHON_CONTEXT.md](HACKATHON_CONTEXT.md) (produto) e [RESUMO-GERAL-DO-SISTEMA.md](RESUMO-GERAL-DO-SISTEMA.md) (diagnóstico). Este documento é **planejamento**; nenhum código foi escrito ainda.
+Referências: [HACKATHON_CONTEXT.md](HACKATHON_CONTEXT.md) (produto) e [RESUMO-GERAL-DO-SISTEMA.md](RESUMO-GERAL-DO-SISTEMA.md) (diagnóstico). O planejamento original está preservado abaixo; consulte a atualização de implementação para o estado atual.
 
 > Princípio: **a IA interpreta, planeja e explica. O backend valida, calcula e controla. O MCP fornece as capacidades comerciais.**
 
 ---
+
+## Atualização de implementação — backend + agente
+
+A branch agora contém um primeiro recorte executável em `backend/`. O plano abaixo permanece referência e roadmap, não especificação imutável. Para esta entrega, o agente stateless é uma biblioteca no mesmo processo FastAPI; o backend prepara `AgentEnvelope`, mantém contexto/histórico com opt-in e valida evidências e custos. A separação HTTP/`AgentPort` pode ser introduzida quando necessária. OAuth e sessão são locais de um usuário; isolamento multiusuário, carrinho, checkout, imagens e o restante do plano ainda não estão implementados.
+
+O schema real confirmou `refinements.itemRestrictions` (incluindo filtros alimentares), diferente do `dietary` documentado. A implementação e o contrato atual estão em [backend/README.md](../backend/README.md) e [docs/contracts](contracts/). `getItem`/`getMerchant` não foram anunciadas na sessão de busca verificada; esta versão não as invoca nem afirma ter revalidado produtos por essas ferramentas.
 
 ## 0. Fatos verificados agora (17/10, ~17h55, sem token)
 
