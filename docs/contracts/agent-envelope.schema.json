@@ -1,0 +1,365 @@
+{
+  "$defs": {
+    "DeclaredTags": {
+      "additionalProperties": false,
+      "properties": {
+        "preferencias": {
+          "items": {
+            "enum": [
+              "VEGETARIAN",
+              "VEGAN",
+              "ORGANIC"
+            ],
+            "type": "string"
+          },
+          "maxItems": 3,
+          "title": "Preferencias",
+          "type": "array"
+        },
+        "alergias": {
+          "items": {
+            "maxLength": 160,
+            "minLength": 1,
+            "strip_whitespace": true,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Alergias",
+          "type": "array"
+        },
+        "intolerancias": {
+          "items": {
+            "maxLength": 160,
+            "minLength": 1,
+            "strip_whitespace": true,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Intolerancias",
+          "type": "array"
+        },
+        "condicoes_saude": {
+          "items": {
+            "maxLength": 160,
+            "minLength": 1,
+            "strip_whitespace": true,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Condicoes Saude",
+          "type": "array"
+        },
+        "estado": {
+          "default": "NOT_ASKED",
+          "enum": [
+            "NOT_ASKED",
+            "ASKED",
+            "ANSWERED",
+            "DECLINED"
+          ],
+          "title": "Estado",
+          "type": "string"
+        }
+      },
+      "title": "DeclaredTags",
+      "type": "object"
+    },
+    "HistoryTurn": {
+      "additionalProperties": false,
+      "properties": {
+        "papel": {
+          "enum": [
+            "usuario",
+            "agente"
+          ],
+          "title": "Papel",
+          "type": "string"
+        },
+        "texto": {
+          "maxLength": 12000,
+          "title": "Texto",
+          "type": "string"
+        }
+      },
+      "required": [
+        "papel",
+        "texto"
+      ],
+      "title": "HistoryTurn",
+      "type": "object"
+    },
+    "InventoryItem": {
+      "additionalProperties": false,
+      "properties": {
+        "nome": {
+          "maxLength": 160,
+          "minLength": 1,
+          "strip_whitespace": true,
+          "title": "Nome",
+          "type": "string"
+        },
+        "quantidade": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quantidade"
+        },
+        "unidade": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "minLength": 1,
+              "strip_whitespace": true,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unidade"
+        },
+        "origem": {
+          "default": "DECLARED",
+          "enum": [
+            "DECLARED",
+            "INFERRED"
+          ],
+          "title": "Origem",
+          "type": "string"
+        },
+        "confirmado": {
+          "default": true,
+          "title": "Confirmado",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "nome"
+      ],
+      "title": "InventoryItem",
+      "type": "object"
+    },
+    "Location": {
+      "additionalProperties": false,
+      "properties": {
+        "latitude": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Latitude",
+          "type": "number"
+        },
+        "longitude": {
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Longitude",
+          "type": "number"
+        }
+      },
+      "required": [
+        "latitude",
+        "longitude"
+      ],
+      "title": "Location",
+      "type": "object"
+    },
+    "SearchCriteria": {
+      "additionalProperties": false,
+      "properties": {
+        "restricoes_itens": {
+          "items": {
+            "enum": [
+              "VEGETARIAN",
+              "VEGAN",
+              "LAC_FREE",
+              "GLUTEN_FREE",
+              "SUGAR_FREE",
+              "ORGANIC"
+            ],
+            "type": "string"
+          },
+          "maxItems": 6,
+          "title": "Restricoes Itens",
+          "type": "array"
+        },
+        "preco_maximo_item_centavos": {
+          "anyOf": [
+            {
+              "maximum": 100000000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Preco Maximo Item Centavos"
+        },
+        "frete_maximo_centavos": {
+          "anyOf": [
+            {
+              "maximum": 100000000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frete Maximo Centavos"
+        },
+        "ordenar_por": {
+          "default": "RELEVANCE",
+          "enum": [
+            "RELEVANCE",
+            "PRICE",
+            "DELIVERY_FEE",
+            "DELIVERY_TIME",
+            "DISTANCE"
+          ],
+          "title": "Ordenar Por",
+          "type": "string"
+        }
+      },
+      "title": "SearchCriteria",
+      "type": "object"
+    },
+    "UserContext": {
+      "additionalProperties": false,
+      "properties": {
+        "tags_declaradas": {
+          "$ref": "#/$defs/DeclaredTags"
+        },
+        "inventario_confirmado": {
+          "items": {
+            "$ref": "#/$defs/InventoryItem"
+          },
+          "maxItems": 80,
+          "title": "Inventario Confirmado",
+          "type": "array"
+        },
+        "objetivo": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "minLength": 1,
+              "strip_whitespace": true,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Objetivo"
+        },
+        "pessoas": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pessoas"
+        },
+        "tempo_min": {
+          "anyOf": [
+            {
+              "maximum": 1440,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tempo Min"
+        },
+        "orcamento_centavos": {
+          "anyOf": [
+            {
+              "maximum": 100000000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Orcamento Centavos"
+        },
+        "localizacao": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Location"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "criterios_busca": {
+          "$ref": "#/$defs/SearchCriteria"
+        },
+        "consentimento_dados_sensiveis": {
+          "default": false,
+          "title": "Consentimento Dados Sensiveis",
+          "type": "boolean"
+        }
+      },
+      "title": "UserContext",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {
+      "const": "1",
+      "default": "1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "mensagem_usuario": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Mensagem Usuario",
+      "type": "string"
+    },
+    "contexto": {
+      "$ref": "#/$defs/UserContext"
+    },
+    "historico_resumido": {
+      "items": {
+        "$ref": "#/$defs/HistoryTurn"
+      },
+      "maxItems": 12,
+      "title": "Historico Resumido",
+      "type": "array"
+    }
+  },
+  "required": [
+    "mensagem_usuario"
+  ],
+  "title": "AgentEnvelope",
+  "type": "object"
+}
