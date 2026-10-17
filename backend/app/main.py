@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -5,6 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
 from . import ifood_mcp
+from .agent import run_market_test
 from .oauth import IfoodOAuth
 from .settings import Settings
 
@@ -34,6 +36,10 @@ class GrocerySearch(BaseModel):
     query: str = Field(min_length=1, max_length=120)
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
+
+
+class AgentTestInput(GrocerySearch):
+    message: str = Field(min_length=1, max_length=1200)
 
 
 @app.get("/healthz")
@@ -95,3 +101,31 @@ async def mcp_test_search(payload: GrocerySearch, request: Request) -> dict[str,
         latitude=payload.latitude,
         longitude=payload.longitude,
     )
+
+
+@app.post("/agent/test")
+async def agent_test(payload: AgentTestInput, request: Request) -> dict[str, object]:
+    if not os.getenv("OPENAI_API_KEY"):
+        raise HTTPException(status_code=503, detail="Configure OPENAI_API_KEY no backend.")
+    settings = Settings.from_env()
+    token = await request.app.state.ifood_oauth.access_token(settings)
+    try:
+        response, tool_called = await run_market_test(
+            message=payload.message,
+            latitude=payload.latitude,
+            longitude=payload.longitude,
+            mcp_url=settings.mcp_url,
+            access_token=token,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="O teste do agente falhou ao processar a solicitação.",
+        ) from exc
+    return {
+        "response": response,
+        "mcpToolCalled": tool_called,
+        "tool": "searchOffers" if tool_called else None,
+    }

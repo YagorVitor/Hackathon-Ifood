@@ -1,7 +1,8 @@
 # Backend de teste do agente
 
-Escopo inicial: OAuth do consumidor iFood, `tools/list` e uma chamada de leitura
-`searchOffers` na vertical `GROCERIES`. Não cria carrinho nem envia pedido.
+Escopo inicial: OAuth do consumidor iFood e um agente OpenAI com uma única
+ferramenta de leitura (`searchOffers`) na vertical `GROCERIES`. Não cria carrinho
+nem envia pedido.
 
 ## Executar localmente
 
@@ -15,9 +16,11 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Preencha `IFOOD_CLIENT_ID` e `IFOOD_CLIENT_SECRET` com as credenciais do agente.
-Mantenha os escopos dentro dos valores aprovados para o agente no portal. O
-callback deve ser exatamente `http://localhost:8000/auth/callback`.
+Preencha `IFOOD_CLIENT_ID` e `IFOOD_CLIENT_SECRET` com as credenciais do agente,
+e `OPENAI_API_KEY` com a chave da API OpenAI. Use somente escopos técnicos
+aprovados para o agente no portal. Para essa busca, o escopo é
+`mcp.discovery.search.read`. O callback deve ser exatamente
+`http://localhost:8000/auth/callback`.
 
 ```bash
 set -a
@@ -54,8 +57,22 @@ e no máximo cinco resultados. Ele não inventa IDs, lojas ou preços.
   não armazenamento adequado para produção.
 - O cliente MCP usa o SDK Python oficial e Streamable HTTP. A conexão real só é
   confirmada após autenticar e obter uma resposta válida do gateway.
-- Não há agente LLM neste corte; ele valida a autenticação e a camada de tools
-  que o agente chamará. O planejamento da Despensa Reversa permanece no próximo
-  passo de implementação.
 - O endpoint de busca é somente leitura. Localização precisa é dado pessoal:
   só envie coordenadas fornecidas para essa busca pela própria pessoa.
+
+## Testar o agente
+
+Depois de autenticar no iFood, chame `POST /agent/test` com uma pergunta sobre
+um produto e a localização escolhida para a busca. A resposta inclui
+`mcpToolCalled` para indicar se o agente realmente acionou a ferramenta.
+
+```json
+{
+  "message": "Procure tomate no iFood Mercado e mostre opções e preços.",
+  "latitude": -22.0,
+  "longitude": -47.9
+}
+```
+
+Esse endpoint envia o texto à OpenAI e as coordenadas e a busca de produto ao
+iFood. Ele não faz compra. Não use informação pessoal real em logs ou exemplos.

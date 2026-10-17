@@ -1,5 +1,6 @@
 """Cliente MCP oficial usando o SDK Python e transporte Streamable HTTP."""
 
+import json
 from typing import Any
 
 import httpx2
@@ -92,3 +93,21 @@ async def search_groceries(
             status_code=502,
             detail="A chamada searchOffers ao MCP do iFood falhou.",
         ) from exc
+
+
+async def search_groceries_text(
+    *,
+    mcp_url: str,
+    access_token: str,
+    query: str,
+    latitude: float,
+    longitude: float,
+) -> str:
+    result = await search_groceries(
+        mcp_url=mcp_url,
+        access_token=access_token,
+        query=query,
+        latitude=latitude,
+        longitude=longitude,
+    )
+    return json.dumps(result, ensure_ascii=False)
