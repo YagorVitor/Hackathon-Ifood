@@ -1,0 +1,417 @@
+{
+  "$defs": {
+    "CostSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "opcao_indice": {
+          "title": "Opcao Indice",
+          "type": "integer"
+        },
+        "subtotal_conhecido_centavos": {
+          "title": "Subtotal Conhecido Centavos",
+          "type": "integer"
+        },
+        "taxas_conhecidas_centavos": {
+          "title": "Taxas Conhecidas Centavos",
+          "type": "integer"
+        },
+        "total_conhecido_centavos": {
+          "title": "Total Conhecido Centavos",
+          "type": "integer"
+        },
+        "precos_completos": {
+          "title": "Precos Completos",
+          "type": "boolean"
+        },
+        "fretes_completos": {
+          "title": "Fretes Completos",
+          "type": "boolean"
+        },
+        "total_final": {
+          "const": false,
+          "default": false,
+          "title": "Total Final",
+          "type": "boolean"
+        },
+        "provenance": {
+          "const": "ESTIMATED",
+          "default": "ESTIMATED",
+          "title": "Provenance",
+          "type": "string"
+        },
+        "orcamento_status": {
+          "enum": [
+            "over",
+            "unknown_total",
+            "not_applicable"
+          ],
+          "title": "Orcamento Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "opcao_indice",
+        "subtotal_conhecido_centavos",
+        "taxas_conhecidas_centavos",
+        "total_conhecido_centavos",
+        "precos_completos",
+        "fretes_completos",
+        "orcamento_status"
+      ],
+      "title": "CostSummary",
+      "type": "object"
+    },
+    "MealOption": {
+      "additionalProperties": false,
+      "properties": {
+        "titulo": {
+          "maxLength": 160,
+          "minLength": 1,
+          "strip_whitespace": true,
+          "title": "Titulo",
+          "type": "string"
+        },
+        "estrategia": {
+          "enum": [
+            "USE_WHAT_I_HAVE",
+            "COMPLETE_WITH_MARKET",
+            "CONVENIENCE"
+          ],
+          "title": "Estrategia",
+          "type": "string"
+        },
+        "usa": {
+          "items": {
+            "maxLength": 160,
+            "minLength": 1,
+            "strip_whitespace": true,
+            "type": "string"
+          },
+          "maxItems": 80,
+          "title": "Usa",
+          "type": "array"
+        },
+        "faltantes": {
+          "items": {
+            "maxLength": 160,
+            "minLength": 1,
+            "strip_whitespace": true,
+            "type": "string"
+          },
+          "maxItems": 30,
+          "title": "Faltantes",
+          "type": "array"
+        },
+        "justificativa": {
+          "maxLength": 1500,
+          "title": "Justificativa",
+          "type": "string"
+        },
+        "provenance": {
+          "const": "INFERRED",
+          "default": "INFERRED",
+          "title": "Provenance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "titulo",
+        "estrategia",
+        "justificativa"
+      ],
+      "title": "MealOption",
+      "type": "object"
+    },
+    "RecognizedIngredient": {
+      "additionalProperties": false,
+      "properties": {
+        "nome": {
+          "maxLength": 160,
+          "minLength": 1,
+          "strip_whitespace": true,
+          "title": "Nome",
+          "type": "string"
+        },
+        "quantidade": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quantidade"
+        },
+        "unidade": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "minLength": 1,
+              "strip_whitespace": true,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unidade"
+        },
+        "provenance": {
+          "const": "INFERRED",
+          "default": "INFERRED",
+          "title": "Provenance",
+          "type": "string"
+        },
+        "confirmado": {
+          "const": false,
+          "default": false,
+          "title": "Confirmado",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "nome"
+      ],
+      "title": "RecognizedIngredient",
+      "type": "object"
+    },
+    "SearchEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "title": "Query",
+          "type": "string"
+        },
+        "restricoes_aplicadas": {
+          "items": {
+            "enum": [
+              "VEGETARIAN",
+              "VEGAN",
+              "LAC_FREE",
+              "GLUTEN_FREE",
+              "SUGAR_FREE",
+              "ORGANIC"
+            ],
+            "type": "string"
+          },
+          "title": "Restricoes Aplicadas",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "success",
+            "empty",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "quantidade_resultados": {
+          "title": "Quantidade Resultados",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "query",
+        "restricoes_aplicadas",
+        "status",
+        "quantidade_resultados"
+      ],
+      "title": "SearchEvidence",
+      "type": "object"
+    },
+    "SelectedProduct": {
+      "additionalProperties": false,
+      "properties": {
+        "referencia": {
+          "title": "Referencia",
+          "type": "string"
+        },
+        "item_id": {
+          "title": "Item Id",
+          "type": "string"
+        },
+        "merchant_id": {
+          "title": "Merchant Id",
+          "type": "string"
+        },
+        "nome_observado": {
+          "title": "Nome Observado",
+          "type": "string"
+        },
+        "loja_observada": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Loja Observada"
+        },
+        "preco_observado_centavos": {
+          "anyOf": [
+            {
+              "maximum": 100000000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Preco Observado Centavos"
+        },
+        "frete_observado_centavos": {
+          "anyOf": [
+            {
+              "maximum": 100000000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frete Observado Centavos"
+        },
+        "minimo_pedido_centavos": {
+          "anyOf": [
+            {
+              "maximum": 100000000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimo Pedido Centavos"
+        },
+        "provenance": {
+          "const": "MCP",
+          "default": "MCP",
+          "title": "Provenance",
+          "type": "string"
+        },
+        "faltante": {
+          "title": "Faltante",
+          "type": "string"
+        },
+        "opcao_indice": {
+          "title": "Opcao Indice",
+          "type": "integer"
+        },
+        "quantidade_embalagens": {
+          "title": "Quantidade Embalagens",
+          "type": "integer"
+        },
+        "quantidade_provenance": {
+          "const": "INFERRED",
+          "default": "INFERRED",
+          "title": "Quantidade Provenance",
+          "type": "string"
+        },
+        "quantidade_confirmada": {
+          "const": false,
+          "default": false,
+          "title": "Quantidade Confirmada",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "referencia",
+        "item_id",
+        "merchant_id",
+        "nome_observado",
+        "faltante",
+        "opcao_indice",
+        "quantidade_embalagens"
+      ],
+      "title": "SelectedProduct",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {
+      "const": "1",
+      "default": "1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "mensagem": {
+      "title": "Mensagem",
+      "type": "string"
+    },
+    "pergunta_tags": {
+      "title": "Pergunta Tags",
+      "type": "boolean"
+    },
+    "ingredientes_reconhecidos": {
+      "items": {
+        "$ref": "#/$defs/RecognizedIngredient"
+      },
+      "title": "Ingredientes Reconhecidos",
+      "type": "array"
+    },
+    "opcoes": {
+      "items": {
+        "$ref": "#/$defs/MealOption"
+      },
+      "title": "Opcoes",
+      "type": "array"
+    },
+    "produtos": {
+      "items": {
+        "$ref": "#/$defs/SelectedProduct"
+      },
+      "title": "Produtos",
+      "type": "array"
+    },
+    "limitacoes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitacoes",
+      "type": "array"
+    },
+    "buscas": {
+      "items": {
+        "$ref": "#/$defs/SearchEvidence"
+      },
+      "title": "Buscas",
+      "type": "array"
+    },
+    "custos": {
+      "items": {
+        "$ref": "#/$defs/CostSummary"
+      },
+      "title": "Custos",
+      "type": "array"
+    }
+  },
+  "required": [
+    "mensagem",
+    "pergunta_tags",
+    "ingredientes_reconhecidos",
+    "opcoes",
+    "produtos",
+    "limitacoes",
+    "buscas"
+  ],
+  "title": "AgentOutput",
+  "type": "object"
+}
