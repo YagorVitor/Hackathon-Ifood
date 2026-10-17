@@ -1,278 +1,288 @@
-import { useState } from 'react'
-import type { ReactNode } from 'react'
-import { confirmCart, EXAMPLE_TEXT, parseContext, planMeals, searchProducts } from './mock'
-import type { CartResult, MealOption, ProductCandidate, Profile, UserContext } from './types'
-import { Badge, Button, Card, brl } from './components/ui'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ApiError, api } from './api'
+import { Icon } from './components/icons'
+import { Button, Notice, PROVENANCE, Badge, focusRing } from './components/ui'
+import { LIMITS, buildContext, emptyFields, emptyTags, fromRecognized, parseNumber } from './flow'
+import type { DeclaredFields, DraftItem } from './flow'
+import type { AgentResponse, DeclaredTags, Location, McpTool, MealOption, UserContext } from './types'
+import { CaptureStep } from './steps/CaptureStep'
+import { DoneStep } from './steps/DoneStep'
+import { MarketStep } from './steps/MarketStep'
+import type { AuthState } from './steps/MarketStep'
+import { OptionsStep } from './steps/OptionsStep'
+import { ReviewStep } from './steps/ReviewStep'
+import { TagsStep } from './steps/TagsStep'
 
-type Step = 'input' | 'confirm' | 'profile' | 'options' | 'products' | 'done'
-const STEPS: Step[] = ['input', 'confirm', 'profile', 'options', 'products', 'done']
-const STRATEGY_LABEL = {
-  USE_WHAT_I_HAVE: 'Sem comprar nada',
-  COMPLETE_WITH_MARKET: 'Completar no Mercado',
-  CONVENIENCE: 'Conveniência',
-} as const
-const PREFS = [
-  ['VEGETARIAN', 'Vegetariano'],
-  ['VEGAN', 'Vegano'],
-] as const
-const SENSITIVE = [
-  ['allergies', 'Alergia a amendoim'],
-  ['intolerances', 'Intolerância à lactose'],
-  ['healthConditions', 'Diabetes'],
-] as const
+// Sequência de docs/HACKATHON_CONTEXT.md §10: contar → conferir → (perfil, se o agente perguntar) → sugestões → Mercado.
+type Stage = 'capture' | 'review' | 'tags' | 'options' | 'market' | 'done'
+type Busy = null | 'capture' | 'plan' | 'market'
 
-const emptyProfile: Profile = {
-  preferences: [], allergies: [], intolerances: [], healthConditions: [], useSensitive: false, declined: false,
-}
+const STEPS = ['Contar', 'Conferir', 'Sugestões', 'Mercado'] as const
+const STEP_OF: Record<Stage, number> = { capture: 0, review: 1, tags: 1, options: 2, market: 3, done: 3 }
+
+const asApiError = (e: unknown) => (e instanceof ApiError ? e : new ApiError('failed', 'Erro inesperado. Tente novamente.'))
 
 export default function App() {
-  const [step, setStep] = useState<Step>('input')
-  const [loading, setLoading] = useState(false)
+  const [stage, setStage] = useState<Stage>('capture')
   const [text, setText] = useState('')
-  const [ctx, setCtx] = useState<UserContext | null>(null)
-  const [newItem, setNewItem] = useState('')
-  const [profile, setProfile] = useState<Profile>(emptyProfile)
-  const [options, setOptions] = useState<MealOption[]>([])
+  const [captureMessage, setCaptureMessage] = useState('')
+  const [items, setItems] = useState<DraftItem[]>([])
+  const [fields, setFields] = useState<DeclaredFields>(emptyFields)
+  // Perfil só em memória desta aba: nada vai para localStorage.
+  const [tags, setTags] = useState<DeclaredTags>(emptyTags())
+  const [consent, setConsent] = useState(false)
+  const [tagsMode, setTagsMode] = useState<'question' | 'edit'>('question')
+  const [plan, setPlan] = useState<AgentResponse | null>(null)
   const [chosen, setChosen] = useState<MealOption | null>(null)
-  const [products, setProducts] = useState<ProductCandidate[]>([])
-  const [cart, setCart] = useState<CartResult | null>(null)
-  const [agreed, setAgreed] = useState(false)
+  const [market, setMarket] = useState<AgentResponse | null>(null)
+  const [location, setLocation] = useState<Location | null>(null)
+  const [busy, setBusy] = useState<Busy>(null)
+  const [error, setError] = useState<ApiError | null>(null)
+  const [backend, setBackend] = useState<'checking' | 'up' | 'down'>('checking')
+  const [auth, setAuth] = useState<AuthState>('checking')
+  const [tools, setTools] = useState<McpTool[] | null>(null)
 
-  const run = async (fn: () => Promise<void>) => {
-    setLoading(true)
-    try { await fn() } finally { setLoading(false) }
+  const go = (s: Stage) => { setError(null); setStage(s) }
+
+  const checkBackend = useCallback(() => {
+    setBackend('checking')
+    api.health().then(() => setBackend('up')).catch(() => setBackend('down'))
+  }, [])
+
+  const refreshAuth = useCallback(() => {
+    setAuth('checking')
+    api.authStatus()
+      .then((r) => setAuth(r.authenticated ? 'yes' : 'no'))
+      .catch(() => setAuth('error'))
+  }, [])
+
+  useEffect(() => { checkBackend(); refreshAuth() }, [checkBackend, refreshAuth])
+
+  // O login iFood termina em outra aba (callback no backend); ao voltar, conferimos de novo.
+  useEffect(() => {
+    if (stage !== 'market' || auth === 'yes') return
+    const onFocus = () => { if (document.visibilityState === 'visible') refreshAuth() }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onFocus)
+    return () => { window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus) }
+  }, [stage, auth, refreshAuth])
+
+  useEffect(() => {
+    if (stage !== 'market' || auth !== 'yes' || tools !== null) return
+    api.tools().then(setTools).catch(() => setTools([]))
+  }, [stage, auth, tools])
+
+  const mounted = useRef(false)
+  useEffect(() => {
+    if (!mounted.current) { mounted.current = true; return }
+    window.scrollTo({ top: 0 })
+    document.getElementById('stage-title')?.focus({ preventScroll: true })
+  }, [stage, tagsMode])
+
+  async function send(kind: Exclude<Busy, null>, message: string, context: UserContext) {
+    setBusy(kind)
+    setError(null)
+    try {
+      return await api.sendMessage({ message: message.slice(0, LIMITS.message), context, remember_context: false })
+    } catch (e) {
+      const err = asApiError(e)
+      if (err.kind === 'auth') setAuth('no')
+      if (err.kind === 'network') setBackend('down')
+      setError(err)
+      return null
+    } finally {
+      setBusy(null)
+    }
   }
 
-  const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v])
-  const subtotal = products.reduce((s, p) => s + p.priceCents, 0)
-  const restart = () => {
-    setStep('input'); setText(''); setCtx(null); setOptions([]); setChosen(null)
-    setProducts([]); setCart(null); setAgreed(false)
+  async function capture() {
+    // Etapa 1: só o texto. Inventário vazio e sem localização, para nada ser buscado antes da confirmação.
+    const res = await send('capture', text, buildContext({ items: [], fields: emptyFields, tags, consent, location: null }))
+    if (!res) return
+    setItems(fromRecognized(res.data.ingredientes_reconhecidos))
+    setCaptureMessage(res.data.mensagem)
+    // Opções geradas antes da confirmação partem de um inventário vazio; não são exibidas.
+    setPlan(null)
+    if (res.data.pergunta_tags) setTags((t) => ({ ...t, estado: 'ASKED' }))
+    go('review')
   }
+
+  async function runPlan(t: DeclaredTags = tags, c: boolean = consent) {
+    const res = await send('plan', text, buildContext({ items, fields, tags: t, consent: c, location: null }))
+    if (!res) return
+    setPlan(res)
+    setChosen(null)
+    setMarket(null)
+    if (res.data.pergunta_tags && t.estado === 'NOT_ASKED') {
+      setTags({ ...t, estado: 'ASKED' })
+      setTagsMode('question')
+      go('tags')
+      return
+    }
+    go('options')
+  }
+
+  function confirmReview() {
+    if (tags.estado === 'ASKED') {
+      setTagsMode('question')
+      go('tags')
+    } else {
+      void runPlan()
+    }
+  }
+
+  function submitTags(t: DeclaredTags, c: boolean) {
+    setTags(t)
+    setConsent(c)
+    void runPlan(t, c)
+  }
+
+  function declineTags() {
+    const t = emptyTags('DECLINED')
+    setTags(t)
+    setConsent(false)
+    // Se o agente já trouxe opções junto com a pergunta, elas valem para quem não quis informar.
+    if (plan && plan.data.opcoes.length > 0) go('options')
+    else void runPlan(t, false)
+  }
+
+  function choose(o: MealOption) {
+    setChosen(o)
+    setMarket(null)
+    if (o.faltantes.length === 0) {
+      go('done')
+    } else {
+      go('market')
+      refreshAuth()
+    }
+  }
+
+  async function consultMarket() {
+    if (!chosen || !location) return
+    setMarket(null)
+    const message = `Escolhi a opção "${chosen.titulo}". Busque no iFood Mercado o que falta: ${chosen.faltantes.join(', ')}.`
+    const res = await send('market', message, buildContext({ items, fields, tags, consent, location }))
+    if (res) setMarket(res)
+  }
+
+  function restart() {
+    setText('')
+    setCaptureMessage('')
+    setItems([])
+    setFields(emptyFields)
+    setPlan(null)
+    setChosen(null)
+    setMarket(null)
+    go('capture')
+  }
+
+  const orc = parseNumber(fields.orcamento)
+  const budgetCents = orc === null || Number.isNaN(orc) ? null : Math.round(orc * 100)
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col">
-      <header className="sticky top-0 z-10 bg-[#ea1d2c] px-4 pb-3 pt-4 text-white">
-        <h1 className="text-lg font-bold">Despensa Reversa</h1>
-        <p className="text-xs opacity-90">Ambiente de demonstração · dados simulados</p>
-        <div className="mt-2 flex gap-1">
-          {STEPS.map((s, i) => (
-            <div key={s} className={`h-1 flex-1 rounded ${i <= STEPS.indexOf(step) ? 'bg-white' : 'bg-white/30'}`} />
-          ))}
+    <div className="mx-auto flex min-h-dvh max-w-2xl flex-col px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
+      <a href="#conteudo" className={`sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-20 focus:rounded-lg focus:bg-surface focus:p-3 ${focusRing}`}>
+        Pular para o conteúdo
+      </a>
+
+      <header className="space-y-4 pb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex size-11 items-center justify-center rounded-xl bg-herb text-on-herb">
+              <Icon name="jar" className="size-6" />
+            </span>
+            <div>
+              <h1 className="text-xl font-bold leading-tight">Despensa Reversa</h1>
+              <p className="text-sm text-ink-muted">Primeiro o que você tem. Depois, só o que falta.</p>
+            </div>
+          </div>
+          <ConnectionPill auth={auth} backend={backend} />
         </div>
+
+        <nav aria-label="Progresso">
+          <ol className="grid grid-cols-4 gap-1.5">
+            {STEPS.map((label, i) => {
+              const current = STEP_OF[stage] === i
+              const done = STEP_OF[stage] > i
+              return (
+                <li key={label} aria-current={current ? 'step' : undefined} className="space-y-1">
+                  <div className={`h-1.5 rounded-full ${done || current ? 'bg-herb' : 'bg-line'}`} />
+                  <p className={`text-xs font-bold sm:text-sm ${current ? 'text-ink' : 'text-ink-muted'}`}>
+                    {label}<span className="sr-only">{current ? ' (etapa atual)' : done ? ' (concluída)' : ''}</span>
+                  </p>
+                </li>
+              )
+            })}
+          </ol>
+        </nav>
       </header>
 
-      <main className="flex-1 space-y-3 p-4 pb-8">
-        {step === 'input' && (
-          <>
-            <Card>
-              <label className="mb-2 block font-semibold">O que você tem em casa?</label>
-              <textarea
-                className="h-36 w-full rounded-lg border border-gray-300 p-3 text-base"
-                placeholder="Conte o que tem, quantas pessoas, tempo e orçamento…"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-              />
-              <button className="mt-2 text-sm text-[#ea1d2c] underline" onClick={() => setText(EXAMPLE_TEXT)}>
-                Usar exemplo
-              </button>
-            </Card>
-            <Button
-              disabled={!text.trim() || loading}
-              onClick={() => run(async () => { setCtx(await parseContext(text)); setStep('confirm') })}
-            >
-              {loading ? 'Analisando…' : 'Continuar'}
-            </Button>
-          </>
+      <main id="conteudo" className="flex-1 space-y-4">
+        {backend === 'down' && (
+          <Notice tone="danger" role="alert" title="Backend indisponível">
+            <p>Inicie o backend em <code className="font-mono">localhost:8000</code> (veja o README do frontend) e tente de novo.</p>
+            <div className="pt-1"><Button variant="secondary" icon="refresh" full={false} onClick={() => { checkBackend(); refreshAuth() }}>Tentar de novo</Button></div>
+          </Notice>
         )}
 
-        {step === 'confirm' && ctx && (
-          <>
-            <Card>
-              <h2 className="mb-1 font-semibold">Confirme seus ingredientes</h2>
-              <p className="mb-3 text-xs text-gray-500">
-                Reconhecidos pela IA. Corrija o que estiver errado; não assumimos quantidades.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {ctx.items.map((it) => (
-                  <span key={it.id} className="flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1.5 text-sm">
-                    {it.name}
-                    <button
-                      aria-label={`remover ${it.name}`}
-                      className="text-gray-500"
-                      onClick={() => setCtx({ ...ctx, items: ctx.items.filter((x) => x.id !== it.id) })}
-                    >×</button>
-                  </span>
-                ))}
-              </div>
-              <div className="mt-3 flex gap-2">
-                <input
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2"
-                  placeholder="Adicionar ingrediente"
-                  value={newItem}
-                  onChange={(e) => setNewItem(e.target.value)}
-                />
-                <button
-                  className="rounded-lg bg-gray-800 px-4 text-white"
-                  onClick={() => {
-                    const n = newItem.trim().toLowerCase()
-                    if (!n) return
-                    setCtx({ ...ctx, items: [...ctx.items, { id: n, name: n, provenance: 'DECLARED', confirmed: true }] })
-                    setNewItem('')
-                  }}
-                >+</button>
-              </div>
-            </Card>
-            <Card>
-              <div className="grid grid-cols-3 gap-2 text-center text-sm">
-                <div><div className="text-lg font-bold">{ctx.people}</div>pessoas</div>
-                <div><div className="text-lg font-bold">{ctx.timeMin} min</div>tempo</div>
-                <div><div className="text-lg font-bold">{brl(ctx.budgetCents)}</div>orçamento</div>
-              </div>
-              <div className="mt-2 text-center"><Badge p="INFERRED" /></div>
-            </Card>
-            <Button disabled={ctx.items.length === 0} onClick={() => setStep('profile')}>Confirmar ingredientes</Button>
-          </>
+        {stage === 'capture' && (
+          <CaptureStep text={text} onText={setText} onSubmit={capture} loading={busy === 'capture'} error={error} />
         )}
-
-        {step === 'profile' && ctx && (
-          <>
-            <Card>
-              <h2 className="mb-2 font-semibold">Preferências (opcional)</h2>
-              <div className="flex flex-wrap gap-2">
-                {PREFS.map(([k, label]) => (
-                  <Chip key={k} on={profile.preferences.includes(k)}
-                    onClick={() => setProfile({ ...profile, preferences: toggle(profile.preferences, k) })}>{label}</Chip>
-                ))}
-              </div>
-            </Card>
-            <Card>
-              <h2 className="mb-1 font-semibold">Restrições e saúde (opcional)</h2>
-              <p className="mb-3 text-xs text-gray-500">
-                Usadas só para sinalizar riscos. Não substituem orientação médica nem garantem segurança de alérgenos.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {SENSITIVE.map(([k, label]) => (
-                  <Chip key={k} on={profile[k].includes(label)}
-                    onClick={() => setProfile({ ...profile, [k]: toggle(profile[k], label), declined: false })}>{label}</Chip>
-                ))}
-              </div>
-              <label className="mt-3 flex items-start gap-2 text-sm">
-                <input type="checkbox" className="mt-1" checked={profile.useSensitive}
-                  onChange={(e) => setProfile({ ...profile, useSensitive: e.target.checked })} />
-                Autorizo usar essas informações nas recomendações desta sessão.
-              </label>
-            </Card>
-            <Button disabled={loading} onClick={() => run(async () => { setOptions(await planMeals(ctx, profile)); setStep('options') })}>
-              {loading ? 'Planejando…' : 'Ver sugestões'}
-            </Button>
-            <Button variant="ghost" disabled={loading}
-              onClick={() => run(async () => {
-                const p = { ...emptyProfile, declined: true }
-                setProfile(p); setOptions(await planMeals(ctx, p)); setStep('options')
-              })}>
-              Prefiro não informar
-            </Button>
-          </>
+        {stage === 'review' && (
+          <ReviewStep
+            text={text} agentMessage={captureMessage} items={items} onItems={setItems} fields={fields} onFields={setFields}
+            onConfirm={confirmReview} onEditText={() => go('capture')} loading={busy === 'plan'} error={error}
+            nextIsTags={tags.estado === 'ASKED'}
+          />
         )}
-
-        {step === 'options' && (
-          <>
-            <h2 className="font-semibold">Sugestões para você</h2>
-            {options.map((o) => (
-              <Card key={o.id}>
-                <div className="mb-1 flex items-center justify-between">
-                  <span className="text-xs font-medium text-[#ea1d2c]">{STRATEGY_LABEL[o.strategy]}</span>
-                  <span className="text-xs text-gray-500">{o.timeMin} min</span>
-                </div>
-                <h3 className="font-semibold">{o.title}</h3>
-                <p className="mt-1 text-sm text-gray-600">{o.rationale}</p>
-                <p className="mt-2 text-xs"><b>Você já tem:</b> {o.uses.join(', ')}</p>
-                {o.missing.length > 0 && <p className="text-xs"><b>Falta:</b> {o.missing.join(', ')}</p>}
-                {o.warnings.map((w) => <p key={w} className="mt-1 text-xs text-amber-700">⚠ {w}</p>)}
-                <div className="mt-3">
-                  <Button
-                    disabled={loading}
-                    onClick={() => run(async () => {
-                      setChosen(o)
-                      setProducts(o.missing.length === 0 ? [] : await searchProducts(o))
-                      setStep('products')
-                    })}
-                  >
-                    {o.missing.length === 0 ? 'Escolher' : 'Escolher e buscar produtos'}
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </>
+        {stage === 'tags' && (
+          <TagsStep
+            key={tagsMode} mode={tagsMode} tags={tags} consent={consent} onSubmit={submitTags} onDecline={declineTags}
+            onCancel={() => go('options')} loading={busy === 'plan'} error={error}
+          />
         )}
-
-        {step === 'products' && chosen && ctx && (
-          <>
-            <h2 className="font-semibold">{chosen.title}</h2>
-            {products.length === 0 ? (
-              <Card>
-                <p className="text-sm">
-                  {chosen.missing.length === 0
-                    ? 'Você não precisa comprar nada. Bom apetite!'
-                    : 'Nenhum produto adequado encontrado no catálogo.'}
-                </p>
-              </Card>
-            ) : (
-              <>
-                {products.map((p) => (
-                  <Card key={p.itemId}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="font-medium">{p.name}</div>
-                        <div className="text-xs text-gray-500">para: {p.forIngredient} · {p.merchantName}</div>
-                        <div className="mt-1"><Badge p={p.provenance} /></div>
-                      </div>
-                      <div className="font-semibold">{brl(p.priceCents)}</div>
-                    </div>
-                  </Card>
-                ))}
-                <Card>
-                  <div className="flex justify-between text-sm"><span>Subtotal dos itens</span><b>{brl(subtotal)}</b></div>
-                  <div className="flex justify-between text-sm text-gray-500"><span>Orçamento</span><span>{brl(ctx.budgetCents)}</span></div>
-                  <p className="mt-2 text-xs text-gray-500">Frete e taxas só serão conhecidos após criar o carrinho.</p>
-                </Card>
-                <label className="flex items-start gap-2 text-sm">
-                  <input type="checkbox" className="mt-1" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
-                  Confirmo que quero criar este carrinho (nenhum pedido será finalizado).
-                </label>
-                <Button disabled={!agreed || loading}
-                  onClick={() => run(async () => { setCart(await confirmCart(products)); setStep('done') })}>
-                  {loading ? 'Criando carrinho…' : 'Criar carrinho'}
-                </Button>
-              </>
-            )}
-            <Button variant="ghost" onClick={() => { setAgreed(false); setStep('options') }}>Voltar às sugestões</Button>
-          </>
+        {stage === 'options' && plan && (
+          <OptionsStep
+            message={plan.data.mensagem} options={plan.data.opcoes} limitations={plan.data.limitacoes} tags={tags} consent={consent}
+            onChoose={choose} onEditItems={() => go('review')} onEditTags={() => { setTagsMode('edit'); go('tags') }}
+            onRetry={() => void runPlan()} loading={busy === 'plan'} error={error}
+          />
         )}
-
-        {step === 'done' && cart && (
-          <>
-            <Card>
-              <h2 className="font-semibold">Carrinho criado</h2>
-              <p className="mt-1 text-sm">Subtotal: <b>{brl(cart.subtotalCents)}</b></p>
-              <p className="text-xs text-gray-500">Ref.: {cart.cartId}</p>
-              <div className="mt-2"><Badge p={cart.provenance} /></div>
-              <p className="mt-2 text-xs text-gray-500">Simulação local: nada foi enviado ao iFood.</p>
-            </Card>
-            <Button onClick={restart}>Começar de novo</Button>
-          </>
+        {stage === 'market' && chosen && (
+          <MarketStep
+            option={chosen} auth={auth} onConnect={() => window.open(api.loginUrl, '_blank', 'noopener')} onRecheck={refreshAuth}
+            location={location} onLocation={setLocation} onConsult={consultMarket} result={market} budgetCents={budgetCents}
+            tools={tools} loading={busy === 'market'} error={error} onBack={() => go('options')} onRestart={restart}
+          />
         )}
+        {stage === 'done' && chosen && <DoneStep option={chosen} onBack={() => go('options')} onRestart={restart} />}
       </main>
+
+      <footer className="mt-8 space-y-3 border-t border-line pt-4 text-sm text-ink-muted">
+        <details>
+          <summary className={`cursor-pointer font-bold text-ink ${focusRing}`}>Como ler as etiquetas</summary>
+          <ul className="mt-2 space-y-2">
+            {(Object.keys(PROVENANCE) as (keyof typeof PROVENANCE)[]).map((p) => (
+              <li key={p} className="flex flex-wrap items-center gap-2"><Badge p={p} /> {PROVENANCE[p].hint}</li>
+            ))}
+          </ul>
+        </details>
+        <p>Protótipo local. Este app não cria carrinho nem faz pedidos no iFood.</p>
+      </footer>
     </div>
   )
 }
 
-function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
+function ConnectionPill({ auth, backend }: { auth: AuthState; backend: 'checking' | 'up' | 'down' }) {
+  const [label, cls] =
+    backend === 'down' ? ['Backend fora do ar', 'bg-tomato-soft text-tomato']
+      : auth === 'yes' ? ['iFood conectado', 'bg-herb-soft text-herb']
+        : auth === 'no' ? ['iFood não conectado', 'bg-surface-2 text-ink-muted']
+          : auth === 'error' ? ['Status indisponível', 'bg-surface-2 text-ink-muted']
+            : ['Verificando…', 'bg-surface-2 text-ink-muted']
   return (
-    <button onClick={onClick}
-      className={`rounded-full border px-3 py-1.5 text-sm ${on ? 'border-[#ea1d2c] bg-[#ea1d2c] text-white' : 'border-gray-300 bg-white'}`}>
-      {children}
-    </button>
+    <p role="status" className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${cls}`}>
+      <Icon name="plug" className="size-4" />{label}
+    </p>
   )
 }

@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-// Proxy conforme PLANO-BACKEND §12: /api e /auth -> backend :8000
+// Proxy conforme PLANO-BACKEND §12: /api, /auth e /health -> backend :8000
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
@@ -10,6 +10,7 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:8000',
       '/auth': 'http://localhost:8000',
+      '/health': 'http://localhost:8000',
     },
   },
 })
