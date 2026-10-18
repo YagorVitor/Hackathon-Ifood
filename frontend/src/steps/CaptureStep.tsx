@@ -1,11 +1,13 @@
 import type { ApiError } from '../api'
+import type { ReactNode } from 'react'
 import { Icon } from '../components/icons'
 import { PantryIllustration } from '../components/PantryIllustration'
 import { Button, Loading, Notice, focusRing, inputCls } from '../components/ui'
 import { PhotoInput } from '../components/PhotoInput'
 import { EXAMPLE_TEXT, LIMITS } from '../flow'
 
-export function CaptureStep({ text, onText, photo, onPhoto, onSubmit, loading, error }: {
+export function CaptureStep({ text, onText, photo, onPhoto, onSubmit, loading, error, connection }: {
+  connection: ReactNode
   photo: File | null
   onPhoto: (file: File | null) => void
   text: string
@@ -24,6 +26,8 @@ export function CaptureStep({ text, onText, photo, onPhoto, onSubmit, loading, e
         </div>
         <div className="welcome-art"><PantryIllustration /></div>
       </section>
+
+      {connection}
 
       <form className="capture-form" onSubmit={(e) => { e.preventDefault(); if ((text.trim() || photo) && !loading) onSubmit() }}>
         <div className="capture-heading">

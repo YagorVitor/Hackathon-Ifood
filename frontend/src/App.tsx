@@ -6,12 +6,14 @@ import { LIMITS, buildContext, emptyFields, emptyTags, fromRecognized, parseNumb
 import type { DeclaredFields, DraftItem } from './flow'
 import type { AgentResponse, DeclaredTags, Location, McpTool, MealOption, SelectedProduct, UserContext } from './types'
 import { photoDataUrl } from './components/PhotoInput'
+import { IfoodConnection } from './components/IfoodConnection'
+import { useIfoodConnection } from './hooks/useIfoodConnection'
+import type { AuthState } from './hooks/useIfoodConnection'
 import { CaptureStep } from './steps/CaptureStep'
 import { CartStep } from './steps/CartStep'
 import { DeliveryAddressPicker, useDeliveryAddress } from './components/DeliveryAddressPicker'
 import { DoneStep } from './steps/DoneStep'
 import { MarketStep } from './steps/MarketStep'
-import type { AuthState } from './steps/MarketStep'
 import { OptionsStep } from './steps/OptionsStep'
 import { ReviewStep } from './steps/ReviewStep'
 import { TagsStep } from './steps/TagsStep'
@@ -44,7 +46,7 @@ export default function App() {
   const [busy, setBusy] = useState<Busy>(null)
   const [error, setError] = useState<ApiError | null>(null)
   const [backend, setBackend] = useState<'checking' | 'up' | 'down'>('checking')
-  const [auth, setAuth] = useState<AuthState>('checking')
+  const { auth, setAuth, waitingForLogin, connect, refreshAuth } = useIfoodConnection()
   const [tools, setTools] = useState<McpTool[] | null>(null)
   const delivery = useDeliveryAddress(auth === 'yes' && (stage === 'market' || stage === 'cart'))
   const address = delivery.selected
@@ -76,23 +78,7 @@ export default function App() {
     api.health().then(() => setBackend('up')).catch(() => setBackend('down'))
   }, [])
 
-  const refreshAuth = useCallback(() => {
-    setAuth('checking')
-    api.authStatus()
-      .then((r) => setAuth(r.authenticated ? 'yes' : 'no'))
-      .catch(() => setAuth('error'))
-  }, [])
-
-  useEffect(() => { checkBackend(); refreshAuth() }, [checkBackend, refreshAuth])
-
-  // O login iFood termina em outra aba (callback no backend); ao voltar, conferimos de novo.
-  useEffect(() => {
-    if ((stage !== 'market' && stage !== 'cart') || auth === 'yes') return
-    const onFocus = () => { if (document.visibilityState === 'visible') refreshAuth() }
-    window.addEventListener('focus', onFocus)
-    document.addEventListener('visibilitychange', onFocus)
-    return () => { window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus) }
-  }, [stage, auth, refreshAuth])
+  useEffect(() => { checkBackend() }, [checkBackend])
 
   useEffect(() => {
     if (stage !== 'market' || auth !== 'yes' || tools !== null) return
@@ -120,7 +106,7 @@ export default function App() {
     } finally {
       setBusy(null)
     }
-  }, [])
+  }, [setAuth])
 
   async function capture() {
     let res: AgentResponse | null = null
@@ -240,7 +226,7 @@ export default function App() {
             <span className="header-section"><Icon name="jar" className="size-4" /> Minha despensa</span>
             <a href="#como-funciona" className={`help-link ${focusRing}`}>Como funciona</a>
           </div>
-          <ConnectionPill auth={auth} backend={backend} />
+          <ConnectionPill auth={auth} backend={backend} onConnect={connect} />
         </div>
       </header>
 
@@ -272,7 +258,8 @@ export default function App() {
         <div className={`workspace ${stage === 'capture' ? 'workspace-capture' : ''}`}>
           <main id="conteudo" className={`stage-content stage-${stage}`}>
         {stage === 'capture' && (
-          <CaptureStep text={text} onText={setText} photo={photo} onPhoto={setPhoto} onSubmit={capture} loading={busy === 'capture'} error={error} />
+          <CaptureStep text={text} onText={setText} photo={photo} onPhoto={setPhoto} onSubmit={capture} loading={busy === 'capture'} error={error}
+            connection={<IfoodConnection auth={auth} waiting={waitingForLogin} disabled={backend !== 'up'} onConnect={connect} onRecheck={refreshAuth} />} />
         )}
         {stage === 'review' && (
           <ReviewStep
@@ -296,11 +283,11 @@ export default function App() {
         )}
         {stage === 'market' && chosen && (
           <MarketStep
-            option={chosen} auth={auth} onConnect={() => window.open(api.loginUrl, '_blank', 'noopener')} onRecheck={refreshAuth}
+            option={chosen} auth={auth} onConnect={connect} onRecheck={refreshAuth}
             location={searchLocation} onLocation={(next) => { invalidateSearch(); setLocation(next) }} onConsult={consultMarket} result={market} budgetCents={budgetCents}
             cartEnabled={!!address && address.latitude !== null && address.longitude !== null}
             addressPicker={<DeliveryAddressPicker state={delivery.state} selected={address} disabled={busy !== null}
-              onReconnect={() => window.open(api.loginUrl, '_blank', 'noopener')}
+              onReconnect={connect}
               onSelect={(id) => { invalidateSearch(); delivery.select(id) }} onReload={() => { invalidateSearch(); delivery.reload() }} />}
             tools={tools} loading={busy === 'market'} error={error} onBack={() => go('options')} onRestart={restart}
             onCart={(products) => { setCartProducts(products); go('cart') }}
@@ -363,13 +350,18 @@ export default function App() {
   )
 }
 
-function ConnectionPill({ auth, backend }: { auth: AuthState; backend: 'checking' | 'up' | 'down' }) {
+function ConnectionPill({ auth, backend, onConnect }: { auth: AuthState; backend: 'checking' | 'up' | 'down'; onConnect: () => void }) {
   const [label, cls] =
     backend === 'down' ? ['Backend fora do ar', 'bg-tomato-soft text-tomato']
       : auth === 'yes' ? ['iFood conectado', 'bg-herb-soft text-herb']
-        : auth === 'no' ? ['Conecte ao buscar no Mercado', 'bg-surface-2 text-ink-muted']
+        : auth === 'no' ? ['Conectar conta iFood', 'bg-surface-2 text-ink-muted']
           : auth === 'error' ? ['Status indisponível', 'bg-surface-2 text-ink-muted']
             : ['Verificando…', 'bg-surface-2 text-ink-muted']
+  if (backend === 'up' && (auth === 'no' || auth === 'error')) return (
+    <button type="button" onClick={onConnect} className={`connection-pill inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold ${cls} ${focusRing}`}>
+      <Icon name="plug" className="size-4" />Conectar conta iFood
+    </button>
+  )
   return (
     <p role="status" className={`connection-pill inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold ${cls}`}>
       <Icon name="plug" className="size-4" />{label}

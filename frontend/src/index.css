@@ -68,6 +68,19 @@ input:focus, textarea:focus { border-color: var(--herb); }
 .help-link { color: var(--ink-muted); text-decoration: none; padding: 8px 0; }
 .help-link:hover { color: var(--herb); }
 .connection-pill { margin-left: auto; max-width: 250px; }
+.ifood-connection { display: flex; align-items: flex-start; gap: 12px; padding: 18px; margin-top: 20px; border: 1px solid #efd5d7; border-radius: 16px; background: #fffafa; }
+.ifood-connection-copy { flex: 1; min-width: 0; }
+.ifood-connection h2 { font-size: 15px; font-weight: 750; line-height: 1.5; }
+.ifood-connection p { font-size: 12px; color: var(--ink-muted); line-height: 1.6; margin-top: 4px; }
+.ifood-connection .ifood-connection-status { font-size: 11px; }
+.ifood-connection-actions { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.ifood-connection-actions button { font-size: 12px; padding-left: 12px; padding-right: 12px; }
+.ifood-connection.is-connected { border-color: #cddfca; background: #f5f9f3; }
+@media (max-width: 1050px) {
+  .ifood-connection { flex-wrap: wrap; }
+  .ifood-connection-copy { flex-basis: calc(100% - 60px); }
+  .ifood-connection-actions { width: 100%; }
+}
 .page-container { max-width: 1248px; margin: 0 auto; padding: 0 32px; }
 .progress-nav { padding: 28px 0 32px; }
 .progress-nav ol { display: flex; align-items: center; max-width: 890px; margin: auto; padding: 0; list-style: none; }

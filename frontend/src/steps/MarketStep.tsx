@@ -6,8 +6,7 @@ import { AgentNote, Badge, Button, Card, Limitations, Loading, Notice, StageTitl
 import { normalized, parseNumber } from '../flow'
 import type { AgentResponse, CostSummary, Location, McpTool, MealOption, SearchEvidence, SelectedProduct } from '../types'
 import { IngredientLine, StrategyTag } from './OptionsStep'
-
-export type AuthState = 'checking' | 'yes' | 'no' | 'error'
+import type { AuthState } from '../hooks/useIfoodConnection'
 
 export function MarketStep({
   option, auth, onConnect, onRecheck, location, onLocation, onConsult, result, budgetCents, tools, loading, error, onBack, onRestart, onCart, addressPicker, cartEnabled,

@@ -1,13 +1,14 @@
 import os
 import asyncio
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field, ValidationError
 
 from . import cart, ifood_mcp
 from .agent import run_agent
+from .auth_pages import CONNECTED_PAGE
 from .context import ConversationStore
 from .contracts import (Address, AgentRequest, AgentResponse, CartConfirmRequest, CartProposal,
     CartProposalRequest, CartResult, SearchCriteria, UserContext)
@@ -81,14 +82,26 @@ async def ifood_callback(
     # Um novo login pode trocar a conta: nenhum destino/produto anterior é reutilizado.
     request.app.state.cart = cart.CartStore()
     return HTMLResponse(
-        "<main><h1>Conta iFood conectada</h1>"
-        "<p>Agora você pode consultar <a href='/mcp/tools'>as ferramentas MCP</a>.</p></main>"
+        CONNECTED_PAGE,
+        headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
     )
 
 
 @app.get("/auth/status")
-async def auth_status(request: Request) -> dict[str, bool]:
-    return {"authenticated": request.app.state.ifood_oauth.tokens is not None}
+async def auth_status(request: Request, response: Response) -> dict[str, bool]:
+    response.headers['Cache-Control'] = 'no-store'
+    oauth = request.app.state.ifood_oauth
+    if oauth.tokens is None:
+        return {"authenticated": False}
+    try:
+        # A presença de um token vencido não significa que a conta segue conectada.
+        # access_token renova com o buffer de cinco minutos já usado pelo MCP.
+        await oauth.access_token(Settings.from_env())
+    except HTTPException as exc:
+        if exc.status_code == 401:
+            return {"authenticated": False}
+        raise
+    return {"authenticated": True}
 
 
 @app.get("/api/integration/tools")
