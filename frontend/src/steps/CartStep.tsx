@@ -3,7 +3,6 @@ import { ApiError, api } from '../api'
 import { Icon } from '../components/icons'
 import { Badge, Button, Card, Chip, Limitations, Loading, Notice, StageTitle, brl, focusRing } from '../components/ui'
 import type { Address, CartProposal, CartResult, MealOption, SelectedProduct } from '../types'
-import type { AuthState } from './MarketStep'
 import { StrategyTag } from './OptionsStep'
 
 // Carrinho em três momentos: montar → revisar a proposta → criar no iFood (só após confirmação explícita).
@@ -25,20 +24,18 @@ function groupStores(products: SelectedProduct[]): Store[] {
   return [...map.values()].sort((a, b) => b.products.length - a.products.length || a.subtotal - b.subtotal)
 }
 
-export function CartStep({ option, products, auth, onConnect, onRecheck, onBack, onRestart }: {
+export function CartStep({ option, products, address, onChangeAddress, onBack, onRestart }: {
   option: MealOption
   products: SelectedProduct[]
-  auth: AuthState
-  onConnect: () => void
-  onRecheck: () => void
+  address: Address
+  onChangeAddress: () => void
   onBack: () => void
   onRestart: () => void
 }) {
   const stores = useMemo(() => groupStores(products), [products])
   const [storeId, setStoreId] = useState(stores[0]?.id ?? '')
   const [qty, setQty] = useState<Record<string, number>>(() => Object.fromEntries(products.map((p) => [p.item_id, p.quantidade_embalagens])))
-  const [addresses, setAddresses] = useState<Address[] | null>(null)
-  const [addressId, setAddressId] = useState<string | null>(null)
+  const addressId = address.id
   const [phase, setPhase] = useState<Phase>('build')
   const [proposal, setProposal] = useState<CartProposal | null>(null)
   const [result, setResult] = useState<CartResult | null>(null)
@@ -47,18 +44,6 @@ export function CartStep({ option, products, auth, onConnect, onRecheck, onBack,
 
   const store = stores.find((s) => s.id === storeId) ?? stores[0]
   const lines = store ? store.products.filter((p) => (qty[p.item_id] ?? 0) > 0) : []
-
-  useEffect(() => {
-    if (auth !== 'yes' || addresses !== null) return
-    setBusy('addresses')
-    api.addresses()
-      .then((list) => {
-        setAddresses(list)
-        setAddressId((list.find((a) => a.ultimo_usado) ?? list[0])?.id ?? null)
-      })
-      .catch((e) => { setAddresses([]); setError(asApiError(e)) })
-      .finally(() => setBusy(null))
-  }, [auth, addresses])
 
   useEffect(() => {
     window.scrollTo({ top: 0 })
@@ -97,7 +82,6 @@ export function CartStep({ option, products, auth, onConnect, onRecheck, onBack,
   }
 
   const setQuantity = (id: string, n: number) => setQty((q) => ({ ...q, [id]: Math.max(0, Math.min(100, n)) }))
-  const address = addresses?.find((a) => a.id === addressId) ?? null
 
   if (phase === 'created' && result) return <CartCreated result={result} address={address} onBack={onBack} onRestart={onRestart} />
 
@@ -105,7 +89,7 @@ export function CartStep({ option, products, auth, onConnect, onRecheck, onBack,
     return (
       <div className="space-y-4">
         <StageTitle kicker="Confira antes de confirmar">Revise seu carrinho.</StageTitle>
-        <p className="text-ink-muted">Nada foi enviado ao iFood ainda. Ao confirmar, o carrinho é criado na sua conta.</p>
+        <p className="text-ink-muted">Nenhum carrinho foi criado ainda. Ao confirmar, o carrinho é criado na sua conta.</p>
 
         <Card className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -168,7 +152,7 @@ export function CartStep({ option, products, auth, onConnect, onRecheck, onBack,
   return (
     <div className="space-y-4">
       <StageTitle kicker="Você decide o que vai para o carrinho">Monte seu carrinho.</StageTitle>
-      <p className="text-ink-muted">Ajuste as quantidades e o endereço. Nada é enviado ao iFood antes da sua confirmação.</p>
+      <p className="text-ink-muted">Ajuste as quantidades e confira o destino usado na busca. Nenhum carrinho é criado antes da sua confirmação.</p>
 
       <Card className="space-y-2">
         <StrategyTag s={option.estrategia} />
@@ -221,36 +205,9 @@ export function CartStep({ option, products, auth, onConnect, onRecheck, onBack,
 
       <Card as="section" className="space-y-3">
         <h3 className="text-lg font-bold">Endereço de entrega</h3>
-        {auth !== 'yes' ? (
-          <div className="space-y-2">
-            <p className="text-sm text-ink-muted">Conecte sua conta iFood para ver os endereços salvos. O login acontece em uma nova aba.</p>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button icon="external" onClick={onConnect}>Conectar conta iFood</Button>
-              <Button variant="secondary" icon="refresh" onClick={onRecheck}>Já conectei, verificar</Button>
-            </div>
-          </div>
-        ) : busy === 'addresses' ? (
-          <p className="text-sm text-ink-muted" role="status">Buscando endereços salvos…</p>
-        ) : addresses && addresses.length > 0 ? (
-          <fieldset className="space-y-2">
-            <legend className="sr-only">Escolha o endereço de entrega</legend>
-            {addresses.map((a) => (
-              <label key={a.id} className={`flex cursor-pointer items-start gap-3 rounded-xl border-2 p-3 ${a.id === addressId ? 'border-herb bg-herb-soft' : 'border-line'}`}>
-                <input type="radio" name="address" className="mt-1 size-5 shrink-0 accent-[var(--herb)]" checked={a.id === addressId}
-                  onChange={() => setAddressId(a.id)} disabled={busy !== null} />
-                <span className="min-w-0 text-sm">
-                  <b className="block">{a.rotulo ?? 'Endereço salvo'}{a.ultimo_usado && <span className="font-normal text-ink-muted"> · usado por último</span>}</b>
-                  <span className="text-ink-muted break-words">{a.endereco ?? 'Detalhes não informados pelo iFood'}</span>
-                </span>
-              </label>
-            ))}
-          </fieldset>
-        ) : (
-          <div className="space-y-2">
-            <p className="text-sm text-ink-muted">Nenhum endereço salvo foi encontrado. Cadastre um no app do iFood e tente de novo.</p>
-            <Button variant="secondary" icon="refresh" onClick={() => { setError(null); setAddresses(null) }}>Buscar endereços de novo</Button>
-          </div>
-        )}
+        <p className="text-sm"><b>{address.rotulo ?? 'Endereço selecionado'}</b> · {address.endereco ?? 'Salvo no iFood'}</p>
+        <p className="text-sm text-ink-muted">É o mesmo destino usado para buscar estes produtos.</p>
+        <Button variant="secondary" onClick={onChangeAddress} disabled={busy !== null}>Trocar endereço e refazer busca</Button>
       </Card>
 
       {busy === 'proposal' && <Loading label="Preparando a revisão…" />}

@@ -8,6 +8,7 @@ import type { AgentResponse, DeclaredTags, Location, McpTool, MealOption, Select
 import { photoDataUrl } from './components/PhotoInput'
 import { CaptureStep } from './steps/CaptureStep'
 import { CartStep } from './steps/CartStep'
+import { DeliveryAddressPicker, useDeliveryAddress } from './components/DeliveryAddressPicker'
 import { DoneStep } from './steps/DoneStep'
 import { MarketStep } from './steps/MarketStep'
 import type { AuthState } from './steps/MarketStep'
@@ -45,7 +46,28 @@ export default function App() {
   const [backend, setBackend] = useState<'checking' | 'up' | 'down'>('checking')
   const [auth, setAuth] = useState<AuthState>('checking')
   const [tools, setTools] = useState<McpTool[] | null>(null)
+  const delivery = useDeliveryAddress(auth === 'yes' && (stage === 'market' || stage === 'cart'))
+  const address = delivery.selected
+  const searchLocation = address?.latitude != null && address.longitude != null
+    ? { latitude: address.latitude, longitude: address.longitude } : location
   const autoSearchAttempted = useRef(false)
+  const searchGeneration = useRef(0)
+  const destinationKey = `${address?.id ?? 'consulta'}:${searchLocation?.latitude ?? ''}:${searchLocation?.longitude ?? ''}`
+  useEffect(() => {
+    searchGeneration.current += 1
+    autoSearchAttempted.current = false
+    setMarket(null)
+    setCartProducts([])
+  }, [destinationKey])
+
+  const invalidateSearch = () => {
+    setError(null)
+    searchGeneration.current += 1
+    autoSearchAttempted.current = false
+    setMarket(null)
+    setCartProducts([])
+    setLocation(null)
+  }
 
   const go = (s: Stage) => { setError(null); setStage(s) }
 
@@ -174,19 +196,20 @@ export default function App() {
   }
 
   const consultMarket = useCallback(async () => {
-    if (!chosen || !location) return
+    if (!chosen || !searchLocation) return
+    const generation = ++searchGeneration.current
     setMarket(null)
     const message = `Escolhi esta opção: ${JSON.stringify(chosen)}. Mantenha essa refeição como única opção e busque no iFood Mercado apenas os ingredientes faltantes dela.`
-    const res = await send('market', message, buildContext({ items, fields, tags, consent, location }))
-    if (res) setMarket(res)
-  }, [chosen, location, items, fields, tags, consent, send])
+    const res = await send('market', message, buildContext({ items, fields, tags, consent, location: searchLocation }))
+    if (res && generation === searchGeneration.current) setMarket(res)
+  }, [chosen, searchLocation?.latitude, searchLocation?.longitude, items, fields, tags, consent, send])
 
   // Escolher a opção já autoriza a busca. Conexão e localização só suspendem sua execução.
   useEffect(() => {
-    if (stage !== 'market' || auth !== 'yes' || !location || !chosen || market || busy || autoSearchAttempted.current) return
+    if (stage !== 'market' || auth !== 'yes' || !searchLocation || !chosen || market || busy || autoSearchAttempted.current) return
     autoSearchAttempted.current = true
     void consultMarket()
-  }, [stage, auth, location, chosen, market, busy, consultMarket])
+  }, [stage, auth, searchLocation, chosen, market, busy, consultMarket])
 
   function restart() {
     setText('')
@@ -274,15 +297,20 @@ export default function App() {
         {stage === 'market' && chosen && (
           <MarketStep
             option={chosen} auth={auth} onConnect={() => window.open(api.loginUrl, '_blank', 'noopener')} onRecheck={refreshAuth}
-            location={location} onLocation={(next) => { autoSearchAttempted.current = false; setLocation(next) }} onConsult={consultMarket} result={market} budgetCents={budgetCents}
+            location={searchLocation} onLocation={(next) => { invalidateSearch(); setLocation(next) }} onConsult={consultMarket} result={market} budgetCents={budgetCents}
+            cartEnabled={!!address && address.latitude !== null && address.longitude !== null}
+            addressPicker={<DeliveryAddressPicker state={delivery.state} selected={address} disabled={busy !== null}
+              onReconnect={() => window.open(api.loginUrl, '_blank', 'noopener')}
+              onSelect={(id) => { invalidateSearch(); delivery.select(id) }} onReload={() => { invalidateSearch(); delivery.reload() }} />}
             tools={tools} loading={busy === 'market'} error={error} onBack={() => go('options')} onRestart={restart}
             onCart={(products) => { setCartProducts(products); go('cart') }}
           />
         )}
-        {stage === 'cart' && chosen && cartProducts.length > 0 && (
+        {stage === 'cart' && chosen && cartProducts.length > 0 && address && (
           <CartStep
-            option={chosen} products={cartProducts} auth={auth} onConnect={() => window.open(api.loginUrl, '_blank', 'noopener')}
-            onRecheck={refreshAuth} onBack={() => go('market')} onRestart={restart}
+            option={chosen} products={cartProducts} address={address}
+            onChangeAddress={() => { invalidateSearch(); delivery.select(null); go('market') }}
+            onBack={() => go('market')} onRestart={restart}
           />
         )}
         {stage === 'done' && chosen && <DoneStep option={chosen} onBack={() => go('options')} onRestart={restart} />}

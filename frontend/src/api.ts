@@ -51,6 +51,8 @@ function toApiError(status: number, body: unknown, emptyBody: boolean): ApiError
       return new ApiError('validation', text ?? 'Escolha uma imagem JPEG, PNG ou WebP.', status)
     case 401:
       return new ApiError('auth', text ?? 'Conecte sua conta iFood para continuar.', status)
+    case 403:
+      return new ApiError('auth', text ?? 'O iFood não autorizou esta operação. Confira as permissões da conexão.', status)
     case 409:
       return new ApiError('validation', text ?? 'Os dados mudaram desde a revisão. Confira e tente de novo.', status)
     case 404:

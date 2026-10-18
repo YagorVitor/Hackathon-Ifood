@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import type { ApiError } from '../api'
 import { Icon } from '../components/icons'
 import { AgentNote, Badge, Button, Card, Limitations, Loading, Notice, StageTitle, brl, focusRing, inputCls } from '../components/ui'
@@ -9,7 +10,7 @@ import { IngredientLine, StrategyTag } from './OptionsStep'
 export type AuthState = 'checking' | 'yes' | 'no' | 'error'
 
 export function MarketStep({
-  option, auth, onConnect, onRecheck, location, onLocation, onConsult, result, budgetCents, tools, loading, error, onBack, onRestart, onCart,
+  option, auth, onConnect, onRecheck, location, onLocation, onConsult, result, budgetCents, tools, loading, error, onBack, onRestart, onCart, addressPicker, cartEnabled,
 }: {
   option: MealOption
   auth: AuthState
@@ -26,6 +27,8 @@ export function MarketStep({
   onBack: () => void
   onRestart: () => void
   onCart: (products: SelectedProduct[]) => void
+  addressPicker: ReactNode
+  cartEnabled: boolean
 }) {
   const ready = auth === 'yes' && location !== null
 
@@ -44,7 +47,7 @@ export function MarketStep({
         <IngredientLine label="Vamos procurar" items={option.faltantes} tone="missing" />
       </Card>
 
-      {!result && (
+      {(
         <Card as="section" className="space-y-4">
           <h3 className="text-lg font-bold">Tudo pronto para a busca?</h3>
           <p className="text-sm text-ink-muted">Assim que a conta e a localização estiverem prontas, o agente inicia a busca automaticamente.</p>
@@ -65,8 +68,13 @@ export function MarketStep({
               )}
             </li>
             <li className="space-y-2">
-              <StepHead n={2} done={location !== null} title="Onde buscar" />
-              <LocationPicker location={location} onLocation={onLocation} disabled={loading} />
+              <StepHead n={2} done={cartEnabled} title="Endereço de entrega" />
+              {auth === 'yes' && addressPicker}
+              {auth === 'yes' && !cartEnabled && <details className="rounded-xl border border-line p-3">
+                <summary className={`cursor-pointer text-sm font-bold ${focusRing}`}>Explorar por localização, sem criar carrinho</summary>
+                <p className="my-2 text-sm text-ink-muted">Isso permite consultar ofertas. Um carrinho exige endereço salvo e uma nova busca para esse destino.</p>
+                <LocationPicker location={location} onLocation={onLocation} disabled={loading} />
+              </details>}
             </li>
           </ol>
         </Card>
@@ -80,7 +88,7 @@ export function MarketStep({
         </Notice>
       )}
 
-      {result && !loading && <MarketResult result={result} budgetCents={budgetCents} onCart={onCart} />}
+      {result && !loading && <MarketResult result={result} budgetCents={budgetCents} onCart={onCart} cartEnabled={cartEnabled} />}
 
       {!loading && (
         <div className="space-y-2">
@@ -208,7 +216,7 @@ function parseSigned(raw: string): number | null {
   return n === null || Number.isNaN(n) ? null : neg ? -n : n
 }
 
-function MarketResult({ result, budgetCents, onCart }: { result: AgentResponse; budgetCents: number | null; onCart: (products: SelectedProduct[]) => void }) {
+function MarketResult({ result, budgetCents, onCart, cartEnabled }: { result: AgentResponse; budgetCents: number | null; onCart: (products: SelectedProduct[]) => void; cartEnabled: boolean }) {
   const { data } = result
   const searched = data.buscas.length > 0
   const failed = searched && data.buscas.every((b) => b.status === 'error')
@@ -278,7 +286,8 @@ function MarketResult({ result, budgetCents, onCart }: { result: AgentResponse; 
             })}
           </ul>
           {cost && <CostCard cost={cost} budgetCents={budgetCents} stores={new Set(products.map((p) => p.merchant_id)).size} />}
-          {products.length > 0 && <Button icon="cart" onClick={() => onCart(products)}>Montar carrinho com estes itens</Button>}
+          {products.length > 0 && <Button icon="cart" disabled={!cartEnabled} onClick={() => onCart(products)}>Montar carrinho com estes itens</Button>}
+          {products.length > 0 && !cartEnabled && <p className="text-sm text-ink-muted">Escolha um endereço salvo acima para refazer a busca e montar o carrinho.</p>}
         </Card>
       ))}
 
