@@ -1,4 +1,5 @@
 import os
+import secrets
 import asyncio
 from uuid import UUID
 from contextlib import asynccontextmanager
@@ -24,6 +25,7 @@ async def lifespan(app: FastAPI):
     app.state.ifood_oauth = IfoodOAuth()
     app.state.conversations = ConversationStore()
     app.state.cart = cart.CartStore()
+    app.state.connection_id = secrets.token_urlsafe(16)
     yield
 
 
@@ -82,6 +84,7 @@ async def ifood_callback(
     )
     # Um novo login pode trocar a conta: nenhum destino/produto anterior é reutilizado.
     request.app.state.cart = cart.CartStore()
+    request.app.state.connection_id = secrets.token_urlsafe(16)
     return HTMLResponse(
         CONNECTED_PAGE,
         headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
@@ -89,7 +92,7 @@ async def ifood_callback(
 
 
 @app.get("/auth/status")
-async def auth_status(request: Request, response: Response) -> dict[str, bool]:
+async def auth_status(request: Request, response: Response) -> dict[str, bool | str]:
     response.headers['Cache-Control'] = 'no-store'
     oauth = request.app.state.ifood_oauth
     if oauth.tokens is None:
@@ -102,7 +105,7 @@ async def auth_status(request: Request, response: Response) -> dict[str, bool]:
         if exc.status_code == 401:
             return {"authenticated": False}
         raise
-    return {"authenticated": True}
+    return {"authenticated": True, "connection_id": request.app.state.connection_id}
 
 
 @app.get("/api/integration/tools")
@@ -137,6 +140,7 @@ async def agent_test(payload: AgentRequest, request: Request) -> AgentResponse:
     store = request.app.state.conversations
     async with store.lock:
         session_id, envelope = store.prepare(payload)
+        connection_id = request.app.state.connection_id
 
         async def get_token():
             return await request.app.state.ifood_oauth.access_token(settings)
@@ -152,6 +156,8 @@ async def agent_test(payload: AgentRequest, request: Request) -> AgentResponse:
             raise HTTPException(504, "O agente excedeu o tempo de execução. Nenhuma compra foi realizada.") from exc
         except Exception as exc:
             raise HTTPException(502, "O agente não produziu uma resposta válida. Tente novamente.") from exc
+        if connection_id != request.app.state.connection_id:
+            raise HTTPException(409, "A conexão iFood mudou durante a consulta. Faça uma nova busca.")
         store.commit(session_id, envelope, execution.output)
         # Só estes snapshots do MCP podem entrar numa proposta de carrinho.
         request.app.state.cart.remember(execution.output.produtos, envelope.contexto.localizacao)
@@ -225,10 +231,16 @@ async def cart_confirm(payload: CartConfirmRequest, request: Request) -> CartRes
     proposal = store.begin(payload)
     if isinstance(proposal, CartResult):
         return proposal
+    write_started = False
+    created = None
+    cart_id = None
     try:
         settings = Settings.from_env()
         token = await request.app.state.ifood_oauth.access_token(settings)
+        if store is not request.app.state.cart:
+            raise HTTPException(409, "A conexão iFood mudou. Revise o carrinho novamente.")
         try:
+            write_started = True
             created = await ifood_mcp.call_tool(
                 mcp_url=settings.mcp_url, access_token=token, name="createCart",
                 candidates=cart.create_cart_arguments(proposal),
@@ -238,11 +250,15 @@ async def cart_confirm(payload: CartConfirmRequest, request: Request) -> CartRes
                 store.uncertain(proposal.id)
                 # Falha de transporte após o envio: o carrinho pode ter sido criado.
                 raise HTTPException(502, "Não foi possível confirmar a criação do carrinho. Confira o app do iFood antes de tentar de novo.") from exc
+            write_started = False
             raise
         try:
             cart_id = cart.cart_id_of(created)
         except cart.CartCreationUncertain:
             store.uncertain(proposal.id)
+            raise
+        except HTTPException:
+            write_started = False
             raise
         try:
             snapshot = await ifood_mcp.call_tool(
@@ -255,7 +271,16 @@ async def cart_confirm(payload: CartConfirmRequest, request: Request) -> CartRes
                 "getCart não respondeu; os dados exibidos são os devolvidos por createCart.",
             ])
     except BaseException:
-        store.release(proposal.id)
+        if cart_id is not None:
+            # A leitura pode ser cancelada após a escrita ter sido confirmada.
+            store.finish(cart.build_result(proposal, cart_id, created, [
+                "A conferência foi interrompida; o carrinho já foi criado. Não repita a criação.",
+            ]))
+        elif write_started:
+            # Inclusive CancelledError: não sabemos se o servidor recebeu a escrita.
+            store.uncertain(proposal.id)
+        else:
+            store.release(proposal.id)
         raise
     store.finish(result)
     return result

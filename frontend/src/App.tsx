@@ -49,11 +49,12 @@ export default function App() {
   const [cartProducts, setCartProducts] = useState<SelectedProduct[]>([])
   const [location, setLocation] = useState<Location | null>(null)
   const [busy, setBusy] = useState<Busy>(null)
+  const [cartBusy, setCartBusy] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
   const [backend, setBackend] = useState<'checking' | 'up' | 'down'>('checking')
-  const { auth, setAuth, waitingForLogin, connect, refreshAuth } = useIfoodConnection()
+  const { auth, connectionId, setAuth, waitingForLogin, connect, refreshAuth } = useIfoodConnection()
   const [tools, setTools] = useState<McpTool[] | null>(null)
-  const delivery = useDeliveryAddress(auth === 'yes' && (stage === 'market' || stage === 'cart'))
+  const delivery = useDeliveryAddress(auth === 'yes' && (stage === 'market' || stage === 'cart'), connectionId)
   const address = delivery.selected
   const searchLocation = address?.latitude != null && address.longitude != null
     ? { latitude: address.latitude, longitude: address.longitude } : location
@@ -76,6 +77,17 @@ export default function App() {
     setLocation(null)
   }
 
+  useEffect(() => {
+    searchGeneration.current += 1
+    autoSearchAttempted.current = false
+    setError(null)
+    setMarket(null)
+    setCartProducts([])
+    setLocation(null)
+    setTools(null)
+    setStage(current => current === 'cart' ? 'market' : current)
+  }, [connectionId])
+
   const go = (s: Stage) => { setError(null); setStage(s) }
 
   const checkBackend = useCallback(() => {
@@ -87,8 +99,10 @@ export default function App() {
 
   useEffect(() => {
     if (stage !== 'market' || auth !== 'yes' || tools !== null) return
-    api.tools().then(setTools).catch(() => setTools([]))
-  }, [stage, auth, tools])
+    let cancelled = false
+    api.tools().then(value => { if (!cancelled) setTools(value) }).catch(() => { if (!cancelled) setTools([]) })
+    return () => { cancelled = true }
+  }, [stage, auth, tools, connectionId])
 
   const mounted = useRef(false)
   useEffect(() => {
@@ -160,7 +174,8 @@ export default function App() {
   }
 
   function openProfile() {
-    profileReturn.current = stage === 'tags' ? profileReturn.current : stage
+    if (cartBusy) return
+    profileReturn.current = stage === 'tags' ? profileReturn.current : stage === 'cart' ? 'market' : stage
     setTagsMode('edit')
     go('tags')
   }
@@ -262,7 +277,7 @@ export default function App() {
             <span className="header-section"><Icon name="jar" className="size-4" />{t(" Minha despensa")}</span>
             <a href="#como-funciona" className={`help-link ${focusRing}`}>{t("Como funciona")}</a>
           </div>
-          <button type="button" className={`help-link profile-trigger inline-flex min-h-11 items-center gap-1 ${focusRing}`} onClick={openProfile} disabled={busy !== null}>
+          <button type="button" className={`help-link profile-trigger inline-flex min-h-11 items-center gap-1 ${focusRing}`} onClick={openProfile} disabled={busy !== null || cartBusy}>
             <Icon name="leaf" className="size-4" />{t("Meu perfil")}{profile.remember ? t(' · salvo') : ''}
           </button>
           <AccessibilityMenu />
@@ -340,7 +355,7 @@ export default function App() {
         )}
         {stage === 'cart' && chosen && cartProducts.length > 0 && address && (
           <CartStep
-            option={chosen} products={cartProducts} address={address}
+            option={chosen} products={cartProducts} address={address} onBusyChange={setCartBusy}
             onChangeAddress={() => { invalidateSearch(); delivery.select(null); go('market') }}
             onBack={() => go('market')} onRestart={restart}
           />

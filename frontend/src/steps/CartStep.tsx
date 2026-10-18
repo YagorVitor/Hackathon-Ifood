@@ -25,10 +25,11 @@ function groupStores(products: SelectedProduct[]): Store[] {
   return [...map.values()].sort((a, b) => b.products.length - a.products.length || a.subtotal - b.subtotal)
 }
 
-export function CartStep({ option, products, address, onChangeAddress, onBack, onRestart }: {
+export function CartStep({ option, products, address, onChangeAddress, onBack, onRestart, onBusyChange }: {
   option: MealOption
   products: SelectedProduct[]
   address: Address
+  onBusyChange: (busy: boolean) => void
   onChangeAddress: () => void
   onBack: () => void
   onRestart: () => void
@@ -41,6 +42,10 @@ export function CartStep({ option, products, address, onChangeAddress, onBack, o
   const [proposal, setProposal] = useState<CartProposal | null>(null)
   const [result, setResult] = useState<CartResult | null>(null)
   const [busy, setBusy] = useState<null | 'addresses' | 'proposal' | 'confirm'>(null)
+  useEffect(() => {
+    onBusyChange(busy !== null)
+    return () => onBusyChange(false)
+  }, [busy, onBusyChange])
   const [error, setError] = useState<ApiError | null>(null)
 
   const store = stores.find((s) => s.id === storeId) ?? stores[0]

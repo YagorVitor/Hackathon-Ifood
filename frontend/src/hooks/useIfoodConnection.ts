@@ -6,6 +6,7 @@ export type AuthState = 'checking' | 'yes' | 'no' | 'error'
 // O OAuth fica em outra aba para preservar o texto, a foto e a revisão em andamento.
 export function useIfoodConnection() {
   const [auth, setAuth] = useState<AuthState>('checking')
+  const [connectionId, setConnectionId] = useState<string | null>(null)
   const [waitingForLogin, setWaitingForLogin] = useState(false)
   const checking = useRef(false)
 
@@ -14,6 +15,7 @@ export function useIfoodConnection() {
     checking.current = true
     try {
       const result = await api.authStatus()
+      setConnectionId(result.authenticated ? result.connection_id ?? null : null)
       setAuth(result.authenticated ? 'yes' : 'no')
       if (result.authenticated) setWaitingForLogin(false)
     } catch {
@@ -51,5 +53,5 @@ export function useIfoodConnection() {
     window.open(api.loginUrl, '_blank', 'noopener,noreferrer')
   }, [])
 
-  return { auth, setAuth, waitingForLogin, connect, refreshAuth }
+  return { auth, connectionId, setAuth, waitingForLogin, connect, refreshAuth }
 }

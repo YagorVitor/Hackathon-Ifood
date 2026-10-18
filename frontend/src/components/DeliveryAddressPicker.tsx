@@ -4,9 +4,9 @@ import { ApiError, api } from '../api'
 import type { Address } from '../types'
 import { Button, Notice } from './ui'
 
-type AddressState = { status: 'idle' } | { status: 'loading' } | { status: 'error'; error: ApiError } | { status: 'ready'; addresses: Address[] }
+type AddressState = { status: 'idle' } | { status: 'loading' } | { status: 'error'; error: ApiError } | { status: 'ready'; addresses: Address[]; connectionId: string | null }
 
-export function useDeliveryAddress(enabled: boolean) {
+export function useDeliveryAddress(enabled: boolean, connectionId: string | null) {
   const [state, setState] = useState<AddressState>({ status: 'idle' })
   const [selectedId, select] = useState<string | null>(null)
   const [revision, setRevision] = useState(0)
@@ -16,7 +16,7 @@ export function useDeliveryAddress(enabled: boolean) {
     setState({ status: 'loading' })
     api.addresses().then(addresses => {
       if (cancelled) return
-      setState({ status: 'ready', addresses })
+      setState({ status: 'ready', addresses, connectionId })
       select(current => addresses.some(a => a.id === current) ? current : addresses.length === 1 ? addresses[0].id : null)
     }).catch(error => {
       if (cancelled) return
@@ -24,9 +24,10 @@ export function useDeliveryAddress(enabled: boolean) {
       setState({ status: 'error', error: error instanceof ApiError ? error : new ApiError('failed', 'Não foi possível consultar os endereços.') })
     })
     return () => { cancelled = true }
-  }, [enabled, revision])
-  const selected = state.status === 'ready' ? state.addresses.find(a => a.id === selectedId) ?? null : null
-  return { state, selected, select, reload: () => { select(null); setState({ status: 'loading' }); setRevision(v => v + 1) } }
+  }, [enabled, revision, connectionId])
+  const currentState: AddressState = state.status === 'ready' && state.connectionId !== connectionId ? { status: 'loading' } : state
+  const selected = enabled && currentState.status === 'ready' ? currentState.addresses.find(a => a.id === selectedId) ?? null : null
+  return { state: currentState, selected, select, reload: () => { select(null); setState({ status: 'loading' }); setRevision(v => v + 1) } }
 }
 
 export function DeliveryAddressPicker({ state, selected, onSelect, onReload, onReconnect, disabled }: {

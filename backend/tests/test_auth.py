@@ -33,7 +33,7 @@ class AuthAPITests(unittest.IsolatedAsyncioTestCase):
         with patch.object(app.state.ifood_oauth, 'access_token', new=AsyncMock(return_value='private-token')) as refresh:
             result = await self.client.get('/auth/status')
         refresh.assert_awaited_once()
-        self.assertEqual(result.json(), {'authenticated': True})
+        self.assertEqual(result.json(), {'authenticated': True, 'connection_id': app.state.connection_id})
         self.assertNotIn('private-token', result.text)
 
     async def test_expired_session_is_disconnected_but_service_errors_stay_errors(self):
@@ -56,6 +56,12 @@ class AuthAPITests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('/mcp/tools', result.text)
         self.assertEqual(result.headers['cache-control'], 'no-store')
         self.assertEqual(result.headers['referrer-policy'], 'no-referrer')
+
+    async def test_new_login_changes_connection_identity(self):
+        previous = app.state.connection_id
+        with patch.object(app.state.ifood_oauth, 'finish_authorization', new=AsyncMock()):
+            await self.client.get('/auth/callback', params={'code': 'synthetic', 'state': 'synthetic'})
+        self.assertNotEqual(previous, app.state.connection_id)
 
     async def test_rejected_or_incomplete_callback_does_not_exchange_tokens(self):
         with patch.object(app.state.ifood_oauth, 'finish_authorization', new=AsyncMock()) as finish:

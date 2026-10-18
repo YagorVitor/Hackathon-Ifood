@@ -1,4 +1,5 @@
 """Carrinho com dados sintéticos; formatos de resposta do Cart MCP são hipóteses tolerantes."""
+import asyncio
 import unittest
 import json
 from pathlib import Path
@@ -281,6 +282,42 @@ class CartAPITests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(first.status_code,502)
             self.assertEqual(repeated.status_code,409)
             self.assertEqual(call.await_count,1)
+
+    async def test_connection_changed_before_write_requires_new_proposal(self):
+        proposal = await self.propose()
+        body = dict(proposal_id=proposal['id'], snapshot_hash=proposal['snapshot_hash'], confirm=True)
+        async def switched_token(_settings):
+            app.state.cart = cart.CartStore()
+            return 'new-synthetic-token'
+        calls = AsyncMock()
+        with patch.object(app.state.ifood_oauth, 'access_token', new=switched_token), patch('app.main.ifood_mcp.call_tool', new=calls):
+            response = await self.client.post('/api/cart/confirm', json=body)
+        self.assertEqual(response.status_code, 409)
+        calls.assert_not_awaited()
+
+    async def test_cancelled_read_preserves_created_cart_without_another_write(self):
+        proposal = await self.propose()
+        body = dict(proposal_id=proposal['id'], snapshot_hash=proposal['snapshot_hash'], confirm=True)
+        calls = AsyncMock(side_effect=[mcp({'cartId': 'already-created'}), asyncio.CancelledError()])
+        with patch('app.main.ifood_mcp.call_tool', new=calls):
+            with self.assertRaises(asyncio.CancelledError):
+                await self.client.post('/api/cart/confirm', json=body)
+            repeated = await self.client.post('/api/cart/confirm', json=body)
+        self.assertEqual(repeated.status_code, 200)
+        self.assertEqual(repeated.json()['cart_id'], 'already-created')
+        self.assertEqual(repeated.json()['verificacao'], 'unverified')
+        self.assertEqual(calls.await_count, 2)
+
+    async def test_cancelled_write_stays_uncertain(self):
+        proposal = await self.propose()
+        body = dict(proposal_id=proposal['id'], snapshot_hash=proposal['snapshot_hash'], confirm=True)
+        calls = AsyncMock(side_effect=asyncio.CancelledError())
+        with patch('app.main.ifood_mcp.call_tool', new=calls):
+            with self.assertRaises(asyncio.CancelledError):
+                await self.client.post('/api/cart/confirm', json=body)
+            repeated = await self.client.post('/api/cart/confirm', json=body)
+        self.assertEqual(repeated.status_code, 409)
+        self.assertEqual(calls.await_count, 1)
 
     async def test_confirm_flag_is_mandatory_and_failure_allows_explicit_retry(self):
         proposal = await self.propose()

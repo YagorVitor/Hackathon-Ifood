@@ -76,7 +76,7 @@ function toApiError(status: number, body: unknown, emptyBody: boolean): ApiError
 
 export const api = {
   health: () => request<{ status: string }>('/health'),
-  authStatus: () => request<{ authenticated: boolean }>('/auth/status'),
+  authStatus: () => request<{ authenticated: boolean; connection_id?: string }>('/auth/status'),
   tools: async () => (await request<{ endpoint: string; tools: McpTool[] }>('/api/integration/tools', {}, 30_000)).tools,
   sendMessage: (payload: AgentRequest) =>
     request<AgentResponse>(
