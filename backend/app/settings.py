@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -26,6 +26,4 @@ class Settings:
 
     def validate_oauth(self) -> None:
         if not self.client_id or not self.client_secret:
-            raise RuntimeError(
-                "Configure IFOOD_CLIENT_ID e IFOOD_CLIENT_SECRET no arquivo .env."
-            )
+            raise RuntimeError("Configure IFOOD_CLIENT_ID e IFOOD_CLIENT_SECRET no arquivo .env.")

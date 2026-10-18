@@ -9,8 +9,15 @@ from unittest.mock import AsyncMock, patch
 import httpx2
 from fastapi import HTTPException
 from PIL import Image
+
 from app.main import app
-from app.vision import MAX_IMAGE_BYTES, MAX_REQUEST_BYTES, ImageExtraction, extract_image, prepare_image
+from app.vision import (
+    MAX_IMAGE_BYTES,
+    MAX_REQUEST_BYTES,
+    ImageExtraction,
+    extract_image,
+    prepare_image,
+)
 
 
 def image_url(fmt='JPEG', exif=False):

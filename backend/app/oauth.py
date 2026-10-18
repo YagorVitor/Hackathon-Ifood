@@ -41,15 +41,15 @@ class IfoodOAuth:
     def authorization_url(self, settings: Settings) -> str:
         settings.validate_oauth()
         verifier = secrets.token_urlsafe(48)
-        challenge = base64.urlsafe_b64encode(
-            hashlib.sha256(verifier.encode("ascii")).digest()
-        ).rstrip(b"=").decode("ascii")
+        challenge = (
+            base64.urlsafe_b64encode(hashlib.sha256(verifier.encode("ascii")).digest())
+            .rstrip(b"=")
+            .decode("ascii")
+        )
         state = secrets.token_urlsafe(24)
         now = time.monotonic()
         self._attempts = {
-            key: attempt
-            for key, attempt in self._attempts.items()
-            if attempt.expires_at > now
+            key: attempt for key, attempt in self._attempts.items() if attempt.expires_at > now
         }
         self._attempts[state] = OAuthAttempt(
             verifier=verifier, expires_at=now + ATTEMPT_TTL_SECONDS
@@ -65,9 +65,7 @@ class IfoodOAuth:
         }
         return f"{AUTHORIZE_URL}?{urlencode(params)}"
 
-    async def finish_authorization(
-        self, *, code: str, state: str, settings: Settings
-    ) -> None:
+    async def finish_authorization(self, *, code: str, state: str, settings: Settings) -> None:
         settings.validate_oauth()
         attempt = self._attempts.pop(state, None)
         if attempt is None or attempt.expires_at <= time.monotonic():

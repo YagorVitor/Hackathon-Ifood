@@ -8,7 +8,14 @@ from dataclasses import dataclass, field
 
 from fastapi import HTTPException
 
-from .contracts import AgentEnvelope, AgentOutput, AgentRequest, HistoryTurn, Location, UserContext
+from .contracts import (
+    AgentEnvelope,
+    AgentOutput,
+    AgentRequest,
+    HistoryTurn,
+    Location,
+    UserContext,
+)
 
 
 @dataclass
@@ -34,11 +41,17 @@ class ConversationStore:
         conversation = self._sessions.get(payload.session_id) if payload.session_id else None
         if payload.session_id and conversation is None:
             raise HTTPException(404, "Sessão inexistente ou expirada; inicie outra conversa.")
-        context = (payload.context or (conversation.context if conversation else UserContext())).model_copy(deep=True)
+        context = (
+            payload.context or (conversation.context if conversation else UserContext())
+        ).model_copy(deep=True)
         if payload.latitude is not None:
             context.localizacao = Location(latitude=payload.latitude, longitude=payload.longitude)
         history = conversation.history[:] if conversation else []
-        if conversation and conversation.context.consentimento_dados_sensiveis and not context.consentimento_dados_sensiveis:
+        if (
+            conversation
+            and conversation.context.consentimento_dados_sensiveis
+            and not context.consentimento_dados_sensiveis
+        ):
             # Revogação também remove o histórico que pode conter restrições antigas.
             # A exclusão não depende de a próxima chamada ao modelo funcionar.
             conversation.history.clear()
@@ -49,7 +62,9 @@ class ConversationStore:
             contexto=context,
             historico_resumido=history,
         )
-        session_id = (payload.session_id or secrets.token_urlsafe(24)) if payload.remember_context else None
+        session_id = (
+            (payload.session_id or secrets.token_urlsafe(24)) if payload.remember_context else None
+        )
         return session_id, envelope
 
     def commit(self, session_id: str | None, envelope: AgentEnvelope, output: AgentOutput):
@@ -62,9 +77,14 @@ class ConversationStore:
         # Não conserva preços/IDs antigos como evidência para a próxima execução.
         history = envelope.historico_resumido + [
             HistoryTurn(papel="usuario", texto=envelope.mensagem_usuario),
-            HistoryTurn(papel="agente", texto=output.model_dump_json(exclude={"produtos", "custos", "buscas"})),
+            HistoryTurn(
+                papel="agente",
+                texto=output.model_dump_json(exclude={"produtos", "custos", "buscas"}),
+            ),
         ]
-        self._sessions[session_id] = Conversation(context, history[-12:], time.monotonic() + self.ttl_seconds)
+        self._sessions[session_id] = Conversation(
+            context, history[-12:], time.monotonic() + self.ttl_seconds
+        )
         self._sessions.move_to_end(session_id)
         while len(self._sessions) > self.max_sessions:
             self._sessions.popitem(last=False)

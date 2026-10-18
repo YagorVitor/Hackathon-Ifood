@@ -10,7 +10,13 @@ from agents import Agent, ModelSettings, RunConfig, Runner, function_tool
 from fastapi import HTTPException
 
 from . import ifood_mcp
-from .contracts import AgentDraft, AgentEnvelope, AgentOutput, ObservedProduct, SearchEvidence
+from .contracts import (
+    AgentDraft,
+    AgentEnvelope,
+    AgentOutput,
+    ObservedProduct,
+    SearchEvidence,
+)
 from .recommendations import build_refinements, finalize, observe_products
 
 MAX_MARKET_SEARCHES_PER_RUN = 3
@@ -152,7 +158,9 @@ async def run_agent(
     tool_lock = asyncio.Lock()
 
     @function_tool
-    async def search_market_items(query: str, merchant_type: ifood_mcp.MerchantType | None = None) -> str:
+    async def search_market_items(
+        query: str, merchant_type: ifood_mcp.MerchantType | None = None
+    ) -> str:
         """Busca no iFood, somente leitura. Sem merchant_type, consulta todas as verticais.
 
         Passe conteúdo descritivo, sem preço, frete ou distância. Os filtros
@@ -163,13 +171,17 @@ async def run_agent(
         if not query or len(query) > 120:
             return '{"error":"A busca exige um termo descritivo de até 120 caracteres."}'
         if context.localizacao is None:
-            return '{"error":"MISSING_LOCATION: solicite a localização na aplicação antes da busca."}'
+            return (
+                '{"error":"MISSING_LOCATION: solicite a localização na aplicação antes da busca."}'
+            )
         async with tool_lock:
             cache_key = f"{merchant_type or 'ALL'}:{query.casefold()}"
             if cache_key in cached:
                 return cached[cache_key]
             if len(searches) >= MAX_MARKET_SEARCHES_PER_RUN:
-                return '{"error":"Limite de três buscas atingido; informe o que ficou sem consultar."}'
+                return (
+                    '{"error":"Limite de três buscas atingido; informe o que ficou sem consultar."}'
+                )
             try:
                 token = await get_access_token()
             except HTTPException as exc:
@@ -177,14 +189,19 @@ async def run_agent(
                 return '{"error":"AUTH_REQUIRED: conecte a conta iFood antes de buscar."}'
             mcp_called = True
 
-            async def lookup(vertical: ifood_mcp.MerchantType | None) -> tuple[list[ObservedProduct], str]:
+            async def lookup(
+                vertical: ifood_mcp.MerchantType | None,
+            ) -> tuple[list[ObservedProduct], str]:
                 nonlocal auth_error
                 try:
                     response = await ifood_mcp.search_items(
-                        mcp_url=mcp_url, access_token=token, query=query,
+                        mcp_url=mcp_url,
+                        access_token=token,
+                        query=query,
                         latitude=context.localizacao.latitude,
                         longitude=context.localizacao.longitude,
-                        refinements=refinements, merchant_type=vertical,
+                        refinements=refinements,
+                        merchant_type=vertical,
                     )
                     products, error = observe_products(response, start=len(observed))
                     observed.extend(products)
@@ -192,46 +209,68 @@ async def run_agent(
                         notes.append(error)
                     status = "success" if products else ("error" if error else "empty")
                     if status == "empty":
-                        notes.append(f"Nenhum produto utilizável encontrado para {query} ({vertical or 'todas as verticais'}).")
+                        notes.append(
+                            f"Nenhum produto utilizável encontrado para {query} ({vertical or 'todas as verticais'})."
+                        )
                 except HTTPException as exc:
                     if exc.status_code in (401, 403):
                         auth_error = exc
                     products, status = [], "error"
-                    notes.append("A consulta ao MCP falhou; não há dados comerciais confirmados para essa busca.")
-                searches.append(SearchEvidence(
-                    query=query, vertical=vertical, restricoes_aplicadas=refinements.get("itemRestrictions", []),
-                    status=status, quantidade_resultados=len(products),
-                ))
+                    notes.append(
+                        "A consulta ao MCP falhou; não há dados comerciais confirmados para essa busca."
+                    )
+                searches.append(
+                    SearchEvidence(
+                        query=query,
+                        vertical=vertical,
+                        restricoes_aplicadas=refinements.get("itemRestrictions", []),
+                        status=status,
+                        quantidade_resultados=len(products),
+                    )
+                )
                 return products, status
 
             products, status = await lookup(merchant_type)
-            expanded = status == "empty" and merchant_type is not None and len(searches) < MAX_MARKET_SEARCHES_PER_RUN
+            expanded = (
+                status == "empty"
+                and merchant_type is not None
+                and len(searches) < MAX_MARKET_SEARCHES_PER_RUN
+            )
             if expanded:
                 products, status = await lookup(None)
-            cached[cache_key] = json.dumps({
-                "status": status,
-                "produtos": [p.model_dump(mode="json") for p in products],
-                "vertical_solicitada": merchant_type,
-                "busca_ampliada": expanded,
-                "refinements_aplicados": {**refinements, "onlyOpen": True},
-                "aviso": "Observações MCP; ausência de alérgenos, disponibilidade final e total não verificados.",
-            }, ensure_ascii=False)
+            cached[cache_key] = json.dumps(
+                {
+                    "status": status,
+                    "produtos": [p.model_dump(mode="json") for p in products],
+                    "vertical_solicitada": merchant_type,
+                    "busca_ampliada": expanded,
+                    "refinements_aplicados": {**refinements, "onlyOpen": True},
+                    "aviso": "Observações MCP; ausência de alérgenos, disponibilidade final e total não verificados.",
+                },
+                ensure_ascii=False,
+            )
             return cached[cache_key]
 
     # Coordenadas e credenciais só são usadas pela ferramenta local.
     prompt = envelope.model_dump(mode="json", exclude={"contexto": {"localizacao"}})
     prompt["localizacao_disponivel"] = context.localizacao is not None
     agent = Agent(
-        name="CompletAI", model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
-        instructions=AGENT_INSTRUCTIONS + (
+        name="CompletAI",
+        model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+        instructions=AGENT_INSTRUCTIONS
+        + (
             "\nIDIOMA DESTA EXECUÇÃO: inglês (en). Escreva mensagem, justificativas, títulos e limitações em inglês, mesmo quando a mensagem do aplicativo estiver em português. Preserve nomes comerciais observados e IDs."
-            if context.idioma_resposta == "en" else
-            "\nIDIOMA DESTA EXECUÇÃO: português brasileiro (pt-BR)."
-        ), tools=[search_market_items], output_type=AgentDraft,
+            if context.idioma_resposta == "en"
+            else "\nIDIOMA DESTA EXECUÇÃO: português brasileiro (pt-BR)."
+        ),
+        tools=[search_market_items],
+        output_type=AgentDraft,
         model_settings=ModelSettings(max_tokens=2200, parallel_tool_calls=False, store=False),
     )
     result = await Runner.run(
-        agent, json.dumps(prompt, ensure_ascii=False), max_turns=6,
+        agent,
+        json.dumps(prompt, ensure_ascii=False),
+        max_turns=6,
         run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False),
     )
     if auth_error is not None:

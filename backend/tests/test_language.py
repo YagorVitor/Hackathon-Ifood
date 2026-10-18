@@ -2,7 +2,9 @@
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
+
 from pydantic import ValidationError
+
 from app.agent import run_agent
 from app.contracts import AgentDraft, AgentEnvelope, UserContext
 from app.recommendations import finalize

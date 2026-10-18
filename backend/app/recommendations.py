@@ -2,14 +2,28 @@
 
 import json
 import unicodedata
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any
 
-from .contracts import AgentDraft, AgentOutput, CostSummary, ObservedProduct, SearchEvidence, SelectedProduct, UserContext
+from .contracts import (
+    AgentDraft,
+    AgentOutput,
+    CostSummary,
+    ObservedProduct,
+    SearchEvidence,
+    SelectedProduct,
+    UserContext,
+)
 
 
 def normalized(value: str) -> str:
-    return " ".join("".join(c for c in unicodedata.normalize("NFKD", value.casefold()) if not unicodedata.combining(c)).split())
+    return " ".join(
+        "".join(
+            c
+            for c in unicodedata.normalize("NFKD", value.casefold())
+            if not unicodedata.combining(c)
+        ).split()
+    )
 
 
 def build_refinements(context: UserContext) -> dict[str, Any]:
@@ -25,7 +39,11 @@ def build_refinements(context: UserContext) -> dict[str, Any]:
     result: dict[str, Any] = {"sort": criteria.ordenar_por}
     if restrictions:
         result["itemRestrictions"] = sorted(restrictions)
-    limits = [v for v in (criteria.preco_maximo_item_centavos, context.orcamento_centavos) if v is not None]
+    limits = [
+        v
+        for v in (criteria.preco_maximo_item_centavos, context.orcamento_centavos)
+        if v is not None
+    ]
     if limits:
         result["maxItemPrice"] = min(limits) / 100
     if criteria.frete_maximo_centavos is not None:
@@ -60,7 +78,9 @@ def catalogue_payload(payload: Any) -> dict[str, Any] | None:
     return None
 
 
-def observe_products(response: dict[str, Any], start: int = 0) -> tuple[list[ObservedProduct], str | None]:
+def observe_products(
+    response: dict[str, Any], start: int = 0
+) -> tuple[list[ObservedProduct], str | None]:
     payload = catalogue_payload(response.get("result"))
     if response.get("isError") or payload is None or payload.get("errors") or payload.get("error"):
         return [], "A busca falhou ou retornou um formato sem evidências de produtos utilizáveis."
@@ -90,18 +110,31 @@ def observe_products(response: dict[str, Any], start: int = 0) -> tuple[list[Obs
         fee = to_cents(delivery.get("promotionalFee"))
         if fee is None:
             fee = to_cents(delivery.get("fee"))
-        products.append(ObservedProduct(
-            referencia=f"offer_{start + len(products) + 1}", item_id=ids[0], merchant_id=ids[1],
-            nome_observado=ids[2],
-            loja_observada=merchant.get("merchantName") if isinstance(merchant.get("merchantName"), str) else None,
-            preco_observado_centavos=promo if promo is not None and (base is None or promo <= base) else base,
-            frete_observado_centavos=fee,
-            minimo_pedido_centavos=to_cents(merchant.get("minimumOrderAmount")),
-        ))
-    return products, "Resultados sem identificação utilizável foram descartados." if rejected else None
+        products.append(
+            ObservedProduct(
+                referencia=f"offer_{start + len(products) + 1}",
+                item_id=ids[0],
+                merchant_id=ids[1],
+                nome_observado=ids[2],
+                loja_observada=merchant.get("merchantName")
+                if isinstance(merchant.get("merchantName"), str)
+                else None,
+                preco_observado_centavos=promo
+                if promo is not None and (base is None or promo <= base)
+                else base,
+                frete_observado_centavos=fee,
+                minimo_pedido_centavos=to_cents(merchant.get("minimumOrderAmount")),
+            )
+        )
+    return (
+        products,
+        "Resultados sem identificação utilizável foram descartados." if rejected else None,
+    )
 
 
-def calculate_costs(products: list[SelectedProduct], context: UserContext, option_index: int) -> CostSummary:
+def calculate_costs(
+    products: list[SelectedProduct], context: UserContext, option_index: int
+) -> CostSummary:
     lines = [p for p in products if p.opcao_indice == option_index]
     subtotal = sum((p.preco_observado_centavos or 0) * p.quantidade_embalagens for p in lines)
     by_merchant: dict[str, list[SelectedProduct]] = {}
@@ -118,14 +151,23 @@ def calculate_costs(products: list[SelectedProduct], context: UserContext, optio
     if context.orcamento_centavos is not None and total > context.orcamento_centavos:
         status = "over"
     return CostSummary(
-        opcao_indice=option_index, subtotal_conhecido_centavos=subtotal,
-        taxas_conhecidas_centavos=known_fees, total_conhecido_centavos=total,
+        opcao_indice=option_index,
+        subtotal_conhecido_centavos=subtotal,
+        taxas_conhecidas_centavos=known_fees,
+        total_conhecido_centavos=total,
         precos_completos=bool(lines) and all(p.preco_observado_centavos is not None for p in lines),
-        fretes_completos=bool(lines) and all(v is not None for v in fees), orcamento_status=status,
+        fretes_completos=bool(lines) and all(v is not None for v in fees),
+        orcamento_status=status,
     )
 
 
-def finalize(draft: AgentDraft, context: UserContext, observed: list[ObservedProduct], searches: list[SearchEvidence], notes: list[str]) -> AgentOutput:
+def finalize(
+    draft: AgentDraft,
+    context: UserContext,
+    observed: list[ObservedProduct],
+    searches: list[SearchEvidence],
+    notes: list[str],
+) -> AgentOutput:
     limitations = list(dict.fromkeys(notes + draft.limitacoes))
     options = [option.model_copy(deep=True) for option in draft.opcoes]
     inventory = {normalized(v.nome) for v in context.inventario_confirmado if v.confirmado}
@@ -136,10 +178,18 @@ def finalize(draft: AgentDraft, context: UserContext, observed: list[ObservedPro
         # Complementos são opcionais e nunca geram faltantes nem compra automática.
         seen_complements = set()
         complements = []
-        allergies = {normalized(name) for name in context.tags_declaradas.alergias} if context.consentimento_dados_sensiveis else set()
+        allergies = (
+            {normalized(name) for name in context.tags_declaradas.alergias}
+            if context.consentimento_dados_sensiveis
+            else set()
+        )
         for complement in option.complementos_opcionais:
             name = normalized(complement.nome)
-            if name in inventory or name in seen_complements or any(a and a in name for a in allergies):
+            if (
+                name in inventory
+                or name in seen_complements
+                or any(a and a in name for a in allergies)
+            ):
                 continue
             seen_complements.add(name)
             complements.append(complement)
@@ -148,13 +198,30 @@ def finalize(draft: AgentDraft, context: UserContext, observed: list[ObservedPro
         # Só mantém reposição do mesmo ingrediente quando há déficit comparável.
         shortages = set()
         for need in option.necessidades_quantidade:
-            available = [v for v in context.inventario_confirmado if v.confirmado and normalized(v.nome) == normalized(need.nome)]
-            if available and all(v.quantidade is not None and v.unidade and normalized(v.unidade) == normalized(need.unidade) for v in available):
+            available = [
+                v
+                for v in context.inventario_confirmado
+                if v.confirmado and normalized(v.nome) == normalized(need.nome)
+            ]
+            if available and all(
+                v.quantidade is not None
+                and v.unidade
+                and normalized(v.unidade) == normalized(need.unidade)
+                for v in available
+            ):
                 if sum(v.quantidade for v in available) < need.quantidade:
                     shortages.add(normalized(need.nome))
-        option.faltantes = list(dict.fromkeys(name for name in option.faltantes + unknown if normalized(name) not in inventory or normalized(name) in shortages))
+        option.faltantes = list(
+            dict.fromkeys(
+                name
+                for name in option.faltantes + unknown
+                if normalized(name) not in inventory or normalized(name) in shortages
+            )
+        )
         if shortages:
-            limitations.append("A quantidade necessária para a receita é uma estimativa; confira a reposição antes de comprar.")
+            limitations.append(
+                "A quantidade necessária para a receita é uma estimativa; confira a reposição antes de comprar."
+            )
         if option.estrategia == "USE_WHAT_I_HAVE" and option.faltantes:
             option.estrategia = "COMPLETE_WITH_MARKET"
     registry = {p.referencia: p for p in observed}
@@ -163,159 +230,99 @@ def finalize(draft: AgentDraft, context: UserContext, observed: list[ObservedPro
     for choice in draft.selecoes:
         product = registry.get(choice.referencia)
         key = (choice.opcao_indice, product.merchant_id, product.item_id) if product else None
-        if (product is None or choice.opcao_indice >= len(options)
-                or normalized(choice.faltante) not in {normalized(n) for n in options[choice.opcao_indice].faltantes}
-                or key in seen):
-            limitations.append("Seleção sem evidência ou sem vínculo com um faltante foi descartada.")
+        if (
+            product is None
+            or choice.opcao_indice >= len(options)
+            or normalized(choice.faltante)
+            not in {normalized(n) for n in options[choice.opcao_indice].faltantes}
+            or key in seen
+        ):
+            limitations.append(
+                "Seleção sem evidência ou sem vínculo com um faltante foi descartada."
+            )
             continue
         seen.add(key)
-        products.append(SelectedProduct(**product.model_dump(), **choice.model_dump(exclude={"referencia"})))
+        products.append(
+            SelectedProduct(**product.model_dump(), **choice.model_dump(exclude={"referencia"}))
+        )
     tags = context.tags_declaradas
-    question = draft.pergunta_tags and tags.estado == "NOT_ASKED" and not (
-        tags.preferencias or tags.alergias or tags.intolerancias or tags.condicoes_saude
+    question = (
+        draft.pergunta_tags
+        and tags.estado == "NOT_ASKED"
+        and not (tags.preferencias or tags.alergias or tags.intolerancias or tags.condicoes_saude)
     )
     message = draft.mensagem
     if searches and not products and all(s.status == "error" for s in searches):
         message = "Não foi possível concluir a consulta ao iFood. Tente novamente; nenhum produto foi confirmado."
     elif searches and not products and all(s.status == "empty" for s in searches):
-        message = "Nenhum produto foi encontrado para os termos, critérios e localização consultados."
+        message = (
+            "Nenhum produto foi encontrado para os termos, critérios e localização consultados."
+        )
     if question:
         message += "\nVocê tem preferência vegetariana/vegana, alergia, intolerância ou restrição de saúde relevante, como diabetes? É opcional; pode pular."
     if tags.alergias or tags.intolerancias:
-        limitations.append("Filtros de catálogo não confirmam composição nem ausência de contaminação cruzada; segurança para alergias permanece não verificada.")
+        limitations.append(
+            "Filtros de catálogo não confirmam composição nem ausência de contaminação cruzada; segurança para alergias permanece não verificada."
+        )
     if tags.condicoes_saude:
-        limitations.append("Condições de saúde não definem filtros automaticamente nem comprovam adequação clínica; informe critérios alimentares explícitos.")
+        limitations.append(
+            "Condições de saúde não definem filtros automaticamente nem comprovam adequação clínica; informe critérios alimentares explícitos."
+        )
     if products:
-        limitations.append("Preços são observações do MCP nesta execução, não cotação final. Embalagem, quantidade necessária, taxas e mínimo de pedido precisam de revisão antes da compra.")
+        limitations.append(
+            "Preços são observações do MCP nesta execução, não cotação final. Embalagem, quantidade necessária, taxas e mínimo de pedido precisam de revisão antes da compra."
+        )
     if context.idioma_resposta == "en":
         for original, translated in _EN_NOTICES.items():
             message = message.replace(original, translated)
         limitations = [_EN_NOTICES.get(item, item) for item in limitations]
-    costs = [calculate_costs(products, context, i) for i in range(len(options)) if any(p.opcao_indice == i for p in products)]
+    costs = [
+        calculate_costs(products, context, i)
+        for i in range(len(options))
+        if any(p.opcao_indice == i for p in products)
+    ]
     return AgentOutput(
-        mensagem=message, pergunta_tags=question,
+        mensagem=message,
+        pergunta_tags=question,
         ingredientes_reconhecidos=draft.ingredientes_reconhecidos,
-        contexto_reconhecido=draft.contexto_reconhecido, opcoes=options,
-        produtos=products, buscas=searches, custos=costs,
+        contexto_reconhecido=draft.contexto_reconhecido,
+        opcoes=options,
+        produtos=products,
+        buscas=searches,
+        custos=costs,
         limitacoes=list(dict.fromkeys(limitations)),
     )
 
 
 _EN_NOTICES = {
- 'A quantidade necessária para a receita é uma estimativa; confira a reposição antes de comprar.': 'The quantity required for the recipe is an estimate; review replenishment before purchasing.','Ingredientes ainda não confirmados foram tratados como faltantes.': 'Ingredients not yet confirmed were '
-                                                                      'treated as missing.',
- 'Seleção sem evidência ou sem vínculo com um faltante foi descartada.': 'Selections without evidence or '
-                                                                         'without a link to a missing item '
-                                                                         'were discarded.',
- 'Não foi possível concluir a consulta ao iFood. Tente novamente; nenhum produto foi confirmado.': 'Could '
-                                                                                                   'not '
-                                                                                                   'complete '
-                                                                                                   'the '
-                                                                                                   'iFood '
-                                                                                                   'query. '
-                                                                                                   'Try '
-                                                                                                   'again; '
-                                                                                                   'no '
-                                                                                                   'product '
-                                                                                                   'was '
-                                                                                                   'confirmed.',
- 'Nenhum produto foi encontrado para os termos, critérios e localização consultados.': 'No products were '
-                                                                                       'found for the '
-                                                                                       'requested terms, '
-                                                                                       'criteria and '
-                                                                                       'location.',
- 'Você tem preferência vegetariana/vegana, alergia, intolerância ou restrição de saúde relevante, como diabetes? É opcional; pode pular.': 'Do '
-                                                                                                                                           'you '
-                                                                                                                                           'have '
-                                                                                                                                           'vegetarian/vegan '
-                                                                                                                                           'preferences, '
-                                                                                                                                           'allergies, '
-                                                                                                                                           'intolerances '
-                                                                                                                                           'or '
-                                                                                                                                           'a '
-                                                                                                                                           'relevant '
-                                                                                                                                           'health '
-                                                                                                                                           'restriction '
-                                                                                                                                           'such '
-                                                                                                                                           'as '
-                                                                                                                                           'diabetes? '
-                                                                                                                                           'This '
-                                                                                                                                           'is '
-                                                                                                                                           'optional; '
-                                                                                                                                           'you '
-                                                                                                                                           'can '
-                                                                                                                                           'skip.',
- 'Filtros de catálogo não confirmam composição nem ausência de contaminação cruzada; segurança para alergias permanece não verificada.': 'Catalogue '
-                                                                                                                                         'filters '
-                                                                                                                                         'do '
-                                                                                                                                         'not '
-                                                                                                                                         'verify '
-                                                                                                                                         'ingredients '
-                                                                                                                                         'or '
-                                                                                                                                         'absence '
-                                                                                                                                         'of '
-                                                                                                                                         'cross-contamination; '
-                                                                                                                                         'allergy '
-                                                                                                                                         'safety '
-                                                                                                                                         'remains '
-                                                                                                                                         'unverified.',
- 'Condições de saúde não definem filtros automaticamente nem comprovam adequação clínica; informe critérios alimentares explícitos.': 'Health '
-                                                                                                                                      'conditions '
-                                                                                                                                      'do '
-                                                                                                                                      'not '
-                                                                                                                                      'automatically '
-                                                                                                                                      'set '
-                                                                                                                                      'filters '
-                                                                                                                                      'or '
-                                                                                                                                      'establish '
-                                                                                                                                      'clinical '
-                                                                                                                                      'suitability; '
-                                                                                                                                      'provide '
-                                                                                                                                      'explicit '
-                                                                                                                                      'dietary '
-                                                                                                                                      'criteria.',
- 'Preços são observações do MCP nesta execução, não cotação final. Embalagem, quantidade necessária, taxas e mínimo de pedido precisam de revisão antes da compra.': 'Prices '
-                                                                                                                                                                     'are '
-                                                                                                                                                                     'MCP '
-                                                                                                                                                                     'observations '
-                                                                                                                                                                     'for '
-                                                                                                                                                                     'this '
-                                                                                                                                                                     'run, '
-                                                                                                                                                                     'not '
-                                                                                                                                                                     'a '
-                                                                                                                                                                     'final '
-                                                                                                                                                                     'quote. '
-                                                                                                                                                                     'Packaging, '
-                                                                                                                                                                     'required '
-                                                                                                                                                                     'quantities, '
-                                                                                                                                                                     'fees '
-                                                                                                                                                                     'and '
-                                                                                                                                                                     'minimum '
-                                                                                                                                                                     'orders '
-                                                                                                                                                                     'must '
-                                                                                                                                                                     'be '
-                                                                                                                                                                     'reviewed '
-                                                                                                                                                                     'before '
-                                                                                                                                                                     'purchasing.',
- 'Ingredientes reconhecidos na foto são hipóteses: confirme ou corrija antes de continuar. A imagem não comprova quantidade, validade ou segurança.': 'Ingredients '
-                                                                                                                                                      'recognised '
-                                                                                                                                                      'in '
-                                                                                                                                                      'the '
-                                                                                                                                                      'photo '
-                                                                                                                                                      'are '
-                                                                                                                                                      'hypotheses: '
-                                                                                                                                                      'confirm '
-                                                                                                                                                      'or '
-                                                                                                                                                      'correct '
-                                                                                                                                                      'them '
-                                                                                                                                                      'before '
-                                                                                                                                                      'continuing. '
-                                                                                                                                                      'The '
-                                                                                                                                                      'image '
-                                                                                                                                                      'does '
-                                                                                                                                                      'not '
-                                                                                                                                                      'establish '
-                                                                                                                                                      'quantity, '
-                                                                                                                                                      'freshness '
-                                                                                                                                                      'or '
-                                                                                                                                                      'safety.'}
+    "A quantidade necessária para a receita é uma estimativa; confira a reposição antes de comprar.": (
+        "The quantity required for the recipe is an estimate; review replenishment before purchasing."
+    ),
+    "Ingredientes ainda não confirmados foram tratados como faltantes.": (
+        "Ingredients not yet confirmed were treated as missing."
+    ),
+    "Seleção sem evidência ou sem vínculo com um faltante foi descartada.": (
+        "Selections without evidence or without a link to a missing item were discarded."
+    ),
+    "Não foi possível concluir a consulta ao iFood. Tente novamente; nenhum produto foi confirmado.": (
+        "Could not complete the iFood query. Try again; no product was confirmed."
+    ),
+    "Nenhum produto foi encontrado para os termos, critérios e localização consultados.": (
+        "No products were found for the requested terms, criteria and location."
+    ),
+    "Você tem preferência vegetariana/vegana, alergia, intolerância ou restrição de saúde relevante, como diabetes? É opcional; pode pular.": (
+        "Do you have vegetarian/vegan preferences, allergies, intolerances or a relevant health restriction such as diabetes? This is optional; you can skip."
+    ),
+    "Filtros de catálogo não confirmam composição nem ausência de contaminação cruzada; segurança para alergias permanece não verificada.": (
+        "Catalogue filters do not verify ingredients or absence of cross-contamination; allergy safety remains unverified."
+    ),
+    "Condições de saúde não definem filtros automaticamente nem comprovam adequação clínica; informe critérios alimentares explícitos.": (
+        "Health conditions do not automatically set filters or establish clinical suitability; provide explicit dietary criteria."
+    ),
+    "Preços são observações do MCP nesta execução, não cotação final. Embalagem, quantidade necessária, taxas e mínimo de pedido precisam de revisão antes da compra.": (
+        "Prices are MCP observations for this run, not a final quote. Packaging, required quantities, fees and minimum orders must be reviewed before purchasing."
+    ),
+    "Ingredientes reconhecidos na foto são hipóteses: confirme ou corrija antes de continuar. A imagem não comprova quantidade, validade ou segurança.": (
+        "Ingredients recognised in the photo are hypotheses: confirm or correct them before continuing. The image does not establish quantity, freshness or safety."
+    ),
+}
