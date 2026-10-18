@@ -8,11 +8,11 @@ O projeto foi desenvolvido para o hackathon SEMCOMP × iFood, com o tema **Vende
 
 ### Da intenção de compra ao carrinho no iFood
 
-Oito slides apresentam a CompletAI, com uma demonstração baseada em foto real, a arquitetura com OpenAI Agents SDK e o uso do MCP oficial do iFood.
+O pitch apresenta a CompletAI, a arquitetura com OpenAI Agents SDK e o uso do MCP oficial do iFood. A versão completa reúne os oito slides e seis telas da aplicação ao final, em um único HTML.
 
 | Apresentação | Guia |
 |---|---|
-| [**Pitch em HTML**](docs/pitch/index.html) | [**Como apresentar e atalhos**](docs/pitch/README.md) |
+| [**Pitch com demonstração**](docs/pitch/completai-pitch-com-demo.html) | [**Como apresentar e atalhos**](docs/pitch/README.md) |
 | Foto incorporada, notas e modo de tela cheia | Navegação por teclado e cronômetro |
 
 Para assistir, baixe o HTML ou abra `docs/pitch/index.html` no navegador após clonar o projeto. No GitHub, o arquivo é exibido como código.

@@ -2,7 +2,11 @@
 
 Apresentação em oito slides sobre a proposta comercial, o fluxo com foto real, a arquitetura e a integração com o MCP do iFood.
 
-**[Abrir o arquivo da apresentação](index.html)**
+**[Pitch com as seis telas no final](completai-pitch-com-demo.html)**
+
+[Pitch original de oito slides](index.html) · [Falas para arquitetura e demonstração](Falas-Demonstracao.md)
+
+A versão completa tem 14 slides. As páginas 9 a 14 mostram entrada, revisão, sugestões, endereço, oferta e carrinho. Todas as imagens estão incorporadas no HTML. As notas dessas páginas contêm as falas sugeridas. O cronômetro planejado dessa versão soma 6min30s.
 
 No GitHub, esse link mostra o código do HTML. Baixe o arquivo e abra no navegador para apresentar. Ele também pode ser aberto diretamente em `docs/pitch/index.html` depois de clonar o repositório.
 
