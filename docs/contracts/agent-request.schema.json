@@ -353,19 +353,6 @@
       "title": "Remember Context",
       "type": "boolean"
     },
-    "query": {
-      "anyOf": [
-        {
-          "maxLength": 120,
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Query"
-    },
     "latitude": {
       "anyOf": [
         {

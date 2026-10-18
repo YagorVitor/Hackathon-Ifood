@@ -8,19 +8,29 @@ from types import SimpleNamespace as NS
 from unittest.mock import AsyncMock, patch
 
 import httpx2
-from agents.tool_context import ToolContext
 from agents.agent_output import AgentOutputSchema
+from agents.tool_context import ToolContext
 from fastapi import HTTPException
 from jsonschema import Draft202012Validator
 from pydantic import ValidationError
 
+from app import ifood_mcp
 from app.agent import run_agent
 from app.context import ConversationStore
-from app.contracts import (AgentDraft, AgentEnvelope, AgentRequest, DeclaredTags,
-    InventoryItem, Location, MealOption, ProductSelection, SearchCriteria, UserContext)
+from app.contracts import (
+    AgentDraft,
+    AgentEnvelope,
+    AgentRequest,
+    DeclaredTags,
+    InventoryItem,
+    Location,
+    MealOption,
+    ProductSelection,
+    SearchCriteria,
+    UserContext,
+)
 from app.main import app
 from app.recommendations import build_refinements, finalize, observe_products, to_cents
-from app import ifood_mcp
 
 SCHEMA = json.loads((Path(__file__).parent / 'fixtures/search_offers_schema.json').read_text())
 
@@ -297,11 +307,11 @@ class APITests(unittest.IsolatedAsyncioTestCase):
 class MCPTests(unittest.IsolatedAsyncioTestCase):
     async def test_real_schema_is_validated_before_tool_call(self):
         client=AsyncMock()
-        client.list_tools.return_value=NS(tools=[NS(name='searchOffers',input_schema=SCHEMA)])
+        client.list_tools.return_value=NS(tools=[NS(name='searchOffers',input_schema=SCHEMA)],next_cursor=None)
         client.call_tool.return_value=NS(is_error=False,structured_content=dict(results=[]))
         manager=AsyncMock()
         manager.__aenter__.return_value=client
-        with patch('app.ifood_mcp._connected_client',new=AsyncMock(return_value=(AsyncMock(),object()))),patch('app.ifood_mcp.Client',return_value=manager):
+        with patch('app.ifood_mcp._connected_client',return_value=manager):
             await ifood_mcp.search_groceries(mcp_url='https://example.invalid',access_token='test',query='tomate',latitude=0,longitude=0,refinements=dict(itemRestrictions=['VEGAN']))
             self.assertEqual(client.call_tool.await_args.args[0],'searchOffers')
             self.assertEqual(client.call_tool.await_args.args[1]['merchantType'],'GROCERIES')
@@ -342,10 +352,10 @@ class RegressionTests(unittest.IsolatedAsyncioTestCase):
 class MarketplaceTests(unittest.IsolatedAsyncioTestCase):
     async def test_general_restaurant_and_grocery_queries_use_live_schema_and_open_filter(self):
         client=AsyncMock()
-        client.list_tools.return_value=NS(tools=[NS(name='searchOffers',input_schema=SCHEMA)])
+        client.list_tools.return_value=NS(tools=[NS(name='searchOffers',input_schema=SCHEMA)],next_cursor=None)
         client.call_tool.return_value=NS(is_error=False,structured_content=dict(results=[]))
         manager=AsyncMock(); manager.__aenter__.return_value=client
-        with patch('app.ifood_mcp._connected_client',new=AsyncMock(return_value=(AsyncMock(),object()))),patch('app.ifood_mcp.Client',return_value=manager):
+        with patch('app.ifood_mcp._connected_client',return_value=manager):
             for vertical in (None,'RESTAURANT','GROCERIES','PETSTORE'):
                 await ifood_mcp.search_items(mcp_url='https://example.invalid',access_token='test',query='produto',latitude=0,longitude=0,merchant_type=vertical,refinements={'itemRestrictions':['VEGAN']})
                 args=client.call_tool.await_args.args[1]

@@ -1,16 +1,22 @@
-"""Carrinho com dados sintéticos; formatos de resposta do Cart MCP são hipóteses tolerantes."""
+"""Carrinho com dados sintéticos e os campos documentados do Cart MCP."""
 import asyncio
-import unittest
 import json
+import unittest
 from pathlib import Path
-from jsonschema import Draft202012Validator
 from unittest.mock import AsyncMock, patch
 
 import httpx2
 from fastapi import HTTPException
+from jsonschema import Draft202012Validator
 
 from app import cart
-from app.contracts import Address, Location, CartConfirmRequest, CartProposalRequest, ObservedProduct
+from app.contracts import (
+    Address,
+    CartConfirmRequest,
+    CartProposalRequest,
+    Location,
+    ObservedProduct,
+)
 from app.main import app
 
 
@@ -118,6 +124,30 @@ class CartStoreTests(unittest.TestCase):
         self.assertFalse(result.pedido_enviado)
         self.assertTrue(any('difere' in note for note in result.limitacoes))
 
+    def test_documented_summary_and_warning_are_read_without_inventing_totals(self):
+        store = cart.CartStore()
+        seed(store)
+        proposal = store.propose(proposal_request())
+        snapshot = mcp({
+            'cartId': 'cart-1', 'merchant': {'merchantId': 'synthetic-store'},
+            'items': [{'itemId': 'synthetic-item-1', 'name': 'Produto', 'quantity': 2,
+                       'unitPrice': 5.25, 'totalPrice': 10.50}],
+            'summary': {'subtotalAmount': 10.50, 'deliveryFeeAmount': 4.50,
+                        'benefitsTotalAmount': 1, 'voucherTotalAmount': 2, 'totalAmount': 12},
+            'warning': {'message': 'Confira o prazo de entrega.'},
+        }, tool='getCart')
+        result = cart.build_result(proposal, 'cart-1', snapshot, [])
+        self.assertEqual(result.verificacao, 'confirmed')
+        self.assertEqual(result.itens[0].preco_centavos, 525)
+        self.assertEqual(result.totais.model_dump(), {
+            'subtotal_centavos': 1050, 'entrega_centavos': 450,
+            'desconto_centavos': 300, 'total_centavos': 1200,
+        })
+        self.assertEqual(result.avisos, ['Confira o prazo de entrega.'])
+        snapshot['result']['summary'].pop('totalAmount')
+        result = cart.build_result(proposal, 'cart-1', snapshot, [])
+        self.assertIsNone(result.totais.total_centavos)
+
     def test_addresses_and_create_arguments(self):
         addresses = cart.parse_addresses(mcp({'results': [
             {'addressId': 'a1', 'alias': 'Casa', 'formattedAddress': 'Rua Fictícia, 1', 'coordinates': {'latitude': -23.5, 'longitude': -46.6}, 'isLastUsedAddress': True},
@@ -128,10 +158,9 @@ class CartStoreTests(unittest.TestCase):
         store = cart.CartStore()
         seed(store)
         args = cart.create_cart_arguments(store.propose(proposal_request()))
-        self.assertEqual(len(args),1)
         schema=json.loads((Path(__file__).parent/'fixtures/create_cart_schema.json').read_text())
-        self.assertTrue(Draft202012Validator(schema).is_valid(args[0]))
-        self.assertEqual(args[0], {'merchantId': 'synthetic-store', 'addressId': 'synthetic-address',
+        self.assertTrue(Draft202012Validator(schema).is_valid(args))
+        self.assertEqual(args, {'merchantId': 'synthetic-store', 'addressId': 'synthetic-address',
                                    'items': [{'itemId': 'synthetic-item-1', 'quantity': 2, 'options': []}]})
 
 
@@ -219,6 +248,17 @@ class CartAPITests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 503)
         self.assertIn('mcp.user.addresses.read', response.json()['detail'])
         call.assert_not_awaited()
+
+    async def test_address_response_from_previous_connection_is_discarded(self):
+        async def switch_connection(**_kwargs):
+            app.state.cart = cart.CartStore()
+            return mcp({'results': [{'addressId': 'previous-account', 'coordinates': {'latitude': 0, 'longitude': 0}}]}, tool='listAddresses')
+        with patch('app.main.Settings.from_env') as settings, patch('app.main.ifood_mcp.call_tool', new=switch_connection):
+            settings.return_value.scopes = 'mcp.user.addresses.read'
+            response = await self.client.get('/api/addresses')
+        self.assertEqual(response.status_code, 409)
+        self.assertFalse(app.state.cart._addresses)
+        self.assertNotIn('previous-account', response.text)
 
     async def test_address_service_failure_and_success_remain_distinct(self):
         with patch('app.main.Settings.from_env') as settings:

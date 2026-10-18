@@ -140,11 +140,6 @@ export interface AgentResponse {
   data: AgentOutput
 }
 
-export interface McpTool {
-  name: string
-  description: string | null
-}
-
 // Carrinho: rotas /api/addresses e /api/cart/* (backend/app/cart.py).
 export interface Address {
   id: string

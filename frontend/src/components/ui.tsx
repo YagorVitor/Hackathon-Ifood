@@ -138,17 +138,6 @@ export function AgentNote({ text }: { text: string }) {
   )
 }
 
-export function Limitations({ items }: { items: string[] }) {
-  if (items.length === 0) return null
-  return (
-    <Notice tone="warn" title={t("Limitações informadas pelo sistema")}>
-      <ul className="list-disc space-y-1 pl-4">
-        {items.map((l) => <li key={l}>{l}</li>)}
-      </ul>
-    </Notice>
-  )
-}
-
 export function StageTitle({ children, kicker }: { children: ReactNode; kicker?: string }) {
   return (
     <div>

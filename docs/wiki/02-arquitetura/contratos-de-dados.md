@@ -26,7 +26,7 @@ classDiagram
       context: UserContext?
       session_id: str?
       remember_context: bool
-      query/latitude/longitude (legado)
+      latitude/longitude (alternativa ao contexto)
     }
     class UserContext {
       tags_declaradas: DeclaredTags
@@ -85,7 +85,6 @@ classDiagram
 | `context` | `UserContext \| null` | Se presente, **substitui** o contexto inteiro da sessão |
 | `session_id` | `str \| null` | 32 caracteres `[A-Za-z0-9_-]`; exige `remember_context=true` |
 | `remember_context` | `bool` | Padrão `false`; com `true`, o backend guarda a conversa |
-| `query` | `str \| null` | Legado de `/agent/test`; ignorado pelo agente |
 | `latitude`, `longitude` | `float \| null` | Legado; devem vir juntos e viram `context.localizacao` |
 
 ### `UserContext`

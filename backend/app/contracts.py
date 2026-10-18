@@ -5,9 +5,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-ItemRestriction = Literal[
-    "VEGETARIAN", "VEGAN", "LAC_FREE", "GLUTEN_FREE", "SUGAR_FREE", "ORGANIC"
-]
+ItemRestriction = Literal["VEGETARIAN", "VEGAN", "LAC_FREE", "GLUTEN_FREE", "SUGAR_FREE", "ORGANIC"]
 ShortText = Annotated[str, Field(min_length=1, max_length=160, strip_whitespace=True)]
 Cents = Annotated[int, Field(ge=0, le=100_000_000, strict=True)]
 
@@ -22,7 +20,9 @@ class Location(Contract):
 
 
 class DeclaredTags(Contract):
-    preferencias: list[Literal["VEGETARIAN", "VEGAN", "ORGANIC"]] = Field(default_factory=list, max_length=3)
+    preferencias: list[Literal["VEGETARIAN", "VEGAN", "ORGANIC"]] = Field(
+        default_factory=list, max_length=3
+    )
     alergias: list[ShortText] = Field(default_factory=list, max_length=20)
     intolerancias: list[ShortText] = Field(default_factory=list, max_length=20)
     condicoes_saude: list[ShortText] = Field(default_factory=list, max_length=20)
@@ -41,7 +41,9 @@ class SearchCriteria(Contract):
     restricoes_itens: list[ItemRestriction] = Field(default_factory=list, max_length=6)
     preco_maximo_item_centavos: Cents | None = None
     frete_maximo_centavos: Cents | None = None
-    ordenar_por: Literal["RELEVANCE", "PRICE", "DELIVERY_FEE", "DELIVERY_TIME", "DISTANCE"] = "RELEVANCE"
+    ordenar_por: Literal["RELEVANCE", "PRICE", "DELIVERY_FEE", "DELIVERY_TIME", "DISTANCE"] = (
+        "RELEVANCE"
+    )
 
 
 class UserContext(Contract):
@@ -59,7 +61,9 @@ class UserContext(Contract):
     @model_validator(mode="after")
     def sensitive_consent(self):
         tags = self.tags_declaradas
-        if (tags.alergias or tags.intolerancias or tags.condicoes_saude) and not self.consentimento_dados_sensiveis:
+        if (
+            tags.alergias or tags.intolerancias or tags.condicoes_saude
+        ) and not self.consentimento_dados_sensiveis:
             raise ValueError("Restrições sensíveis exigem consentimento_dados_sensiveis=true.")
         return self
 
@@ -81,8 +85,6 @@ class AgentRequest(Contract):
     context: UserContext | None = None
     session_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{32}$")
     remember_context: bool = False
-    # Compatibilidade com /agent/test; query não é mais obrigatória nem usada pelo agente.
-    query: str | None = Field(default=None, max_length=120)
     latitude: float | None = Field(default=None, ge=-90, le=90, allow_inf_nan=False)
     longitude: float | None = Field(default=None, ge=-180, le=180, allow_inf_nan=False)
 
@@ -105,6 +107,7 @@ class RecognizedIngredient(Contract):
 
 class RecognizedContext(Contract):
     """Detalhes extraídos do texto, sujeitos à revisão antes de virar contexto."""
+
     objetivo: ShortText | None = None
     pessoas: int | None = Field(default=None, ge=1, le=100)
     tempo_min: int | None = Field(default=None, ge=1, le=1440)
@@ -128,7 +131,9 @@ class IngredientRequirement(Contract):
 class MealOption(Contract):
     titulo: ShortText
     estrategia: Literal["USE_WHAT_I_HAVE", "COMPLETE_WITH_MARKET", "CONVENIENCE"]
-    necessidades_quantidade: list[IngredientRequirement] = Field(default_factory=list, max_length=80)
+    necessidades_quantidade: list[IngredientRequirement] = Field(
+        default_factory=list, max_length=80
+    )
     usa: list[ShortText] = Field(default_factory=list, max_length=80)
     faltantes: list[ShortText] = Field(default_factory=list, max_length=30)
     justificativa: str = Field(max_length=1500)
@@ -138,6 +143,7 @@ class MealOption(Contract):
 
 class PlannedMealOption(MealOption):
     """A IA deve sempre oferecer ao menos um complemento; as regras podem descartá-lo."""
+
     complementos_opcionais: list[OptionalComplement] = Field(min_length=1, max_length=3)
 
 
@@ -150,10 +156,13 @@ class ProductSelection(Contract):
 
 class AgentDraft(Contract):
     """O modelo escolhe referências; não fornece nomes, IDs, preços ou totais."""
+
     mensagem: str = Field(max_length=3000)
     pergunta_tags: bool = False
     contexto_reconhecido: RecognizedContext = Field(default_factory=RecognizedContext)
-    ingredientes_reconhecidos: list[RecognizedIngredient] = Field(default_factory=list, max_length=80)
+    ingredientes_reconhecidos: list[RecognizedIngredient] = Field(
+        default_factory=list, max_length=80
+    )
     opcoes: list[PlannedMealOption] = Field(default_factory=list, max_length=3)
     selecoes: list[ProductSelection] = Field(default_factory=list, max_length=15)
     limitacoes: list[str] = Field(default_factory=list, max_length=20)
@@ -192,7 +201,10 @@ class CostSummary(Contract):
 
 
 class SearchEvidence(Contract):
-    vertical: Literal["RESTAURANT", "GROCERIES", "LIQUORSTORE", "DRUGSTORE", "PETSTORE", "SHOPPING"] | None = None
+    vertical: (
+        Literal["RESTAURANT", "GROCERIES", "LIQUORSTORE", "DRUGSTORE", "PETSTORE", "SHOPPING"]
+        | None
+    ) = None
     query: str
     restricoes_aplicadas: list[ItemRestriction]
     status: Literal["success", "empty", "error"]
@@ -226,6 +238,7 @@ Token = Annotated[str, Field(pattern=r"^[A-Za-z0-9_-]{32}$")]
 
 class Address(Contract):
     """Endereço salvo na conta iFood (listAddresses); exigido por createCart."""
+
     id: str
     rotulo: str | None = None
     endereco: str | None = None
@@ -242,6 +255,7 @@ class CartLineRequest(Contract):
 
 class CartProposalRequest(Contract):
     """Uma loja por carrinho: createCart exige um único estabelecimento."""
+
     merchant_id: McpId
     address_id: McpId
     linhas: list[CartLineRequest] = Field(min_length=1, max_length=15)
@@ -294,6 +308,7 @@ class CartTotals(Contract):
 
 class CartResult(Contract):
     """Totais vêm do iFood (getCart); o pedido não é enviado nesta versão."""
+
     cart_id: str
     app_deeplink: str | None = None
     verificacao: Literal["confirmed", "unverified", "mismatch"] = "unverified"

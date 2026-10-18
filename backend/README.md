@@ -1,9 +1,8 @@
 # Backend e agente — CompletAI
 
-Implementação incremental na branch `feature/backend`. FastAPI + Pydantic +
-OpenAI Agents SDK + MCP oficial do iFood. Um processo local para o MVP: o backend
-mantém o contexto e o agente é uma biblioteca stateless. O desenho anterior de
-serviço HTTP separado permanece uma opção futura, não um requisito desta versão.
+Backend da `develop`, com FastAPI, Pydantic, OpenAI Agents SDK e MCP oficial
+do iFood. O backend mantém o contexto em memória; cada execução do agente recebe
+um envelope completo e devolve uma resposta estruturada.
 
 ## Executar
 
@@ -75,8 +74,8 @@ origem MCP. Ingredientes reconhecidos precisam de confirmação na UI.
 - Perfil e histórico pertencem ao backend. O agente recebe um `AgentEnvelope`
   completo por execução; não usa memória própria nem sessão da OpenAI.
 - Busca exige `context.localizacao={latitude,longitude}` escolhida pelo usuário.
-  Os antigos `latitude`/`longitude` na raiz continuam aceitos; `query` virou
-  opcional por compatibilidade. Coordenadas não são inferidas nem enviadas ao
+  `latitude`/`longitude` na raiz também são aceitos. O campo `query`, que era
+  ignorado pelo agente, foi removido do contrato. Coordenadas não são inferidas nem enviadas ao
   modelo; só ao MCP. Ideias sem compra não exigem localização nem OAuth iFood.
 - Sem chave OpenAI, a API retorna 503; busca sem OAuth retorna 401; timeout do
   agente retorna 504; falha de saída/modelo retorna 502. Dados comerciais de uma
@@ -94,8 +93,9 @@ Outros critérios: `preco_maximo_item_centavos`, `frete_maximo_centavos`,
 a soma caiba nele. O adaptador envia `refinements.itemRestrictions`, validado
 contra o schema real anunciado; não usa `dietary` só porque aparece no guia.
 
-Somente `searchOffers`, `merchantType=GROCERIES`, `resultKind=ITEM` e cinco
-resultados por busca. Até três buscas distintas por execução; cache local evita
+`searchOffers` usa `resultKind=ITEM` e cinco resultados por busca. Ingredientes
+usam `GROCERIES`; refeições prontas podem usar `RESTAURANT`. Sem vertical, a busca
+consulta o catálogo geral. Apenas parceiros abertos são consultados (`onlyOpen=true`). Até três buscas distintas por execução; cache local evita
 repetições. Mesmo invocações concorrentes respeitam o limite. Falhas de transporte em leitura têm até um retry; erros de schema/negócio não são repetidos. Ferramentas de
 voucher anunciadas por `tools/list` não são expostas ao agente.
 
@@ -139,9 +139,11 @@ Fluxo determinístico, fora do agente (`app/cart.py`):
    `createCart` (sem retry automático) → `getCart`. Repetir a confirmação devolve
    o mesmo carrinho. Os totais exibidos são os do `getCart`.
 
-Os argumentos são validados contra o `inputSchema` anunciado; os formatos de
-resposta do Cart ainda não foram verificados em runtime e são lidos de forma
-tolerante. Exige os escopos de endereço e carrinho em `IFOOD_SCOPES`.
+Todas as chamadas usam o `inputSchema` anunciado por `tools/list`, incluindo
+suas páginas adicionais. `createCart` recebe `options: []` em cada item.
+O parser lê os campos documentados de `summary` (`subtotalAmount`,
+`deliveryFeeAmount`, `totalAmount`) e o aviso `warning`. Valores ausentes
+continuam desconhecidos. Exige os escopos de endereço e carrinho em `IFOOD_SCOPES`.
 
 ## Limites do MVP
 
@@ -181,3 +183,21 @@ Uma imagem ilegível/sem alimentos pode produzir uma lista vazia para correção
 nova captura. Uma análise bem-sucedida não comprova validade ou segurança.
 
 Referência: [OpenAI — imagens e visão](https://developers.openai.com/api/docs/guides/images-vision).
+
+## Revisão de integração e limpeza
+
+A revisão de 18/10 removeu `search_groceries_text`, o campo ignorado
+`AgentRequest.query`, a seleção de argumentos alternativos que não era usada e
+as conexões duplicadas do adaptador. No frontend, foram removidos o componente
+`Limitations` e o cliente `api.tools`, que ficaram sem consumidores após a
+remoção dos painéis. A rota de diagnóstico `GET /api/integration/tools` continua
+disponível para inspecionar as capacidades reais da conta conectada.
+
+`buscas` continua necessário para a interface distinguir erro, catálogo vazio e
+resultados não selecionados. `limitacoes` permanece como informação da resposta
+da API e do contexto do agente; sua remoção visual não elimina as regras de
+validação, as restrições alimentares ou os estados de confirmação do carrinho.
+
+Os comentários explicam decisões locais, como evitar uma segunda criação após
+falha de leitura e descartar endereços de uma conexão anterior. Detalhes da
+verificação e referências oficiais: [Integração MCP](../docs/wiki/03-backend/integracao-mcp.md).

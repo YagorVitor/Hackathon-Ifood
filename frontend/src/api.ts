@@ -1,7 +1,7 @@
 import { getLanguage } from './accessibility/settings'
 // Cliente das rotas realmente implementadas em backend/app/main.py.
 // Tudo passa pelo proxy do Vite (/api, /auth, /health -> :8000); nenhuma credencial no frontend.
-import type { Address, AgentRequest, AgentResponse, CartProposal, CartProposalRequest, CartResult, McpTool } from './types'
+import type { Address, AgentRequest, AgentResponse, CartProposal, CartProposalRequest, CartResult } from './types'
 
 export type ApiErrorKind = 'network' | 'auth' | 'validation' | 'unavailable' | 'timeout' | 'failed' | 'not_found'
 
@@ -77,7 +77,6 @@ function toApiError(status: number, body: unknown, emptyBody: boolean): ApiError
 export const api = {
   health: () => request<{ status: string }>('/health'),
   authStatus: () => request<{ authenticated: boolean; connection_id?: string }>('/auth/status'),
-  tools: async () => (await request<{ endpoint: string; tools: McpTool[] }>('/api/integration/tools', {}, 30_000)).tools,
   sendMessage: (payload: AgentRequest) =>
     request<AgentResponse>(
       '/api/agent/message',
