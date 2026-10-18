@@ -9,7 +9,7 @@ Os seis documentos para avaliação da CompletAI, revisados contra o código da 
 5. [Documento técnico resumido](05-documento-tecnico.md)
 6. [Feedback sobre os MCPs](06-feedback-mcp.md)
 
-A interface funcional está no [frontend](../../frontend). Inclua capturas, vídeo ou link publicado se a submissão exigir demonstração sem execução local. O projeto chega ao carrinho criado e conferido; não implementa pagamento ou envio do pedido.
+A interface funcional está no [frontend](../../frontend). O [entregável de interface](04-interface-visual.md) inclui seis capturas da aplicação, da entrada ao carrinho conferido. O projeto chega ao carrinho criado e conferido; não implementa pagamento ou envio do pedido.
 
 Para execução e configuração, consulte o [README principal](../../README.md). Para detalhes de implementação, use o [índice técnico](../README.md).
 

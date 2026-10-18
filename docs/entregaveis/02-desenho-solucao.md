@@ -1,44 +1,107 @@
 # 02. Desenho da solução
 
-A jornada começa com a ocasião e termina, quando há compra, com a conferência do carrinho criado no iFood.
+## Do contexto à escolha de produtos
 
-## Da intenção à recomendação
+A CompletAI transforma uma necessidade de refeição em opções de preparo e compra. A pessoa informa o que tem e o que pretende fazer. O agente organiza esse contexto, recomenda alternativas e busca ofertas no iFood quando uma opção com itens para comprar é escolhida.
 
-1. **Contar o que precisa.** A pessoa digita, dita ou envia uma foto. Pode informar o objetivo, o número de pessoas, o tempo disponível e o orçamento.
-2. **Conferir as informações.** O agente organiza o que reconheceu. A pessoa corrige ingredientes e contexto antes de continuar. Na interface atual, é preciso confirmar pelo menos um ingrediente para avançar ao planejamento.
-3. **Usar o perfil.** Preferências já autorizadas entram na recomendação. “Meu perfil” pode ser aberto para preencher ou editar essas informações, sem uma etapa obrigatória de cadastro. Alergias, intolerâncias e condições de saúde exigem consentimento.
-4. **Escolher uma sugestão.** O agente propõe até três opções: aproveitar os ingredientes disponíveis, completar com compras ou buscar uma refeição pronta. Também pode sugerir acompanhamentos opcionais.
+A interface apresenta quatro momentos: **Sua despensa**, **Sugestões do agente**, **Só o que falta** e **Carrinho**. A revisão dos alimentos faz parte do primeiro momento. Perfil, conexão iFood e acessibilidade ficam disponíveis ao longo da jornada.
 
-## Da escolha ao carrinho
+## Exemplo mostrado nas telas
 
-5. **Conectar o iFood e escolher o destino.** A conta pode ser conectada desde a tela inicial. Na etapa de ofertas, a aplicação consulta os endereços; o destino escolhido define onde buscar produtos. Também é possível explorar por localização, mas esse caminho não habilita carrinho sem um endereço válido.
-6. **Encontrar produtos.** Escolher uma opção com faltantes autoriza a busca. Quando conexão e localização estão prontas, o agente consulta o catálogo automaticamente para atender à escolha. A interface apresenta os produtos, as lojas e os preços retornados pelo MCP.
-7. **Revisar a compra.** A pessoa escolhe entre as lojas apresentadas, ajusta as quantidades e pode remover itens. Cada proposta reúne produtos de uma única loja. A aplicação exibe uma revisão antes de criar qualquer carrinho no iFood.
-8. **Confirmar.** O backend cria o carrinho com `createCart` e consulta `getCart` para conferir o identificador, os itens e as quantidades.
+Nas [capturas da aplicação](04-interface-visual.md), a pessoa parte de alimentos reconhecidos em uma foto e confirma um contexto de almoço em família para quatro pessoas. O agente apresenta três possibilidades:
 
-Se a opção escolhida não precisa de compras, a jornada pode terminar com a sugestão de preparo. Os complementos aparecem nas recomendações, mas ainda falta um fluxo dedicado para comprá-los nesse caso.
+| Caminho | Sugestão exibida | Relação com a compra |
+|---|---|---|
+| Aproveitar o que tem | Salada com molho de iogurte e limão | Pode terminar sem compra |
+| Completar no iFood Mercado | Espaguete ao molho de tomate com salada verde | Busca espaguete para completar os ingredientes |
+| Conveniência | Refeição pronta de restaurante com salada verde | Permite buscar uma opção pronta no iFood |
+
+A pessoa escolhe o espaguete, define o endereço e recebe uma oferta do catálogo. Depois de revisar e confirmar, a tela apresenta um carrinho com uma embalagem do produto e informa que os itens foram conferidos.
+
+Esse exemplo mostra o caminho comercial implementado. O preço unitário da captura é uma observação daquela consulta. O mínimo da loja precisa de revisão e o total do carrinho não foi informado pelo MCP. A conferência dos itens não comprova que a compra possa ser concluída por aquele valor.
+
+## Fluxo principal
 
 ```mermaid
 flowchart TD
- A[Texto, foto ou ditado] --> B[Conferir informações e aplicar perfil opcional]
- B --> C[Escolher uma sugestão]
- C --> D{Há itens para comprar?}
- D -->|Não| E[Sugestão de preparo]
- D -->|Sim| F[Conectar iFood e escolher endereço]
- F --> G[Buscar ofertas]
- G --> H[Revisar produtos e quantidades]
- H --> I[Confirmar criação do carrinho]
- I --> J[Consultar e conferir o resultado]
+ A[Texto, foto ou ditado] --> B[Organizar alimentos e objetivo]
+ B --> C[Usuário confere e corrige]
+ P[Perfil opcional autorizado] -.-> D[Agente propõe alternativas]
+ C --> D
+ D --> E{Opção escolhida tem itens para comprar?}
+ E -->|Não| F[Orientação de preparo]
+ E -->|Sim| G[Verificar conexão iFood e destino]
+ G --> H[Buscar ofertas automaticamente]
+ H --> I[Exibir produtos e custos conhecidos]
+ I --> J[Escolher loja e ajustar quantidades]
+ J --> K[Backend prepara proposta local]
+ K --> L[Usuário revisa e confirma]
+ L --> M[Backend chama createCart]
+ M --> N[Backend consulta getCart]
+ N --> O[Exibir resultado da conferência]
 ```
 
-## Quando o fluxo precisa se adaptar
+### 1. Informar e conferir
 
-Uma busca sem resultados em uma categoria pode ser ampliada para o catálogo geral, respeitando o limite de três consultas. Erro de integração é tratado como falha, sem concluir que não existem ofertas.
+Texto e ditado viram uma mensagem para o agente. Câmera e upload enviam uma imagem ao agente de reconhecimento. Na captura, o sistema organiza alimentos e detalhes do pedido; ainda não pesquisa produtos.
 
-Se o usuário troca o endereço, precisa buscar novamente para o novo destino. Uma nova conexão iFood também limpa o estado comercial anterior.
+A revisão permite corrigir nomes, incluir ou remover ingredientes e ajustar objetivo, pessoas, tempo e orçamento. A interface atual exige pelo menos um ingrediente válido para avançar. A foto não confirma quantidade, validade ou conservação.
 
-Se a criação do carrinho tiver resultado incerto, o sistema bloqueia a repetição automática. A interface distingue um carrinho conferido de um carrinho criado cuja conferência não foi concluída. A exibição na sacola principal do aplicativo não está garantida.
+### 2. Recomendar com o contexto autorizado
 
-## Referências no projeto
+O planejamento usa os ingredientes confirmados e o perfil que a pessoa escolheu compartilhar. “Meu perfil” é opcional e pode ser lembrado no navegador. A conexão com o iFood não importa preferências alimentares.
 
-[Fluxo da aplicação](../../frontend/src/App.tsx), [revisão](../../frontend/src/steps/ReviewStep.tsx) e [carrinho](../../frontend/src/steps/CartStep.tsx).
+O agente pode retornar até três opções, com ingredientes usados, faltantes e justificativa. Também sugere complementos opcionais. A escolha de uma opção sem faltantes leva à orientação de preparo; ainda não há um caminho dedicado para comprar os complementos dessa opção.
+
+### 3. Encontrar uma oferta pertinente
+
+A conta iFood pode ser conectada desde a entrada. Na etapa comercial, a aplicação consulta os endereços e usa o destino selecionado para a busca. Quando escolha, conexão e localização estão prontas, a consulta começa automaticamente.
+
+Ingredientes favorecem o iFood Mercado. Refeições e acompanhamentos prontos podem usar restaurantes. A busca considera parceiros abertos; uma consulta vazia em uma categoria pode ser ampliada para o catálogo geral, mantendo filtros e destino. Há um limite de três buscas por execução.
+
+Sem produtos adequados, a interface permite solicitar novas alternativas prontas. Essa mudança passa por uma nova escolha do usuário; o agente não troca a refeição escolhida durante a busca. Explorar por localização também é possível, mas criar carrinho exige um endereço salvo válido.
+
+### 4. Montar, revisar e confirmar
+
+As ofertas são agrupadas por loja. O usuário escolhe uma loja, ajusta quantidades e pode remover itens. O backend prepara uma proposta com produtos observados no MCP, endereço, valores conhecidos, prazo e identificador de revisão.
+
+A proposta é local: essa etapa ainda não cria um carrinho no iFood. Após a revisão, a confirmação autoriza `createCart`. Em seguida, `getCart` confere o identificador, os itens e as quantidades. Cada proposta corresponde a uma única loja.
+
+## Quem decide e quem executa
+
+| Parte | Responsabilidade |
+|---|---|
+| Usuário | Confirmar o contexto, escolher a sugestão, definir destino e aprovar o carrinho |
+| Frontend | Apresentar etapas, coletar decisões e invalidar resultados quando o contexto muda |
+| Agente com OpenAI Agents SDK | Interpretar informações, recomendar opções e consultar ofertas pela ferramenta de busca |
+| Backend FastAPI | Validar contexto, vincular produtos ao destino e controlar proposta, criação e conferência |
+| MCP oficial do iFood | Retornar ofertas e endereços, criar o carrinho e permitir sua consulta |
+
+O agente recebe uma ferramenta local de leitura, ligada a `searchOffers`. As chamadas `listAddresses`, `createCart` e `getCart` são controladas pelo backend. Nomes comerciais, identificadores e preços são obtidos das respostas do MCP.
+
+## Mudanças e resultados incompletos
+
+| Situação | Comportamento |
+|---|---|
+| Perfil alterado | Descarta recomendações e resultados comerciais para usar o novo contexto |
+| Endereço alterado | Descarta a busca anterior e exige nova consulta para o destino |
+| Conta reconectada | Limpa o estado comercial anterior e ignora respostas atrasadas da conexão antiga |
+| Busca com erro | Informa falha, sem dizer que o catálogo está vazio |
+| Proposta expirada | Exige revisão antes de confirmar |
+| Criação com resultado incerto | Bloqueia a repetição automática para evitar duplicidade |
+| Carrinho criado, leitura incompleta | Preserva o carrinho e informa que a conferência não foi concluída |
+| Identidade, itens ou quantidades divergentes | Retorna divergência em vez de confirmar sucesso |
+
+A proposta vale por 10 minutos; as evidências de produtos, por 30 minutos. A confirmação também verifica se os produtos foram encontrados para o endereço escolhido. Considerar o orçamento nos filtros não garante que o subtotal, frete e mínimo da loja caibam nele.
+
+## Onde a jornada termina
+
+O resultado pode ser uma orientação de preparo sem compra, um carrinho criado e conferido ou um carrinho criado que ainda precisa de conferência. Pagamento e envio do pedido ficam fora desta versão. Um link de abertura só aparece quando foi retornado pelo MCP e aceito pela validação; a presença na sacola principal do app não é presumida.
+
+## Referências
+
+- [Interface e capturas do exemplo](04-interface-visual.md)
+- [Fluxo da aplicação](../../frontend/src/App.tsx)
+- [Ofertas e alternativas](../../frontend/src/steps/MarketStep.tsx)
+- [Montagem e revisão do carrinho](../../frontend/src/steps/CartStep.tsx)
+- [Agente](../../backend/app/agent.py) e [controle do carrinho](../../backend/app/cart.py)
