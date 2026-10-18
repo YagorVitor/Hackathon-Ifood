@@ -91,7 +91,7 @@ export function PreferenceFields({ draft, onDraft, allow, onAllow, disabled = fa
           ))}
         </div>
         <p className="text-sm text-ink-muted">
-          Usada no planejamento e como filtro de catálogo na busca do iFood Mercado. O filtro é a classificação do
+          Usada no planejamento e como filtro de catálogo na busca do iFood. O filtro é a classificação do
           catálogo, não uma verificação dos ingredientes.
         </p>
       </Card>
@@ -110,7 +110,7 @@ export function PreferenceFields({ draft, onDraft, allow, onAllow, disabled = fa
           <span className="text-sm">
             <b>Autorizo usar essas informações</b> nas sugestões desta conversa. Elas vão para o agente de IA apenas
             para sinalizar riscos e não ficam guardadas pelo app. Intolerância à lactose ou ao glúten também vira
-            filtro de catálogo (“sem lactose”, “sem glúten”) na busca do iFood Mercado.
+            filtro de catálogo (“sem lactose”, “sem glúten”) na busca do iFood.
           </span>
         </label>
 

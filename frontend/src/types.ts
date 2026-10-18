@@ -94,6 +94,7 @@ export interface CostSummary {
 }
 
 export interface SearchEvidence {
+  vertical?: 'RESTAURANT' | 'GROCERIES' | 'LIQUORSTORE' | 'DRUGSTORE' | 'PETSTORE' | 'SHOPPING' | null
   query: string
   restricoes_aplicadas: string[]
   status: 'success' | 'empty' | 'error'

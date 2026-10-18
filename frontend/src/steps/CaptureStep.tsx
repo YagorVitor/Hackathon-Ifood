@@ -60,7 +60,7 @@ export function CaptureStep({ text, onText, photo, onPhoto, onSubmit, loading, e
         </div>
         <details className="capture-privacy"><summary>Sobre seus dados e formas de entrada</summary><p>Texto e foto são enviados ao agente de IA para esta análise. A imagem é processada em memória, sem ser salva pelo app; seus metadados são removidos antes do envio ao modelo. Ingredientes reconhecidos precisam da sua confirmação.</p></details>
       </form>
-      <div className="capture-promise"><Icon name="store" className="size-5" /><p>Se faltar algum ingrediente, a gente procura no <b>iFood Mercado.</b><br /><span>Você escolhe a refeição. O agente cuida da busca.</span></p></div>
+      <div className="capture-promise"><Icon name="store" className="size-5" /><p>Se faltar algum ingrediente, a gente procura no <b>iFood.</b><br /><span>Você escolhe a refeição. Ingredientes no Mercado ou opções prontas, conforme sua necessidade.</span></p></div>
     </div>
   )
 }

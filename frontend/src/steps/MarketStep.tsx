@@ -9,7 +9,7 @@ import { IngredientLine, StrategyTag } from './OptionsStep'
 import type { AuthState } from '../hooks/useIfoodConnection'
 
 export function MarketStep({
-  option, auth, onConnect, onRecheck, location, onLocation, onConsult, result, budgetCents, tools, loading, error, onBack, onRestart, onCart, addressPicker, cartEnabled,
+  option, auth, onConnect, onRecheck, location, onLocation, onConsult, result, budgetCents, tools, loading, error, onBack, onRestart, onCart, addressPicker, cartEnabled, onConvenience,
 }: {
   option: MealOption
   auth: AuthState
@@ -28,13 +28,14 @@ export function MarketStep({
   onCart: (products: SelectedProduct[]) => void
   addressPicker: ReactNode
   cartEnabled: boolean
+  onConvenience: () => void
 }) {
   const ready = auth === 'yes' && location !== null
 
   return (
     <div className="space-y-4">
-      <StageTitle kicker="O agente cuida dos faltantes">Só falta completar sua despensa.</StageTitle>
-      <p className="text-ink-muted">Vou procurar os ingredientes da opção que você escolheu no iFood Mercado.</p>
+      <StageTitle kicker="O agente busca no iFood">{option.estrategia === 'CONVENIENCE' ? 'Uma opção pronta para sua refeição.' : 'Só falta completar sua despensa.'}</StageTitle>
+      <p className="text-ink-muted">{option.estrategia === 'CONVENIENCE' ? 'Vou buscar opções prontas no iFood, incluindo restaurantes, conforme a sua escolha.' : 'Vou buscar seus ingredientes no Mercado e ampliar a consulta no iFood se não encontrar opções adequadas.'}</p>
 
       <Card className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -79,7 +80,7 @@ export function MarketStep({
         </Card>
       )}
 
-      {loading && <Loading label="Consultando o iFood Mercado…" detail="O agente busca cada item que falta. Pode levar até um minuto." />}
+      {loading && <Loading label="Consultando o iFood…" detail="O agente consulta parceiros abertos para o seu destino. Pode levar até um minuto." />}
       {error && !loading && (
         <Notice tone="danger" role="alert" title={error.kind === 'auth' ? 'Conexão com o iFood necessária' : 'A consulta não foi concluída'}>
           <p>{error.message}</p>
@@ -88,6 +89,14 @@ export function MarketStep({
       )}
 
       {result && !loading && <MarketResult result={result} budgetCents={budgetCents} onCart={onCart} cartEnabled={cartEnabled} />}
+
+      {result && !loading && !error && option.estrategia !== 'CONVENIENCE' && result.data.produtos.length === 0 && result.data.buscas.some((b) => b.status === 'empty') && (
+        <Card className="space-y-3">
+          <h3 className="font-bold">Podemos pensar em algo pronto.</h3>
+          <p className="text-sm text-ink-muted">A busca não confirmou os ingredientes necessários. O agente pode sugerir alternativas de restaurantes e outras opções do iFood, mantendo suas preferências.</p>
+          <Button variant="secondary" icon="sparkle" onClick={onConvenience}>Ver alternativas prontas no iFood</Button>
+        </Card>
+      )}
 
       {!loading && (
         <div className="space-y-2">
@@ -252,7 +261,7 @@ function MarketResult({ result, budgetCents, onCart, cartEnabled }: { result: Ag
       )}
       {empty && (
         <Notice tone="info" role="status" title="Nenhum produto encontrado">
-          O iFood não retornou produtos para esses itens, filtros e localização.
+          O iFood não retornou produtos de parceiros abertos para esses termos, filtros e destino. Isso não significa que todas as lojas estejam fechadas.
         </Notice>
       )}
       {noneSelected && (
@@ -387,7 +396,7 @@ function SearchLog({ searches }: { searches: SearchEvidence[] }) {
             <p><code className="font-mono">searchOffers</code> · “{s.query}” · <span className={`font-bold ${SEARCH_STATUS[s.status].cls}`}>{SEARCH_STATUS[s.status].label}</span>
               {s.status === 'success' && <> ({s.quantidade_resultados})</>}
             </p>
-            <p className="text-ink-muted">Filtros de catálogo: {s.restricoes_aplicadas.length ? s.restricoes_aplicadas.join(', ') : 'nenhum'}</p>
+            <p className="text-ink-muted">Vertical: {s.vertical || 'Todas'} · Parceiros abertos · Filtros de catálogo: {s.restricoes_aplicadas.length ? s.restricoes_aplicadas.join(', ') : 'nenhum'}</p>
           </li>
         ))}
       </ul>

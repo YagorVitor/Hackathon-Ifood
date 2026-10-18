@@ -133,8 +133,8 @@ export default function App() {
     go('review')
   }
 
-  async function runPlan(t: DeclaredTags = tags, c: boolean = consent) {
-    const res = await send('plan', text.trim() || 'Sugira refeições com os ingredientes que confirmei na revisão da foto.', buildContext({ items, fields, tags: t, consent: c, location: null }))
+  async function runPlan(t: DeclaredTags = tags, c: boolean = consent, request?: string) {
+    const res = await send('plan', request || text.trim() || 'Sugira refeições com os ingredientes que confirmei na revisão da foto.', buildContext({ items, fields, tags: t, consent: c, location: null }))
     if (!res) return
     setPlan(res)
     setChosen(null)
@@ -185,7 +185,7 @@ export default function App() {
     if (!chosen || !searchLocation) return
     const generation = ++searchGeneration.current
     setMarket(null)
-    const message = `Escolhi esta opção: ${JSON.stringify(chosen)}. Mantenha essa refeição como única opção e busque no iFood Mercado apenas os ingredientes faltantes dela.`
+    const message = `Escolhi esta opção: ${JSON.stringify(chosen)}. Mantenha essa refeição como única opção e busque no iFood o que falta para ela. Use Mercado para ingredientes; para conveniência, considere restaurantes ou o catálogo geral conforme o pedido. Consulte parceiros abertos. Se não houver resultado adequado, informe a limitação sem trocar a opção escolhida.`
     const res = await send('market', message, buildContext({ items, fields, tags, consent, location: searchLocation }))
     if (res && generation === searchGeneration.current) setMarket(res)
   }, [chosen, searchLocation?.latitude, searchLocation?.longitude, items, fields, tags, consent, send])
@@ -291,6 +291,7 @@ export default function App() {
               onSelect={(id) => { invalidateSearch(); delivery.select(id) }} onReload={() => { invalidateSearch(); delivery.reload() }} />}
             tools={tools} loading={busy === 'market'} error={error} onBack={() => go('options')} onRestart={restart}
             onCart={(products) => { setCartProducts(products); go('cart') }}
+            onConvenience={() => { go('options'); void runPlan(tags, consent, `Não encontrei complementos adequados para a opção escolhida: ${JSON.stringify(chosen)}. Sugira até três alternativas CONVENIENCE de refeições ou acompanhamentos prontos no iFood que atendam meu objetivo, preferências e restrições. Não faça buscas ainda; vou escolher uma alternativa. Pedido original: ${text}`) }}
           />
         )}
         {stage === 'cart' && chosen && cartProducts.length > 0 && address && (
@@ -323,7 +324,7 @@ export default function App() {
                 <ol className="sidebar-how">
                   <li><span>01</span><div><b>Conte o que tem</b><p>Ingredientes e o que você quer preparar.</p></div></li>
                   <li><span>02</span><div><b>Encontre uma ideia</b><p>Confira os itens e escolha uma sugestão.</p></div></li>
-                  <li><span>03</span><div><b>Complete se precisar</b><p>Busque só o que falta e monte o carrinho no iFood Mercado.</p></div></li>
+                  <li><span>03</span><div><b>Complete se precisar</b><p>Busque só o que falta e monte o carrinho no iFood.</p></div></li>
                 </ol>
               )}
               <div className="sidebar-bottom"><Icon name="leaf" className="size-4" /><span>Mais aproveitamento.<br />Compras com mais sentido.</span></div>
@@ -336,7 +337,7 @@ export default function App() {
           <div className="footer-intro"><Icon name="bowl" className="size-5" /><span>Despensa Reversa</span><span className="footer-caption">Da sua despensa à próxima refeição.</span></div>
           <details>
             <summary className={`cursor-pointer ${focusRing}`}>Como funciona e de onde vêm os dados?</summary>
-            <p className="mt-3">Conte o que tem, confira o que o agente entendeu e escolha uma sugestão. Se precisar completar a refeição, o agente busca os faltantes no iFood Mercado com a localização que você autorizar, e você pode montar o carrinho com eles.</p>
+            <p className="mt-3">Conte o que tem, confira o que o agente entendeu e escolha uma sugestão. Se precisar completar a refeição, o agente busca ingredientes no Mercado ou opções prontas no iFood com a localização que você autorizar, e você pode montar o carrinho com eles.</p>
             <ul className="mt-4 grid gap-3 sm:grid-cols-2">
               {(Object.keys(PROVENANCE) as (keyof typeof PROVENANCE)[]).map((p) => (
                 <li key={p} className="space-y-1"><Badge p={p} /><p>{PROVENANCE[p].hint}</p></li>
