@@ -11,7 +11,7 @@ import secrets
 import time
 from dataclasses import dataclass, field
 from typing import Any, Literal
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, parse_qsl
 
 from fastapi import HTTPException
 
@@ -240,6 +240,19 @@ def app_deeplink_of(payload: dict[str, Any], cart_id: str) -> str | None:
     return None
 
 
+def deeplink_diagnostic(value: Any) -> dict[str, Any] | None:
+    """Formato do link para diagnóstico; nunca inclui valores de query ou fragmentos."""
+    if not isinstance(value, str):
+        return None
+    try:
+        url = urlsplit(value)
+        return {"scheme": url.scheme, "host": url.hostname,
+                "path": re.sub(r"[0-9a-fA-F]{8}-[0-9a-fA-F-]{27,}", "<id>", url.path)[:200],
+                "query_fields": [key for key, _ in parse_qsl(url.query)][:20]}
+    except ValueError:
+        return {"invalid_url": True}
+
+
 def inspect_result(response: dict[str, Any], cart_id: str) -> dict[str, Any]:
     """Diagnóstico somente leitura, sem repassar endereço, pagamento ou resposta bruta."""
     payload = _unwrap(response)
@@ -261,6 +274,7 @@ def inspect_result(response: dict[str, Any], cart_id: str) -> dict[str, Any]:
     link = app_deeplink_of(payload, cart_id)
     link_state = "valid" if link else "absent" if payload.get("appDeeplink") is None else "rejected"
     return {"cart_id": cart_id, "app_deeplink": link, "app_deeplink_estado": link_state,
+            "app_deeplink_formato": deeplink_diagnostic(payload.get("appDeeplink")),
             "itens": items, "quantidade_linhas": len(items), "pedido_enviado": False,
             "aviso": "Consulta getCart; a presença na sacola principal do aplicativo não foi verificada."}
 

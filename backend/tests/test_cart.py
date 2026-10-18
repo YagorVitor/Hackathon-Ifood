@@ -171,6 +171,12 @@ class CartHandoffTests(unittest.TestCase):
         result=cart.build_result(self.proposal,'cart-1',read,[],created=created)
         self.assertEqual(result.app_deeplink,'ifoodapp://cart/cart-1')
 
+    def test_link_diagnostic_omits_query_values(self):
+        detail=cart.deeplink_diagnostic('ifoodapp://cart/test?token=PRIVATE_VALUE#SECRET')
+        self.assertEqual(detail['query_fields'],['token'])
+        self.assertNotIn('PRIVATE_VALUE',str(detail))
+        self.assertNotIn('SECRET',str(detail))
+
     def test_missing_or_unsafe_link_is_not_invented(self):
         for value in (None,'javascript:alert(1)','https://evil.invalid/cart','ifoodapp://cart/other-cart','ifoodapp://cart/cart-1\n'):
             result=cart.build_result(self.proposal,'cart-1',mcp({'cartId':'cart-1','appDeeplink':value}),[])
