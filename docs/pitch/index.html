@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pitch da Despensa Reversa</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter:wght@400..800&family=JetBrains+Mono:wght@400..600&display=swap">
+<style>
+/* Layout: palco escuro com um slide claro 16:9 (canvas 1280×720) escalado para caber na tela.
+   Abaixo de 760px de largura, o deck vira um documento rolável. Visual único (claro), cores do app. */
+:root {
+  --stage: #191615;
+  --paper: #fbf9f7;
+  --surface: #ffffff;
+  --ink: #2a2422;
+  --muted: #6c625e;
+  --line: #e9e2de;
+  --red: #e01b2b;
+  --red-ink: #c91e2d;
+  --red-soft: #fff0f1;
+  --peach: #fff0e9;
+  --blue: #4e6274; --blue-soft: #f0f4f7;
+  --violet: #65536f; --violet-soft: #f5f2f7;
+  --amber: #865715; --amber-soft: #fff8e9;
+  --green: #3c653b; --green-soft: #eff5ed;
+  --sym-bg: #ea1d2c; --sym-fg: #ffffff;
+  --font-display: "Bricolage Grotesque", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Mono", Consolas, ui-monospace, monospace;
+  --fs-hero: 82px; --fs-h1: 50px; --fs-h2: 28px; --fs-lead: 22px; --fs-body: 19px; --fs-small: 16px; --fs-micro: 13px;
+  --scale: 1; --notes-h: 0px;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--stage); color: var(--ink); font-family: var(--font-body); -webkit-font-smoothing: antialiased; overflow: hidden; }
+h1, h2, h3, h4, p, ul, ol, dl, dd, figure, blockquote { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid #ff7a83; outline-offset: 3px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+/* ---------- Palco e escala ---------- */
+.stage { position: fixed; inset: 0 0 var(--notes-h) 0; display: grid; place-items: center;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+.deck-holder { position: relative; width: calc(1280px * var(--scale)); height: calc(720px * var(--scale)); }
+.deck { position: absolute; top: 0; left: 0; width: 1280px; height: 720px; transform: scale(var(--scale)); transform-origin: 0 0; }
+.slide { position: absolute; inset: 0; overflow: hidden; background: var(--paper); color: var(--ink);
+  opacity: 0; visibility: hidden; transition: opacity .32s ease, visibility 0s linear .32s; }
+.slide.is-active { opacity: 1; visibility: visible; transition: opacity .32s ease; }
+.frame { width: 1280px; height: 720px; padding: 52px 72px 36px; display: flex; flex-direction: column; gap: 22px; }
+.slide-head { display: flex; justify-content: space-between; align-items: center; gap: 24px; min-height: 16px; }
+.slide-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.fit { display: flex; flex-direction: column; gap: 26px; flex: 1; }
+.slide-foot { display: flex; justify-content: space-between; align-items: center; font: 600 12px/1 var(--font-body); color: var(--muted); }
+.slide-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+
+/* Variações de slide redefinem os tokens localmente */
+.slide--red { --paper: var(--red); --ink: #ffffff; --muted: rgba(255,255,255,.84); --line: rgba(255,255,255,.3); --red-ink: #ffffff; --sym-bg: #ffffff; --sym-fg: #e01b2b; }
+.slide--dark { --paper: #221d1b; --ink: #fbf4f1; --muted: #cbbfba; --line: #3d3532; --red-ink: #ff7a83; }
+
+/* ---------- Tipografia ---------- */
+.eyebrow { font: 700 var(--fs-micro)/1 var(--font-body); letter-spacing: .14em; text-transform: uppercase; color: var(--red-ink); }
+.pillar { display: inline-flex; align-items: center; gap: 10px; font: 600 var(--fs-micro)/1 var(--font-body); color: var(--muted); }
+.dots { display: inline-grid; grid-auto-flow: column; gap: 4px; }
+.dots i { width: 9px; height: 9px; border-radius: 2px; background: var(--line); }
+.dots i.on { background: var(--red-ink); }
+.slide--red .dots i { background: rgba(255,255,255,.32); }
+.slide--red .dots i.on { background: #fff; }
+.h1 { font-family: var(--font-display); font-weight: 780; font-size: var(--fs-h1); line-height: 1.04; letter-spacing: -.028em; text-wrap: balance; max-width: 980px; }
+.h1 em, .hero em { font-style: normal; color: var(--red-ink); }
+.lead { font-size: var(--fs-lead); line-height: 1.45; color: var(--muted); max-width: 760px; text-wrap: pretty; }
+.small { font-size: var(--fs-small); line-height: 1.5; color: var(--muted); }
+.micro { font-size: var(--fs-micro); line-height: 1.45; color: var(--muted); }
+.mono { font-family: var(--font-mono); font-size: .92em; letter-spacing: -.01em; }
+code { font-family: var(--font-mono); font-size: .9em; background: var(--red-soft); color: var(--red-ink); padding: .08em .35em; border-radius: 5px; overflow-wrap: anywhere; }
+.slide--dark code, .slide--red code { background: rgba(255,255,255,.12); color: inherit; }
+b, strong { font-weight: 700; color: var(--ink); }
+
+/* Marca (igual ao app) */
+.mark { display: inline-flex; align-items: center; gap: 14px; color: var(--ink); font-weight: 800; letter-spacing: -.04em; line-height: 1.02; }
+.mark .sym { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 18px 18px 18px 4px; background: var(--sym-bg); color: var(--sym-fg); font-size: 32px; }
+.mark .txt { font-size: 27px; }
+.mark .txt span { display: block; }
+.mark .dot { color: var(--red); }
+.mark .txt .dot { display: inline; }
+.slide--red .mark .dot { color: #fff; }
+.mark--mini { gap: 8px; font-size: 12px; letter-spacing: -.02em; }
+.mark--mini .sym { width: 20px; height: 20px; border-radius: 6px 6px 6px 2px; font-size: 13px; }
+.mark--mini .txt { font-size: 12.5px; }
+.mark--mini .txt span { display: inline; }
+
+/* ---------- Componentes do app (procedência, estratégias, chips) ---------- */
+.ui { font-family: var(--font-body); color: #292929; }
+.badge { display: inline-flex; align-items: center; gap: .35em; white-space: nowrap; border-radius: 999px; padding: .22em .7em; font-size: 12px; font-weight: 650; line-height: 1.3; }
+.b-declared { background: var(--blue-soft); color: var(--blue); }
+.b-inferred { background: var(--violet-soft); color: var(--violet); }
+.b-mcp { background: var(--red-soft); color: #c91e2d; }
+.b-estimated { background: var(--amber-soft); color: var(--amber); }
+.tag { display: inline-flex; align-items: center; gap: .4em; border-radius: 999px; padding: .3em .8em; font-weight: 700; font-size: 13px; white-space: nowrap; }
+.t-pantry { background: #e8f0e5; color: var(--green); }
+.t-market { background: var(--red-soft); color: #c91e2d; }
+.t-conv { background: var(--amber-soft); color: var(--amber); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border-radius: 999px; padding: .28em .75em; font-size: 13px; font-weight: 600; }
+.chip-have { background: var(--green-soft); color: var(--green); }
+.chip-miss { background: var(--red-soft); color: #c91e2d; }
+.example-label { display: inline-flex; align-items: center; gap: 6px; font: 600 11px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+
+/* ---------- Grades reutilizáveis ---------- */
+.cols { display: grid; gap: 40px; }
+.cols > * { min-width: 0; }
+.c-2 { grid-template-columns: 1fr 1fr; }
+.c-55-45 { grid-template-columns: 1.15fr .85fr; }
+.c-45-55 { grid-template-columns: .9fr 1.1fr; }
+.c-3 { grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.c-4 { grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.rule-list { display: grid; }
+.rule-list > li { display: flex; gap: 14px; align-items: flex-start; padding: 13px 0; border-top: 1px solid var(--line); font-size: var(--fs-body); line-height: 1.4; }
+.rule-list > li:first-child { border-top: 0; padding-top: 0; }
+.rule-list .ic { font-size: 22px; color: var(--red-ink); margin-top: 1px; }
+.rule-list p + p { margin-top: 3px; }
+.rule-list .sub { font-size: var(--fs-small); color: var(--muted); }
+.col-title { display: flex; align-items: center; gap: 10px; font: 750 var(--fs-h2)/1.1 var(--font-display); letter-spacing: -.02em; margin-bottom: 18px; }
+.col-title .ic { color: var(--red-ink); font-size: 28px; }
+.callout { border-radius: 16px; padding: 18px 22px; background: var(--amber-soft); color: var(--ink); font-size: var(--fs-small); line-height: 1.5; display: flex; gap: 14px; align-items: flex-start; }
+.callout .ic { color: var(--amber); font-size: 22px; margin-top: 2px; }
+.source { font-size: 12px; color: var(--muted); }
+</style>
+<style>
+/* ---------- Capa ---------- */
+.cover { display: grid; grid-template-columns: 1.25fr .75fr; gap: 24px; align-items: center; flex: 1; }
+.cover > * { min-width: 0; }
+.hero { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-hero); line-height: .98; letter-spacing: -.04em; text-wrap: balance; margin: 30px 0 24px; }
+.cover-art { position: relative; aspect-ratio: 1; max-width: 100%; border-radius: 50%; background: var(--peach); display: grid; place-items: center; overflow: hidden; }
+.cover-art svg { width: 104%; transform: rotate(-8deg); }
+
+/* ---------- Problema ---------- */
+.stat { display: grid; gap: 8px; padding-top: 20px; border-top: 2px solid var(--ink); }
+.stat-n { font: 800 74px/1 var(--font-display); letter-spacing: -.04em; color: var(--red-ink); font-variant-numeric: tabular-nums; }
+.stat-n small { font-size: 34px; }
+
+/* ---------- Comércio reverso ---------- */
+.flows { display: grid; gap: 16px; }
+.flow { display: grid; grid-template-columns: 180px 1fr; gap: 20px; align-items: center; }
+.flow-label { font: 700 13px/1.3 var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.flow ol { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.flow li { display: flex; align-items: center; gap: 10px; font: 650 19px/1 var(--font-body); }
+.flow li span { border-radius: 999px; padding: 11px 18px; border: 1.5px solid rgba(255,255,255,.5); color: rgba(255,255,255,.85); }
+.flow li + li::before { content: "→"; color: rgba(255,255,255,.7); font-size: 20px; }
+.flow--new li span { background: #fff; color: #c91e2d; border-color: #fff; }
+.flow--new li + li::before { color: #fff; }
+.strats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.strat { background: #fff; color: #292929; border-radius: 16px; padding: 18px 20px; display: grid; gap: 10px; align-content: start; }
+.strat p { font-size: 17px; line-height: 1.4; color: #5b5350; }
+.strat b { color: #292929; }
+.strat .tag { justify-self: start; }
+.motto { font: 600 20px/1.4 var(--font-display); color: #fff; max-width: 920px; }
+
+/* ---------- Demo ---------- */
+.quote { font: 700 34px/1.22 var(--font-display); letter-spacing: -.02em; text-wrap: balance; max-width: 1060px; }
+.quote::before { content: "“"; color: var(--red-ink); }
+.quote::after { content: "”"; color: var(--red-ink); }
+.watch { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; counter-reset: w; }
+.watch li { counter-increment: w; border-top: 2px solid var(--line); padding-top: 16px; display: grid; gap: 8px; align-content: start; }
+.watch li::before { content: counter(w); font: 700 13px/1 var(--font-mono); color: var(--red-ink); }
+.watch b { font: 700 21px/1.2 var(--font-display); color: var(--ink); }
+.watch p { font-size: 16px; line-height: 1.45; color: var(--muted); }
+.prov { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.prov .badge { font-size: 13px; }
+
+/* ---------- Arquitetura ---------- */
+.arch { display: grid; grid-template-columns: 124px 1fr 158px; column-gap: 34px; row-gap: 8px; }
+.arch > * { min-width: 0; }
+.a-fe, .a-mod, .a-ext { border-radius: 12px; font-size: 14px; line-height: 1.3; }
+.a-fe { grid-column: 1; grid-row: 1 / 7; border: 1.5px solid var(--line); background: var(--surface); padding: 14px; display: flex; flex-direction: column; justify-content: center; gap: 6px; position: relative; }
+.a-fe::after { content: ""; position: absolute; right: -34px; top: 50%; width: 34px; border-top: 2px solid var(--ink); }
+.a-be { grid-column: 2; grid-row: 1 / 7; background: var(--surface); border: 1.5px solid var(--ink); border-radius: 14px; }
+.a-head { grid-column: 2; grid-row: 1; padding: 12px 16px 2px; font-weight: 750; font-size: 15px; z-index: 1; }
+.a-mod { grid-column: 2; z-index: 1; margin: 0 12px; padding: 8px 12px; background: var(--paper); border: 1px solid var(--line); display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.a-mod.r6 { margin-bottom: 12px; }
+.a-mod .mono { font-size: 11.5px; color: var(--muted); }
+.a-mod.is-key { border-color: var(--red-ink); background: var(--red-soft); }
+.a-ext { grid-column: 3; padding: 8px 12px; background: var(--ink); color: var(--paper); display: flex; flex-direction: column; justify-content: center; position: relative; font-weight: 650; }
+.a-ext small { font-weight: 400; opacity: .82; font-size: 12px; }
+.a-ext::before { content: ""; position: absolute; left: -34px; top: 50%; width: 34px; border-top: 2px dashed var(--ink); }
+.a-ext.is-ifood { background: #c91e2d; color: #fff; }
+.r2 { grid-row: 2; } .r3 { grid-row: 3; } .r4 { grid-row: 4; } .r5 { grid-row: 5; } .r6 { grid-row: 6; }
+.facts { display: grid; gap: 12px; }
+.facts li { font-size: 15.5px; line-height: 1.42; color: var(--muted); padding-left: 16px; border-left: 2px solid var(--line); }
+.facts li b { display: block; font-size: 17.5px; color: var(--ink); }
+.facts li.is-key { border-left-color: var(--red-ink); }
+
+/* ---------- Impacto ---------- */
+.checks li { display: flex; gap: 12px; font-size: 18px; line-height: 1.4; padding: 8px 0; }
+.checks .ic { color: var(--green); font-size: 22px; margin-top: 2px; }
+.next { counter-reset: n; display: grid; gap: 10px; }
+.next li { counter-increment: n; display: grid; grid-template-columns: 26px 1fr; gap: 8px; font-size: 17px; line-height: 1.4; }
+.next li::before { content: counter(n); font: 700 13px/1.8 var(--font-mono); color: var(--red-ink); }
+
+/* ---------- Fechamento ---------- */
+.crit li { display: grid; grid-template-columns: 64px 290px 1fr; gap: 16px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); font-size: 19px; line-height: 1.35; }
+.crit li:first-child { border-top: 0; }
+.crit .name { font: 750 21px/1.15 var(--font-display); }
+.end { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; }
+.thanks { font: 800 46px/1 var(--font-display); letter-spacing: -.03em; }
+
+/* ---------- Entrada animada (só após a primeira troca de slide) ---------- */
+.animate .slide.is-active .rv { animation: rv .55s cubic-bezier(.2,.7,.2,1) both; }
+.animate .slide.is-active .rv:nth-child(2) { animation-delay: .08s; }
+.animate .slide.is-active .rv:nth-child(3) { animation-delay: .16s; }
+.animate .slide.is-active .flow--new li { animation: rv .45s ease both; }
+.animate .slide.is-active .flow--new li:nth-child(2) { animation-delay: .2s; }
+.animate .slide.is-active .flow--new li:nth-child(3) { animation-delay: .4s; }
+.animate .slide.is-active .flow--new li:nth-child(4) { animation-delay: .6s; }
+@keyframes rv { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+/* ---------- Navegação, notas e cronômetro ---------- */
+.notes { display: none; }
+.deck-nav { position: fixed; left: 50%; bottom: calc(var(--notes-h) + 14px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: 999px; background: rgba(25,22,21,.88); color: #f3ece9;
+  font-size: 13px; z-index: 20; transition: opacity .3s; }
+.deck-nav.is-idle:not(:focus-within) { opacity: 0; }
+.deck-nav button { border: 0; background: transparent; color: inherit; border-radius: 999px; min-width: 38px; height: 38px; padding: 0 12px; cursor: pointer; }
+.deck-nav button:hover { background: rgba(255,255,255,.12); }
+.deck-nav button[aria-pressed="true"] { background: rgba(255,255,255,.2); }
+.nav-count { font-family: var(--font-mono); font-variant-numeric: tabular-nums; padding: 0 6px; }
+.notes-panel { position: fixed; left: 0; right: 0; bottom: 0; height: var(--notes-h); background: #f6f1ee; color: #2a2422; border-top: 3px solid #e01b2b;
+  display: grid; grid-template-columns: 230px 1fr; gap: 28px; padding: 16px 28px calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 10; }
+.notes-panel[hidden] { display: none; }
+.notes-panel .timer { font: 700 40px/1 var(--font-mono); font-variant-numeric: tabular-nums; cursor: pointer; }
+.notes-panel .timer.is-late { color: #c91e2d; }
+.notes-panel .meta { font-size: 13px; color: #6c625e; display: grid; gap: 6px; margin-top: 10px; }
+.notes-panel .say { overflow: auto; font-size: 17px; line-height: 1.55; display: grid; gap: 8px; align-content: start; }
+.blackout { position: fixed; inset: 0; background: #000; z-index: 30; }
+.blackout[hidden] { display: none; }
+.doc-head { display: none; }
+
+/* ---------- Celular: documento rolável ---------- */
+@media (max-width: 760px) {
+  :root { --fs-hero: 40px; --fs-h1: 29px; --fs-h2: 21px; --fs-lead: 17px; --fs-body: 16px; --fs-small: 14.5px; --fs-micro: 12px; }
+  html, body { height: auto; }
+  body { overflow: auto; }
+  .stage { position: static; display: block; padding: 0; }
+  .deck-holder, .deck { position: static; width: auto; height: auto; transform: none; }
+  .slide { position: relative; inset: auto; opacity: 1; visibility: visible; transition: none; border-bottom: 1px solid #00000022; }
+  .frame { width: auto; height: auto; padding-block: 32px 22px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .fit { zoom: 1 !important; }
+  .cover, .cols, .c-2, .c-55-45, .c-45-55, .c-3, .c-4, .strats, .watch, .arch { grid-template-columns: 1fr; }
+  .cover-art { max-width: 240px; }
+  .flow { grid-template-columns: 1fr; gap: 8px; }
+  .flow li { font-size: 15px; }
+  .stat-n { font-size: 48px; }
+  .quote { font-size: 22px; }
+  .a-fe, .a-head, .a-mod, .a-ext { grid-column: 1; grid-row: auto; }
+  .a-be { display: none; }
+  .a-mod, .a-mod.r6 { margin: 0; }
+  .a-fe::after, .a-ext::before { display: none; }
+  .crit li { grid-template-columns: 1fr; gap: 6px; }
+  .end { flex-direction: column; align-items: flex-start; }
+  .thanks { font-size: 32px; }
+  .deck-nav, .notes-panel { display: none !important; }
+  .doc-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: #191615; color: #f3ece9; font-size: 14px;
+    padding-block: 14px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .doc-head button { border: 1px solid #ffffff55; background: transparent; color: inherit; border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+  .show-notes .notes { display: grid; gap: 6px; margin: 0 max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); padding: 14px; border-radius: 12px; background: #f6f1ee; color: #2a2422; font-size: 14px; line-height: 1.5; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slide, .deck-nav { transition: none; }
+  .animate .slide.is-active .rv, .animate .slide.is-active .flow--new li { animation: none; }
+}
+@media print {
+  @page { size: 1280px 720px; margin: 0; }
+  html, body { height: auto; overflow: visible; background: #fff; }
+  .stage { position: static; display: block; padding: 0; }
+  .deck-holder, .deck { position: static; width: 1280px; height: auto; transform: none; }
+  .slide { position: relative; inset: auto; width: 1280px; height: 720px; opacity: 1 !important; visibility: visible !important; break-after: page; }
+  .deck-nav, .notes-panel, .blackout, .doc-head { display: none !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- Ícones do app (frontend/src/components/icons.tsx) -->
+  <symbol id="i-jar" viewBox="0 0 24 24"><path d="M7 3h10v3H7z"/><path d="M6 6h12v2a2 2 0 0 1 1 1.7V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9.7A2 2 0 0 1 6 8Z"/><path d="M8.5 13.5h7"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24"><path d="M3 9 4.5 4h15L21 9"/><path d="M4 9v11h16V9"/><path d="M3 9h18"/><path d="M9.5 20v-5h5v5"/></symbol>
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10Z"/><path d="M2 21c0-3 1.9-5.4 5.1-6C9.5 14.5 12 13 13 12"/></symbol>
+  <symbol id="i-bowl" viewBox="0 0 24 24"><path d="M3 11h18a9 9 0 0 1-18 0Z"/><path d="M8 7c0-1.5 1-2 1-3.5"/><path d="M12 7c0-1.5 1-2 1-3.5"/><path d="M16 7c0-1.5 1-2 1-3.5"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.9 5.6 5.6 1.9-5.6 1.9L12 18l-1.9-5.6-5.6-1.9 5.6-1.9Z"/><path d="M19 17v4"/><path d="M17 19h4"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-approx" viewBox="0 0 24 24"><path d="M4 9c2-2 4-2 6 0s4 2 6 0 3-2 4-1"/><path d="M4 15c2-2 4-2 6 0s4 2 6 0 3-2 4-1"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.7 18-8-14a2 2 0 0 0-3.5 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+</svg>
+
+<header class="doc-head"><span>Pitch da Despensa Reversa</span><button type="button" id="doc-notes" aria-pressed="false">Mostrar roteiro</button></header>
+
+<main class="stage" id="stage">
+<div class="deck-holder">
+<div class="deck" id="deck">
+
+<!-- 1 · CAPA -->
+<section class="slide" data-title="Capa" data-time="10">
+  <div class="frame">
+    <header class="slide-head"><p class="eyebrow">Hackathon SEMCOMP × iFood 2026 · Vendendo com Agentes</p></header>
+    <div class="slide-body"><div class="fit">
+      <div class="cover">
+        <div>
+          <span class="mark"><span class="sym"><svg class="ic"><use href="#i-bowl"/></svg></span><span class="txt"><span>despensa</span><span>reversa<span class="dot">.</span></span></span></span>
+          <h1 class="hero rv">Tem uma boa refeição na sua <em>despensa.</em></h1>
+          <p class="lead rv">Um agente que entende o que você já tem em casa, planeja a refeição e busca no iFood Mercado só o que falta, pelo MCP oficial do iFood.</p>
+        </div>
+        <div class="cover-art" aria-hidden="true">
+          <svg viewBox="0 0 340 280" fill="none">
+            <ellipse cx="177" cy="244" rx="119" ry="13" fill="#ddbbb0" opacity=".25"/>
+            <path d="M63 65 266 40l36 176-201 29Z" fill="#f2c7b7" opacity=".5"/>
+            <path d="m89 70 181-21M96 100l181-21M102 132l181-21M108 163l181-21M115 195l181-21M121 225l181-21" stroke="#fff6f0" stroke-width="9" opacity=".6"/>
+            <circle cx="174" cy="143" r="108" fill="#e7d2c7"/>
+            <circle cx="170" cy="137" r="108" fill="#fffdfa"/>
+            <circle cx="170" cy="137" r="87" fill="#f4ece3" stroke="#e8e1d5" stroke-width="2"/>
+            <path d="M108 120c-15-28 11-43 23-28 2-33 34-25 33-8 22-25 45-4 28 17 36-1 33 29 11 31 10 27-21 39-30 18-16 22-39 9-34-8-20 13-43-7-31-22Z" fill="#558552"/>
+            <path d="m125 99 48 47m-19-52 7 40m35-18-26 24" stroke="#86a875" stroke-width="3" stroke-linecap="round"/>
+            <path d="M168 153c12-21 49-26 62-6 13 21-7 53-34 55-26 2-42-27-28-49Z" fill="#fdf9e8"/>
+            <circle cx="199" cy="169" r="22" fill="#f6b72b"/>
+            <path d="M190 156c5-4 11-4 15-2" stroke="#ffd674" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="119" cy="165" r="29" fill="#e84a37"/>
+            <circle cx="119" cy="165" r="23" stroke="#f88969" stroke-width="2"/>
+            <path d="m119 143 1 18 15-8m-34 4 15 8-11 15m28-4-12-10-3 21" stroke="#ffb591" stroke-width="2"/>
+            <ellipse cx="118" cy="162" rx="3" ry="5" fill="#ffe4b4"/>
+            <path d="m139 191 13-7m-9 15 14-8m-5 12 13-9" stroke="#e6b98b" stroke-width="5" stroke-linecap="round"/>
+            <path d="M222 105c11-13 24-5 22 6-3 15-21 19-31 11l9-17Z" fill="#df402e"/>
+            <path d="m220 107 6 5 5-8m-5 8 7 1" stroke="#56834b" stroke-width="3" stroke-linecap="round"/>
+            <path d="m277 56 22 13-2 9-27-9 7-13Z" fill="#e75a37"/>
+            <path d="m284 57-2-14m9 18 7-12" stroke="#648c4e" stroke-width="4" stroke-linecap="round"/>
+            <path d="M47 189c-14-4-16-21-3-30 1 10 11 10 11 19 8-6 16-1 15 8-3 12-16 15-23 3Z" fill="#618f59"/>
+            <path d="m44 176 15 24" stroke="#3c693a" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+    </div></div>
+    <footer class="slide-foot"></footer>
+  </div>
+  <aside class="notes">
+    <p>Somos a equipe da Despensa Reversa. Em uma frase: um agente que começa pelo que você já tem em casa e só depois, se fizer sentido, vai ao iFood Mercado buscar o que falta.</p>
+  </aside>
+</section>
+
+<!-- 2 · PROBLEMA -->
+<section class="slide" data-title="O problema" data-pillar="impacto" data-time="35">
+  <div class="frame">
+    <header class="slide-head"><p class="eyebrow">O problema</p><p class="pillar"></p></header>
+    <div class="slide-body"><div class="fit">
+      <div class="cols c-55-45">
+        <div style="display:grid; gap:26px; align-content:start">
+          <h2 class="h1 rv">Apps de compra começam pela busca. O jantar começa pela <em>despensa.</em></h2>
+          <p class="lead rv">Às sete da noite, a pergunta real é: “o que eu faço com o que já tenho em casa?”</p>
+          <div class="stat rv">
+            <p class="stat-n">128,8 <small>kg</small></p>
+            <p class="small"><b>de alimentos vão para o lixo por ano em cada casa brasileira.</b> O arroz é o item mais desperdiçado: 22% do total.</p>
+            <p class="source">Embrapa e FGV, pesquisa com 1.764 famílias (2018).</p>
+          </div>
+        </div>
+        <div style="display:grid; gap:20px; align-content:center">
+          <ul class="rule-list">
+            <li><svg class="ic"><use href="#i-bowl"/></svg><p>Ninguém sabe o que preparar com o que sobrou.</p></li>
+            <li><svg class="ic"><use href="#i-pencil"/></svg><p>A lista de compras é montada de cabeça.</p></li>
+            <li><svg class="ic"><use href="#i-alert"/></svg><p>A compra ignora o que já existe em casa: duplicidade e desperdício.</p></li>
+            <li><svg class="ic"><use href="#i-user"/></svg><p>Preferências e restrições são repetidas a cada busca.</p></li>
+          </ul>
+          <p class="small"><b>Para quem:</b> quem cozinha em casa com pouco tempo e orçamento curto. Estudantes, quem mora sozinho, famílias pequenas.</p>
+        </div>
+      </div>
+    </div></div>
+    <footer class="slide-foot"></footer>
+  </div>
+  <aside class="notes">
+    <p>Todo app de compra parte do princípio de que você já sabe o que quer. No dia a dia, a pergunta é outra: o que eu faço com o que tenho?</p>
+    <p>Sem resposta, a gente compra repetido e joga fora. Segundo a Embrapa, cada casa brasileira desperdiça quase 130 kg de comida por ano, e o arroz lidera. É justamente o primeiro item do nosso exemplo.</p>
+  </aside>
+</section>
+
+<!-- 3 · COMÉRCIO REVERSO -->
+<section class="slide slide--red" data-title="Comércio reverso" data-pillar="visao" data-time="45">
+  <div class="frame">
+    <header class="slide-head"><p class="eyebrow">A virada</p><p class="pillar"></p></header>
+    <div class="slide-body"><div class="fit">
+      <h2 class="h1 rv" style="font-size:64px">Comércio reverso.</h2>
+      <div class="flows">
+        <div class="flow"><p class="flow-label">Hoje</p>
+          <ol><li><span>Catálogo</span></li><li><span>Busca</span></li><li><span>Carrinho</span></li><li><span>Sua casa</span></li></ol></div>
+        <div class="flow flow--new"><p class="flow-label" style="color:#fff">Despensa Reversa</p>
+          <ol><li><span>Sua despensa</span></li><li><span>Plano da refeição</span></li><li><span>Só o que falta</span></li><li><span>iFood Mercado</span></li></ol></div>
+      </div>
+      <div class="strats">
+        <div class="strat"><span class="tag t-pantry"><svg class="ic"><use href="#i-leaf"/></svg>Aproveitar o que tenho</span><p><b>Dá para cozinhar com o que tem?</b> Receita sem compra.</p></div>
+        <div class="strat"><span class="tag t-market"><svg class="ic"><use href="#i-store"/></svg>Completar no Mercado</span><p><b>Faltam poucos itens?</b> Busca só os faltantes, com produtos reais.</p></div>
+        <div class="strat"><span class="tag t-conv"><svg class="ic"><use href="#i-bowl"/></svg>Conveniência</span><p><b>Pouco tempo?</b> Algo pronto ou rápido, se houver no catálogo.</p></div>
+      </div>
+      <p class="motto">“Antes de descobrir o que você quer comprar, entendemos o que você realmente precisa.”</p>
+    </div></div>
+    <footer class="slide-foot"></footer>
+  </div>
+  <aside class="notes">
+    <p>Nossa tese é o comércio reverso. Hoje o ponto de partida é o catálogo. Aqui, o ponto de partida é a sua casa, e o iFood Mercado entra no fim, só para o que falta.</p>
+    <p>O agente avalia três caminhos: aproveitar o que tem, sem comprar nada; completar no Mercado; ou conveniência. O hackathon é sobre vender com agentes: um agente que sabe quando não vender ganha confiança para vender melhor.</p>
+  </aside>
+</section>
+
+<!-- 4 · DEMO -->
+<section class="slide slide--dark" data-title="Demo ao vivo" data-pillar="design" data-time="90">
+  <div class="frame">
+    <header class="slide-head"><p class="eyebrow">Demo ao vivo</p><p class="pillar"></p></header>
+    <div class="slide-body"><div class="fit" style="justify-content:center; gap:34px">
+      <p class="quote rv">Tenho arroz, ovos, tomate e cenoura. Quero preparar um jantar para duas pessoas, tenho 30 minutos e posso gastar até R$ 35.</p>
+      <ol class="watch">
+        <li><b>A IA organiza, você confirma.</b><p>Ingredientes editáveis antes de qualquer sugestão.</p></li>
+        <li><b>Perfil opcional.</b><p>Marcar “Vegetariano” vira filtro real na busca. Dados de saúde só com consentimento.</p></li>
+        <li><b>Busca real.</b><p><code>searchOffers</code> no iFood Mercado, só para o que falta.</p></li>
+        <li><b>Sem letra miúda.</b><p>Custo conhecido não é total final. Nada vai para um carrinho sem você.</p></li>
+      </ol>
+      <div class="prov"><span class="small" style="margin-right:6px">Cada dado mostra de onde veio:</span>
+        <span class="badge b-declared"><svg class="ic"><use href="#i-user"/></svg>Você informou</span>
+        <span class="badge b-inferred"><svg class="ic"><use href="#i-sparkle"/></svg>Sugerido pela IA</span>
+        <span class="badge b-mcp"><svg class="ic"><use href="#i-store"/></svg>Dado do iFood (MCP)</span>
+        <span class="badge b-estimated"><svg class="ic"><use href="#i-approx"/></svg>Estimativa</span>
+      </div>
+    </div></div>
+    <footer class="slide-foot"></footer>
+  </div>
+  <aside class="notes">
+    <p><b>Antes do pitch:</b> app aberto em localhost:5173, conta iFood já conectada e localização já definida.</p>
+    <p>1. “Experimentar com um exemplo” → “Descobrir o que preparar”. 2. Na revisão, mostre o selo “Reconhecido pela IA” e confirme. Pessoas, tempo e orçamento chegam vazios nesta versão: preencha rápido ou siga. 3. Marque Vegetariano. 4. Escolha a opção com faltantes. 5. Mostre o selo “Dado do iFood (MCP)”, o custo conhecido e as consultas feitas.</p>
+    <p>Se a busca demorar, narre o que o backend faz. Se falhar, mostre que a tela diferencia falha de catálogo vazio. Não use foto: o reconhecimento de imagem ainda não está no backend.</p>
+  </aside>
+</section>
+
+<!-- 5 · ARQUITETURA E MCP -->
+<section class="slide" data-title="Arquitetura e MCP" data-pillar="arquitetura" data-time="45">
+  <div class="frame">
+    <header class="slide-head"><p class="eyebrow">Arquitetura e MCP</p><p class="pillar"></p></header>
+    <div class="slide-body"><div class="fit">
+      <h2 class="h1 rv">A IA interpreta. O backend valida. O <em>MCP</em> fornece.</h2>
+      <div class="cols c-55-45" style="gap:44px; align-items:center">
+        <div class="arch" role="img" aria-label="Frontend React conversa com o backend FastAPI, que contém contexto, agente, regras, adaptador MCP e OAuth, ligados à OpenAI, ao MCP oficial do iFood e ao login iFood.">
+          <div class="a-fe"><b>Frontend</b><span class="micro">React · Vite · TypeScript</span><span class="micro">etapas visuais e procedência</span></div>
+          <div class="a-be"></div>
+          <p class="a-head">Backend · FastAPI</p>
+          <p class="a-mod r2">Contexto e consentimento <span class="mono">context.py</span></p>
+          <p class="a-mod r3">Agente único <span class="mono">agent.py</span></p>
+          <p class="a-mod r4 is-key">Regras: evidências e centavos <span class="mono">recommendations.py</span></p>
+          <p class="a-mod r5">Adaptador MCP + schema <span class="mono">ifood_mcp.py</span></p>
+          <p class="a-mod r6">OAuth 2.0 + PKCE <span class="mono">oauth.py</span></p>
+          <p class="a-ext r3">OpenAI <small>Agents SDK</small></p>
+          <p class="a-ext r5 is-ifood">MCP oficial iFood <small>searchOffers</small></p>
+          <p class="a-ext r6">Login iFood <small>id.ifood.com.br</small></p>
+        </div>
+        <ul class="facts">
+          <li class="is-key"><b>O modelo nunca escreve preço nem ID.</b>Ele aponta uma referência; nome, loja e preço vêm da resposta do MCP. Sem evidência, a seleção é descartada.</li>
+          <li><b>Um agente, uma ferramenta, somente leitura.</b><code>searchOffers</code> · GROCERIES · ITEM, até 3 buscas com cache.</li>
+          <li><b>Schema real acima da documentação.</b>Argumentos validados contra o schema anunciado antes de cada chamada.</li>
+          <li><b>Feedback ao MCP.</b><code>dietary</code> no guia × <code>itemRestrictions</code> no schema, <code>getItem</code> não anunciada e proposta de perfil contextual com consentimento.</li>
+        </ul>
+      </div>
+      <p class="micro">20 testes automatizados · verificado com o MCP real em 17/10: OAuth, <span class="mono">tools/list</span> e <span class="mono">searchOffers</span> com HTTP 200 · dinheiro em centavos inteiros · localização nunca vai ao modelo</p>
+    </div></div>
+    <footer class="slide-foot"></footer>
+  </div>
+  <aside class="notes">
+    <p>O princípio: a IA interpreta, o backend valida e calcula, o MCP fornece. É um único backend FastAPI com um agente e uma ferramenta, somente leitura.</p>
+    <p>O ponto central: o modelo nunca escreve preço, nome de produto ou ID. Ele aponta uma referência, e o backend preenche com o que o MCP devolveu naquela execução.</p>
+    <p>Como o hackathon também valida o MCP, documentamos o que achamos: o guia fala em <code>dietary</code>, o schema real usa <code>itemRestrictions</code>. E, a pedido dos mentores, propusemos um perfil contextual dentro do MCP.</p>
+  </aside>
+</section>
+
+<!-- 6 · IMPACTO -->
+<section class="slide" data-title="Impacto" data-pillar="impacto" data-time="45">
+  <div class="frame">
+    <header class="slide-head"><p class="eyebrow">Impacto</p><p class="pillar"></p></header>
+    <div class="slide-body"><div class="fit">
+      <h2 class="h1 rv">Bom para quem cozinha. Bom para o <em>iFood.</em></h2>
+      <div class="cols c-3" style="gap:40px">
+        <div>
+          <p class="col-title"><svg class="ic"><use href="#i-jar"/></svg>Para quem cozinha</p>
+          <ul class="checks">
+            <li><svg class="ic"><use href="#i-check"/></svg>Menos desperdício: a compra parte do que já existe.</li>
+            <li><svg class="ic"><use href="#i-check"/></svg>Cesta menor: só o que falta.</li>
+            <li><svg class="ic"><use href="#i-check"/></svg>Preferências respeitadas sem repetir.</li>
+          </ul>
+        </div>
+        <div>
+          <p class="col-title"><svg class="ic"><use href="#i-store"/></svg>Para o iFood</p>
+          <ul class="checks">
+            <li><svg class="ic"><use href="#i-check"/></svg>Nova porta de entrada para o Mercado, antes da busca.</li>
+            <li><svg class="ic"><use href="#i-check"/></svg>Mesmo núcleo para Farmácia e Petshop.</li>
+            <li><svg class="ic"><use href="#i-check"/></svg>Validado com os mentores do iFood.</li>
+          </ul>
+        </div>
+        <div>
+          <p class="col-title"><svg class="ic"><use href="#i-sparkle"/></svg>Próximos passos</p>
+          <ol class="next">
+            <li><span>Carrinho pelo MCP, com confirmação explícita: <span class="mono">createCart → getCart → submitOrder</span></span></li>
+            <li><span>Foto e voz no mesmo núcleo</span></li>
+            <li><span>Perfil persistente e familiar</span></li>
+          </ol>
+        </div>
+      </div>
+      <p class="callout"><svg class="ic"><use href="#i-info"/></svg><span><b>Viável hoje:</b> roda sobre o MCP oficial, sem infraestrutura nova. Nesta versão o agente é somente leitura e termina na lista de produtos reais; nada é comprado sem você confirmar.</span></p>
+    </div></div>
+    <footer class="slide-foot"></footer>
+  </div>
+  <aside class="notes">
+    <p>Para quem cozinha: menos desperdício e uma cesta menor. Para o iFood: uma nova porta de entrada no Mercado, que captura a intenção antes da busca, e um núcleo que serve Farmácia e Petshop, verticais que os mentores apontaram como prioritárias.</p>
+    <p>Sendo transparentes: hoje o fluxo termina na lista de produtos reais. O carrinho é o próximo passo, sempre com confirmação.</p>
+  </aside>
+</section>
+
+<!-- 7 · FECHAMENTO -->
+<section class="slide slide--red" data-title="Fechamento" data-pillar="visao arquitetura design impacto comunicacao" data-time="15">
+  <div class="frame">
+    <header class="slide-head"><p class="eyebrow">Em resumo</p><p class="pillar"></p></header>
+    <div class="slide-body"><div class="fit" style="justify-content:space-between">
+      <h2 class="h1 rv" style="font-size:60px">Antes de vender, entender.</h2>
+      <ul class="crit">
+        <li><span class="dots" data-on="0"></span><span class="name">Visão &amp; Originalidade</span><span>Comércio reverso: a despensa vem antes do catálogo.</span></li>
+        <li><span class="dots" data-on="1"></span><span class="name">Arquitetura &amp; Engenharia</span><span>MCP oficial, um agente somente leitura, nenhum preço inventado.</span></li>
+        <li><span class="dots" data-on="2"></span><span class="name">Design &amp; Experiência</span><span>Etapas visuais e a origem de cada informação.</span></li>
+        <li><span class="dots" data-on="3"></span><span class="name">Impacto</span><span>Menos desperdício em casa, nova entrada para o Mercado.</span></li>
+        <li><span class="dots" data-on="4"></span><span class="name">Comunicação &amp; Pitch</span><span>Seis entregáveis e uma wiki técnica no repositório.</span></li>
+      </ul>
+      <div class="end"><p class="thanks">Obrigado! Perguntas?</p><span class="mark"><span class="sym"><svg class="ic"><use href="#i-bowl"/></svg></span><span class="txt"><span>despensa</span><span>reversa<span class="dot">.</span></span></span></span></div>
+    </div></div>
+    <footer class="slide-foot"></footer>
+  </div>
+  <aside class="notes">
+    <p>Antes de vender, entender. Obrigado!</p>
+    <p><b>Perguntas prováveis.</b> Por que não fecha o carrinho? Somente leitura por decisão: nenhuma escrita sem confirmação, e o checkout tem pontos a esclarecer (<code>cardTokenId</code>, <code>selectedTimeSlotId</code>). Como evitam preço inventado? O modelo escolhe referências e o backend preenche com a resposta do MCP. E se não houver produto na região? A tela distingue “sem resultados” de “falha”. LGPD? Dados de saúde só com consentimento, validado na API; localização nunca vai ao modelo. Qual modelo? OpenAI Agents SDK, gpt-4.1-mini, configurável.</p>
+  </aside>
+</section>
+
+</div>
+</div>
+</main>
+
+<nav class="deck-nav" id="nav" aria-label="Navegação dos slides">
+  <button type="button" id="nav-prev" aria-label="Slide anterior">←</button>
+  <span class="nav-count" id="nav-count" aria-live="polite">1 / 7</span>
+  <button type="button" id="nav-next" aria-label="Próximo slide">→</button>
+  <button type="button" id="nav-notes" aria-pressed="false" title="Notas e cronômetro (N)">Notas</button>
+  <button type="button" id="nav-full" title="Tela cheia (F)">Tela cheia</button>
+</nav>
+
+<section class="notes-panel" id="notes-panel" hidden aria-label="Notas do apresentador">
+  <div>
+    <p class="timer" id="timer" role="button" tabindex="0" title="Iniciar ou pausar (T)">0:00</p>
+    <div class="meta"><span id="plan"></span><span>T inicia/pausa · R zera</span></div>
+  </div>
+  <div class="say" id="say"></div>
+</section>
+<div class="blackout" id="blackout" hidden></div>
+
+<script>
+(() => {
+  const root = document.documentElement;
+  const stage = document.getElementById('stage');
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  const PILLARS = ['visao', 'arquitetura', 'design', 'impacto', 'comunicacao'];
+  const NAMES = ['Visão & Originalidade', 'Arquitetura & Engenharia', 'Design & Experiência', 'Impacto', 'Comunicação & Pitch'];
+  const docMode = matchMedia('(max-width: 760px)');
+  const $ = (id) => document.getElementById(id);
+  let index = 0;
+
+  // Selo de critério (5 quadrados na ordem da banca), rodapé e rótulos acessíveis.
+  const dots = (on) => '<span class="dots" aria-hidden="true">' + PILLARS.map((_, i) => `<i class="${on.includes(i) ? 'on' : ''}"></i>`).join('') + '</span>';
+  document.querySelectorAll('.crit .dots').forEach((d) => { d.outerHTML = dots([Number(d.dataset.on)]); });
+  slides.forEach((s, i) => {
+    const keys = (s.dataset.pillar || '').split(' ').filter(Boolean);
+    const on = keys.map((k) => PILLARS.indexOf(k)).filter((n) => n >= 0);
+    const chip = s.querySelector('.pillar');
+    if (chip && on.length) chip.innerHTML = dots(on) + (on.length === 1 ? 'Critério: ' + NAMES[on[0]] : 'Os 5 critérios da banca');
+    s.querySelector('.slide-foot').innerHTML =
+      '<span class="mark mark--mini"><span class="sym"><svg class="ic"><use href="#i-bowl"/></svg></span><span class="txt">despensa <span>reversa<span class="dot">.</span></span></span></span>' +
+      `<span class="slide-num">${String(i + 1).padStart(2, '0')}</span>`;
+    s.setAttribute('role', 'group');
+    s.setAttribute('aria-roledescription', 'slide');
+    s.setAttribute('aria-label', `${i + 1} de ${total}: ${s.dataset.title}`);
+  });
+
+  // Escala o canvas 1280×720 para caber no palco.
+  function layout() {
+    if (docMode.matches) return;
+    const cs = getComputedStyle(stage);
+    const w = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const h = stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    root.style.setProperty('--scale', Math.max(0.1, Math.min(w / 1280, h / 720)));
+  }
+
+  // Se uma fonte de reserva deixar o texto maior, reduz o conteúdo até caber no slide.
+  function fitAll() {
+    slides.forEach((s) => {
+      const body = s.querySelector('.slide-body');
+      const fit = s.querySelector('.fit');
+      fit.style.zoom = '';
+      if (docMode.matches) return;
+      for (let k = 0; k < 4; k++) {
+        const b = body.getBoundingClientRect();
+        const bottom = Math.max(...Array.from(fit.children, (c) => c.getBoundingClientRect().bottom));
+        const need = bottom - b.top;
+        if (!b.height || need <= b.height + 1) break;
+        fit.style.zoom = String(Math.max(0.7, (parseFloat(fit.style.zoom) || 1) * (b.height / need) * 0.99));
+      }
+    });
+  }
+
+  const notesPanel = $('notes-panel');
+  function plannedUntil(i) { return slides.slice(0, i + 1).reduce((t, s) => t + Number(s.dataset.time || 0), 0); }
+  const fmt = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
+
+  function go(i, push = true) {
+    i = Math.max(0, Math.min(total - 1, i));
+    if (i !== index) root.classList.add('animate');
+    index = i;
+    slides.forEach((s, n) => {
+      s.classList.toggle('is-active', n === i);
+      s.setAttribute('aria-hidden', n === i ? 'false' : 'true');
+    });
+    $('nav-count').textContent = `${i + 1} / ${total}`;
+    const notes = slides[i].querySelector('.notes');
+    $('say').innerHTML = notes ? notes.innerHTML : '';
+    renderTimer();
+    if (push) { try { history.replaceState(null, '', '#' + (i + 1)); } catch (e) {} }
+  }
+
+  // Cronômetro do pitch (5 minutos).
+  let acc = 0, start = 0, running = false;
+  const elapsed = () => (acc + (running ? Date.now() - start : 0)) / 1000;
+  function renderTimer() {
+    const e = elapsed(), plan = plannedUntil(index);
+    $('timer').textContent = fmt(e);
+    $('timer').classList.toggle('is-late', e > plan + 10);
+    $('plan').textContent = `Planejado até aqui: ${fmt(plan)} de ${fmt(plannedUntil(total - 1))}`;
+  }
+  function toggleTimer() { if (running) { acc += Date.now() - start; running = false; } else { start = Date.now(); running = true; } renderTimer(); }
+  function resetTimer() { acc = 0; start = Date.now(); renderTimer(); }
+  setInterval(() => { if (running) renderTimer(); }, 500);
+
+  function toggleNotes(force) {
+    const open = typeof force === 'boolean' ? force : notesPanel.hidden;
+    notesPanel.hidden = !open;
+    root.style.setProperty('--notes-h', open ? '32vh' : '0px');
+    $('nav-notes').setAttribute('aria-pressed', String(open));
+    layout();
+  }
+  function toggleFull() {
+    try {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen().catch(() => {});
+    } catch (e) {}
+  }
+  let wake = null;
+  async function keepAwake() { try { if (!wake && navigator.wakeLock) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); } } catch (e) {} }
+
+  // Teclado: setas, espaço e PageUp/PageDown (passadores de slide).
+  let typed = '';
+  document.addEventListener('keydown', (e) => {
+    if (e.altKey || e.ctrlKey || e.metaKey || docMode.matches) return;
+    const k = e.key;
+    keepAwake();
+    if (['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(k)) { e.preventDefault(); go(index + 1); }
+    else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(k)) { e.preventDefault(); go(index - 1); }
+    else if (k === 'Home') go(0);
+    else if (k === 'End') go(total - 1);
+    else if (/^[0-9]$/.test(k)) { typed += k; }
+    else if (k === 'Enter' && typed) { go(Number(typed) - 1); typed = ''; }
+    else if (k === 'n' || k === 'N') toggleNotes();
+    else if (k === 'f' || k === 'F') toggleFull();
+    else if (k === 't' || k === 'T') toggleTimer();
+    else if (k === 'r' || k === 'R') resetTimer();
+    else if (k === 'b' || k === 'B' || k === '.') $('blackout').hidden = !$('blackout').hidden;
+    if (!/^[0-9]$/.test(k) && k !== 'Enter') typed = '';
+  });
+
+  $('nav-prev').addEventListener('click', () => go(index - 1));
+  $('nav-next').addEventListener('click', () => go(index + 1));
+  $('nav-notes').addEventListener('click', () => toggleNotes());
+  $('nav-full').addEventListener('click', toggleFull);
+  $('timer').addEventListener('click', toggleTimer);
+  $('timer').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.stopPropagation(); toggleTimer(); } });
+  $('blackout').addEventListener('click', () => { $('blackout').hidden = true; });
+  $('doc-notes').addEventListener('click', (e) => {
+    const on = document.body.classList.toggle('show-notes');
+    e.currentTarget.setAttribute('aria-pressed', String(on));
+    e.currentTarget.textContent = on ? 'Ocultar roteiro' : 'Mostrar roteiro';
+  });
+
+  // Barra de navegação some quando o mouse fica parado.
+  const nav = $('nav');
+  let idle;
+  const wakeNav = () => { nav.classList.remove('is-idle'); clearTimeout(idle); idle = setTimeout(() => nav.classList.add('is-idle'), 2500); };
+  document.addEventListener('mousemove', wakeNav);
+  wakeNav();
+
+  // Gesto de deslizar em telas de toque.
+  let x0 = null;
+  stage.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+  stage.addEventListener('touchend', (e) => {
+    if (x0 === null || docMode.matches) return;
+    const dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if (Math.abs(dx) > 50) go(index + (dx < 0 ? 1 : -1));
+  });
+
+  addEventListener('hashchange', () => {
+    const n = parseInt(location.hash.slice(1), 10);
+    if (n >= 1 && n <= total) { if (docMode.matches) slides[n - 1].scrollIntoView(); else go(n - 1, false); }
+  });
+  addEventListener('resize', layout);
+  docMode.addEventListener('change', () => { layout(); fitAll(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && document.fullscreenElement) keepAwake(); });
+  if (document.fonts) { document.fonts.ready.then(fitAll); document.fonts.addEventListener('loadingdone', fitAll); }
+
+  const start0 = parseInt(location.hash.slice(1), 10);
+  layout();
+  fitAll();
+  go(start0 >= 1 && start0 <= total ? start0 - 1 : 0, false);
+})();
+</script>
+</body>
+</html>
