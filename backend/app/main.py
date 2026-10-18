@@ -183,7 +183,7 @@ async def parse_image(request: Request) -> AgentResponse:
         raise HTTPException(503, 'A análise de imagens está indisponível no momento.')
     try:
         image = await asyncio.to_thread(prepare_image, payload.image_data_url)
-        output = await asyncio.wait_for(extract_image(image, payload.message), timeout=90)
+        output = await asyncio.wait_for(extract_image(image, payload.message, payload.language), timeout=90)
     except HTTPException:
         raise
     except TimeoutError as exc:

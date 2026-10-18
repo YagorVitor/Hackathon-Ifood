@@ -182,6 +182,14 @@
           "title": "Justificativa",
           "type": "string"
         },
+        "complementos_opcionais": {
+          "items": {
+            "$ref": "#/$defs/OptionalComplement"
+          },
+          "maxItems": 3,
+          "title": "Complementos Opcionais",
+          "type": "array"
+        },
         "provenance": {
           "const": "INFERRED",
           "default": "INFERRED",
@@ -195,6 +203,35 @@
         "justificativa"
       ],
       "title": "MealOption",
+      "type": "object"
+    },
+    "OptionalComplement": {
+      "additionalProperties": false,
+      "properties": {
+        "nome": {
+          "maxLength": 160,
+          "minLength": 1,
+          "strip_whitespace": true,
+          "title": "Nome",
+          "type": "string"
+        },
+        "justificativa": {
+          "maxLength": 500,
+          "title": "Justificativa",
+          "type": "string"
+        },
+        "provenance": {
+          "const": "INFERRED",
+          "default": "INFERRED",
+          "title": "Provenance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nome",
+        "justificativa"
+      ],
+      "title": "OptionalComplement",
       "type": "object"
     },
     "RecognizedContext": {

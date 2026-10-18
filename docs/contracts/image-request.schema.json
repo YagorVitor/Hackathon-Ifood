@@ -1,6 +1,15 @@
 {
   "additionalProperties": false,
   "properties": {
+    "language": {
+      "default": "pt-BR",
+      "enum": [
+        "pt-BR",
+        "en"
+      ],
+      "title": "Language",
+      "type": "string"
+    },
     "message": {
       "default": "",
       "maxLength": 4000,

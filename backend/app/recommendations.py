@@ -133,6 +133,17 @@ def finalize(draft: AgentDraft, context: UserContext, observed: list[ObservedPro
         unknown = [name for name in option.usa if normalized(name) not in inventory]
         if unknown:
             limitations.append("Ingredientes ainda não confirmados foram tratados como faltantes.")
+        # Complementos são opcionais e nunca geram faltantes nem compra automática.
+        seen_complements = set()
+        complements = []
+        allergies = {normalized(name) for name in context.tags_declaradas.alergias} if context.consentimento_dados_sensiveis else set()
+        for complement in option.complementos_opcionais:
+            name = normalized(complement.nome)
+            if name in inventory or name in seen_complements or any(a and a in name for a in allergies):
+                continue
+            seen_complements.add(name)
+            complements.append(complement)
+        option.complementos_opcionais = complements
         option.usa = [name for name in option.usa if normalized(name) in inventory]
         option.faltantes = list(dict.fromkeys(name for name in option.faltantes + unknown if normalized(name) not in inventory))
         if option.estrategia == "USE_WHAT_I_HAVE" and option.faltantes:
@@ -167,6 +178,10 @@ def finalize(draft: AgentDraft, context: UserContext, observed: list[ObservedPro
         limitations.append("Condições de saúde não definem filtros automaticamente nem comprovam adequação clínica; informe critérios alimentares explícitos.")
     if products:
         limitations.append("Preços são observações do MCP nesta execução, não cotação final. Embalagem, quantidade necessária, taxas e mínimo de pedido precisam de revisão antes da compra.")
+    if context.idioma_resposta == "en":
+        for original, translated in _EN_NOTICES.items():
+            message = message.replace(original, translated)
+        limitations = [_EN_NOTICES.get(item, item) for item in limitations]
     costs = [calculate_costs(products, context, i) for i in range(len(options)) if any(p.opcao_indice == i for p in products)]
     return AgentOutput(
         mensagem=message, pergunta_tags=question,
@@ -175,3 +190,122 @@ def finalize(draft: AgentDraft, context: UserContext, observed: list[ObservedPro
         produtos=products, buscas=searches, custos=costs,
         limitacoes=list(dict.fromkeys(limitations)),
     )
+
+
+_EN_NOTICES = {'Ingredientes ainda não confirmados foram tratados como faltantes.': 'Ingredients not yet confirmed were '
+                                                                      'treated as missing.',
+ 'Seleção sem evidência ou sem vínculo com um faltante foi descartada.': 'Selections without evidence or '
+                                                                         'without a link to a missing item '
+                                                                         'were discarded.',
+ 'Não foi possível concluir a consulta ao iFood. Tente novamente; nenhum produto foi confirmado.': 'Could '
+                                                                                                   'not '
+                                                                                                   'complete '
+                                                                                                   'the '
+                                                                                                   'iFood '
+                                                                                                   'query. '
+                                                                                                   'Try '
+                                                                                                   'again; '
+                                                                                                   'no '
+                                                                                                   'product '
+                                                                                                   'was '
+                                                                                                   'confirmed.',
+ 'Nenhum produto foi encontrado para os termos, critérios e localização consultados.': 'No products were '
+                                                                                       'found for the '
+                                                                                       'requested terms, '
+                                                                                       'criteria and '
+                                                                                       'location.',
+ 'Você tem preferência vegetariana/vegana, alergia, intolerância ou restrição de saúde relevante, como diabetes? É opcional; pode pular.': 'Do '
+                                                                                                                                           'you '
+                                                                                                                                           'have '
+                                                                                                                                           'vegetarian/vegan '
+                                                                                                                                           'preferences, '
+                                                                                                                                           'allergies, '
+                                                                                                                                           'intolerances '
+                                                                                                                                           'or '
+                                                                                                                                           'a '
+                                                                                                                                           'relevant '
+                                                                                                                                           'health '
+                                                                                                                                           'restriction '
+                                                                                                                                           'such '
+                                                                                                                                           'as '
+                                                                                                                                           'diabetes? '
+                                                                                                                                           'This '
+                                                                                                                                           'is '
+                                                                                                                                           'optional; '
+                                                                                                                                           'you '
+                                                                                                                                           'can '
+                                                                                                                                           'skip.',
+ 'Filtros de catálogo não confirmam composição nem ausência de contaminação cruzada; segurança para alergias permanece não verificada.': 'Catalogue '
+                                                                                                                                         'filters '
+                                                                                                                                         'do '
+                                                                                                                                         'not '
+                                                                                                                                         'verify '
+                                                                                                                                         'ingredients '
+                                                                                                                                         'or '
+                                                                                                                                         'absence '
+                                                                                                                                         'of '
+                                                                                                                                         'cross-contamination; '
+                                                                                                                                         'allergy '
+                                                                                                                                         'safety '
+                                                                                                                                         'remains '
+                                                                                                                                         'unverified.',
+ 'Condições de saúde não definem filtros automaticamente nem comprovam adequação clínica; informe critérios alimentares explícitos.': 'Health '
+                                                                                                                                      'conditions '
+                                                                                                                                      'do '
+                                                                                                                                      'not '
+                                                                                                                                      'automatically '
+                                                                                                                                      'set '
+                                                                                                                                      'filters '
+                                                                                                                                      'or '
+                                                                                                                                      'establish '
+                                                                                                                                      'clinical '
+                                                                                                                                      'suitability; '
+                                                                                                                                      'provide '
+                                                                                                                                      'explicit '
+                                                                                                                                      'dietary '
+                                                                                                                                      'criteria.',
+ 'Preços são observações do MCP nesta execução, não cotação final. Embalagem, quantidade necessária, taxas e mínimo de pedido precisam de revisão antes da compra.': 'Prices '
+                                                                                                                                                                     'are '
+                                                                                                                                                                     'MCP '
+                                                                                                                                                                     'observations '
+                                                                                                                                                                     'for '
+                                                                                                                                                                     'this '
+                                                                                                                                                                     'run, '
+                                                                                                                                                                     'not '
+                                                                                                                                                                     'a '
+                                                                                                                                                                     'final '
+                                                                                                                                                                     'quote. '
+                                                                                                                                                                     'Packaging, '
+                                                                                                                                                                     'required '
+                                                                                                                                                                     'quantities, '
+                                                                                                                                                                     'fees '
+                                                                                                                                                                     'and '
+                                                                                                                                                                     'minimum '
+                                                                                                                                                                     'orders '
+                                                                                                                                                                     'must '
+                                                                                                                                                                     'be '
+                                                                                                                                                                     'reviewed '
+                                                                                                                                                                     'before '
+                                                                                                                                                                     'purchasing.',
+ 'Ingredientes reconhecidos na foto são hipóteses: confirme ou corrija antes de continuar. A imagem não comprova quantidade, validade ou segurança.': 'Ingredients '
+                                                                                                                                                      'recognised '
+                                                                                                                                                      'in '
+                                                                                                                                                      'the '
+                                                                                                                                                      'photo '
+                                                                                                                                                      'are '
+                                                                                                                                                      'hypotheses: '
+                                                                                                                                                      'confirm '
+                                                                                                                                                      'or '
+                                                                                                                                                      'correct '
+                                                                                                                                                      'them '
+                                                                                                                                                      'before '
+                                                                                                                                                      'continuing. '
+                                                                                                                                                      'The '
+                                                                                                                                                      'image '
+                                                                                                                                                      'does '
+                                                                                                                                                      'not '
+                                                                                                                                                      'establish '
+                                                                                                                                                      'quantity, '
+                                                                                                                                                      'freshness '
+                                                                                                                                                      'or '
+                                                                                                                                                      'safety.'}

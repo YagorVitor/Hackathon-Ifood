@@ -215,6 +215,15 @@
     "UserContext": {
       "additionalProperties": false,
       "properties": {
+        "idioma_resposta": {
+          "default": "pt-BR",
+          "enum": [
+            "pt-BR",
+            "en"
+          ],
+          "title": "Idioma Resposta",
+          "type": "string"
+        },
         "tags_declaradas": {
           "$ref": "#/$defs/DeclaredTags"
         },

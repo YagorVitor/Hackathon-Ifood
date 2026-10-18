@@ -33,6 +33,14 @@ def catalogue(fee=4.5, second=False):
     return dict(tool='searchOffers', isError=False, result=dict(results=rows))
 
 def draft(**kwargs):
+    if 'opcoes' in kwargs:
+        rows=[]
+        for option in kwargs['opcoes']:
+            value=option.model_dump() if hasattr(option,'model_dump') else dict(option)
+            if not value.get('complementos_opcionais'):
+                value['complementos_opcionais']=[{'nome':'Salada','justificativa':'Complemento opcional fictício.'}]
+            rows.append(value)
+        kwargs['opcoes']=rows
     return AgentDraft(**{'mensagem':'Sugestão de preparo.', **kwargs})
 
 def context(**kwargs):
@@ -119,6 +127,28 @@ class RulesTests(unittest.TestCase):
         for state in ['ASKED','ANSWERED','DECLINED']:
             self.assertFalse(finalize(draft(pergunta_tags=True),context(tags_declaradas=DeclaredTags(estado=state)),[],[],[]).pergunta_tags)
 
+    def test_optional_complements_do_not_become_missing_ingredients(self):
+        option=MealOption(titulo='Arroz pronto',estrategia='USE_WHAT_I_HAVE',usa=['arroz'],faltantes=[],
+            justificativa='Aproveitar a despensa.',complementos_opcionais=[
+                {'nome':'Salada','justificativa':'Acompanhamento opcional.'},
+                {'nome':'arroz','justificativa':'Já disponível.'},
+                {'nome':'SALADA','justificativa':'Duplicado.'},
+            ])
+        output=finalize(draft(opcoes=[option]),context(),[],[],[])
+        self.assertEqual(output.opcoes[0].estrategia,'USE_WHAT_I_HAVE')
+        self.assertEqual(output.opcoes[0].faltantes,[])
+        self.assertEqual([c.nome for c in output.opcoes[0].complementos_opcionais],['Salada'])
+        self.assertEqual(output.produtos,[])
+        self.assertEqual(output.buscas,[])
+
+    def test_declared_allergen_is_not_repeated_as_optional_complement(self):
+        ctx=context(tags_declaradas=DeclaredTags(alergias=['amendoim']),consentimento_dados_sensiveis=True)
+        option=meal().model_copy(update={'complementos_opcionais':[]})
+        option=MealOption(**{**option.model_dump(),'complementos_opcionais':[{'nome':'Mix de amendoim','justificativa':'Petisco.'}]})
+        output=finalize(draft(opcoes=[option]),ctx,[],[],[])
+        self.assertEqual(output.opcoes[0].complementos_opcionais,[])
+        self.assertTrue(any('alergias' in note for note in output.limitacoes))
+
     def test_recognized_context_is_unconfirmed_and_does_not_change_declared_budget(self):
         ctx = context(orcamento_centavos=1000)
         result = finalize(draft(contexto_reconhecido=dict(
@@ -133,6 +163,15 @@ class RulesTests(unittest.TestCase):
         for value in [dict(pessoas=0), dict(tempo_min=1441), dict(orcamento_centavos=35.5), dict(alergias=['leite'])]:
             with self.assertRaises(ValidationError):
                 draft(contexto_reconhecido=value)
+
+    def test_model_must_offer_complement_even_when_no_ingredient_is_missing(self):
+        raw={'mensagem':'Refeição completa.','opcoes':[meal().model_dump()]}
+        raw['opcoes'][0]['estrategia']='USE_WHAT_I_HAVE'
+        raw['opcoes'][0]['faltantes']=[]
+        raw['opcoes'][0]['complementos_opcionais']=[]
+        with self.assertRaises(ValidationError): AgentDraft.model_validate(raw)
+        raw['opcoes'][0]['complementos_opcionais']=[{'nome':'Salada','justificativa':'Acompanhamento opcional.'}]
+        self.assertEqual(len(AgentDraft.model_validate(raw).opcoes[0].complementos_opcionais),1)
 
     def test_sdk_strict_output_schema(self):
         schema=AgentOutputSchema(AgentDraft).json_schema()

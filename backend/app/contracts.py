@@ -45,6 +45,7 @@ class SearchCriteria(Contract):
 
 
 class UserContext(Contract):
+    idioma_resposta: Literal["pt-BR", "en"] = "pt-BR"
     tags_declaradas: DeclaredTags = Field(default_factory=DeclaredTags)
     inventario_confirmado: list[InventoryItem] = Field(default_factory=list, max_length=80)
     objetivo: ShortText | None = None
@@ -112,13 +113,25 @@ class RecognizedContext(Contract):
     confirmado: Literal[False] = False
 
 
+class OptionalComplement(Contract):
+    nome: ShortText
+    justificativa: str = Field(max_length=500)
+    provenance: Literal["INFERRED"] = "INFERRED"
+
+
 class MealOption(Contract):
     titulo: ShortText
     estrategia: Literal["USE_WHAT_I_HAVE", "COMPLETE_WITH_MARKET", "CONVENIENCE"]
     usa: list[ShortText] = Field(default_factory=list, max_length=80)
     faltantes: list[ShortText] = Field(default_factory=list, max_length=30)
     justificativa: str = Field(max_length=1500)
+    complementos_opcionais: list[OptionalComplement] = Field(default_factory=list, max_length=3)
     provenance: Literal["INFERRED"] = "INFERRED"
+
+
+class PlannedMealOption(MealOption):
+    """A IA deve sempre oferecer ao menos um complemento; as regras podem descartá-lo."""
+    complementos_opcionais: list[OptionalComplement] = Field(min_length=1, max_length=3)
 
 
 class ProductSelection(Contract):
@@ -134,7 +147,7 @@ class AgentDraft(Contract):
     pergunta_tags: bool = False
     contexto_reconhecido: RecognizedContext = Field(default_factory=RecognizedContext)
     ingredientes_reconhecidos: list[RecognizedIngredient] = Field(default_factory=list, max_length=80)
-    opcoes: list[MealOption] = Field(default_factory=list, max_length=3)
+    opcoes: list[PlannedMealOption] = Field(default_factory=list, max_length=3)
     selecoes: list[ProductSelection] = Field(default_factory=list, max_length=15)
     limitacoes: list[str] = Field(default_factory=list, max_length=20)
 
