@@ -1,17 +1,17 @@
 import type { ApiError } from '../api'
 import { Icon } from '../components/icons'
 import type { IconName } from '../components/icons'
-import { AgentNote, Badge, Button, Card, Limitations, Loading, Notice, StageTitle, focusRing } from '../components/ui'
+import { AgentNote, Button, Card, Limitations, Loading, Notice, StageTitle, focusRing } from '../components/ui'
 import { hasSensitive } from '../flow'
 import type { DeclaredTags, MealOption, Strategy } from '../types'
 
 export const STRATEGY: Record<Strategy, { label: string; icon: IconName; cls: string }> = {
-  USE_WHAT_I_HAVE: { label: 'Aproveitar o que tenho', icon: 'leaf', cls: 'bg-herb-soft text-herb' },
+  USE_WHAT_I_HAVE: { label: 'Aproveitar o que tenho', icon: 'leaf', cls: 'bg-[#e8f0e5] text-[#3c653b]' },
   COMPLETE_WITH_MARKET: { label: 'Completar no Mercado', icon: 'store', cls: 'bg-tomato-soft text-tomato' },
   CONVENIENCE: { label: 'Conveniência', icon: 'bowl', cls: 'bg-amber-soft text-amber' },
 }
 
-const PREF_LABEL = { VEGETARIAN: 'Vegetariano', VEGAN: 'Vegano' } as const
+const PREF_LABEL = { VEGETARIAN: 'Vegetariano', VEGAN: 'Vegano', ORGANIC: 'Orgânico' } as const
 
 export function StrategyTag({ s }: { s: Strategy }) {
   const st = STRATEGY[s]
@@ -44,11 +44,12 @@ export function OptionsStep({ message, options, limitations, tags, consent, onCh
 
   return (
     <div className="space-y-4">
-      <StageTitle kicker="Etapa 3 de 4">Sugestões para hoje</StageTitle>
+      <StageTitle kicker="Pensadas para sua despensa">Qual vai ser a refeição de hoje?</StageTitle>
+      <p className="text-ink-muted">O agente pensou nas possibilidades. Escolha uma ideia; se faltar algo, ele busca para você.</p>
 
-      <Card className="flex flex-wrap items-center justify-between gap-2 py-3">
+      <div className="profile-toolbar">
         <p className="text-sm">
-          <span className="font-bold">Perfil enviado ao agente:</span> <span className="text-ink-muted">{profileText}</span>
+          <span className="font-semibold">Suas preferências:</span> <span className="text-ink-muted">{profileText}</span>
         </p>
         <div className="flex gap-1">
           <button type="button" onClick={onEditItems} disabled={loading}
@@ -60,7 +61,7 @@ export function OptionsStep({ message, options, limitations, tags, consent, onCh
             <Icon name="pencil" className="size-4" /> Perfil
           </button>
         </div>
-      </Card>
+      </div>
 
       {loading ? (
         <Loading label="Planejando refeições…" detail="O agente está considerando seus ingredientes, objetivo e preferências." />
@@ -71,7 +72,7 @@ export function OptionsStep({ message, options, limitations, tags, consent, onCh
         </>
       ) : (
         <>
-          <AgentNote text={message} />
+          {message && <details className="quiet-details"><summary>Entender as sugestões do agente</summary><AgentNote text={message} /></details>}
           {options.length === 0 ? (
             <Card className="space-y-3 text-center">
               <span className="mx-auto inline-flex size-12 items-center justify-center rounded-full bg-surface-2 text-ink-muted"><Icon name="bowl" /></span>
@@ -80,20 +81,23 @@ export function OptionsStep({ message, options, limitations, tags, consent, onCh
               <Button variant="secondary" icon="refresh" onClick={onRetry}>Pedir sugestões de novo</Button>
             </Card>
           ) : (
-            <ul className="space-y-3" aria-label="Opções sugeridas">
+            <ul className="meal-grid" aria-label="Opções sugeridas">
               {options.map((o, i) => (
-                <Card as="li" key={`${i}-${o.titulo}`} className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                <Card as="li" key={`${i}-${o.titulo}`} className="meal-card">
+                  <div className={`meal-card-top ${o.estrategia === 'USE_WHAT_I_HAVE' ? 'is-pantry' : o.estrategia === 'COMPLETE_WITH_MARKET' ? 'is-market' : ''}`}>
                     <StrategyTag s={o.estrategia} />
-                    <Badge p="INFERRED" />
+                    <Icon name={STRATEGY[o.estrategia].icon} />
                   </div>
+                  <div className="meal-card-body">
+                  <span className="source-label"><Icon name="sparkle" className="size-3" /> Sugestão do agente</span>
                   <h3 className="text-xl font-bold">{o.titulo}</h3>
                   {o.justificativa && <p className="text-ink-muted">{o.justificativa}</p>}
                   <IngredientLine label="Você já tem" items={o.usa} tone="have" />
                   <IngredientLine label={o.estrategia === 'CONVENIENCE' ? 'Para comprar' : 'Falta'} items={o.faltantes} tone="missing" />
                   <Button variant="secondary" icon={o.faltantes.length ? 'store' : 'check'} onClick={() => onChoose(o)}>
-                    {o.faltantes.length ? 'Escolher e buscar o que falta' : 'Escolher — sem compras'}
+                    {o.faltantes.length ? 'Quero esta · buscar faltantes' : 'Escolher esta refeição'}
                   </Button>
+                  </div>
                 </Card>
               ))}
             </ul>
@@ -107,7 +111,7 @@ export function OptionsStep({ message, options, limitations, tags, consent, onCh
 
 export function IngredientLine({ label, items, tone }: { label: string; items: string[]; tone: 'have' | 'missing' }) {
   if (items.length === 0) {
-    return tone === 'missing' ? <p className="text-sm font-semibold text-herb">Nada a comprar.</p> : null
+    return tone === 'missing' ? <p className="text-sm font-semibold text-[#3c653b]">Nada a comprar.</p> : null
   }
   return (
     <div>
@@ -115,7 +119,7 @@ export function IngredientLine({ label, items, tone }: { label: string; items: s
       <ul className="flex flex-wrap gap-1.5">
         {items.map((n) => (
           <li key={n} className={`rounded-full px-2.5 py-1 text-sm font-semibold ${
-            tone === 'have' ? 'bg-herb-soft text-herb' : 'border-2 border-dashed border-tomato/50 text-tomato'
+            tone === 'have' ? 'bg-[#eff5ed] text-[#3c653b]' : 'bg-tomato-soft text-tomato'
           }`}>{n}</li>
         ))}
       </ul>

@@ -1,5 +1,7 @@
 // Ícones vetoriais no traço 2px (estilo Lucide), desenhados inline para não adicionar dependência.
 const PATHS = {
+  camera: ['M14.5 4h-5L7 7H3v13h18V7h-4Z', 'M12 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z'],
+  image: ['M3 3h18v18H3Z', 'm3 16 5-5 4 4 4-6 5 7', 'M8 7h.01'],
   jar: ['M7 3h10v3H7z', 'M6 6h12v2a2 2 0 0 1 1 1.7V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9.7A2 2 0 0 1 6 8Z', 'M8.5 13.5h7'],
   check: ['M20 6 9 17l-5-5'],
   x: ['M18 6 6 18', 'M6 6l12 12'],

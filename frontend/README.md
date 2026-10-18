@@ -1,11 +1,11 @@
 # Front-end — Despensa Reversa
 
-React + Vite + TypeScript + Tailwind v4. Mobile-first, pt-BR, temas claro/escuro pelo sistema.
-Sem dados simulados: tudo vem do backend (`feature/backend`) por `POST /api/agent/message`.
+React + Vite + TypeScript + Tailwind v4. Responsivo, pt-BR, tema claro com vermelho de destaque e hierarquia visual inspirada no iFood.
+Sem dados simulados na aplicação: tudo vem do backend deste repositório por `POST /api/agent/message`.
 
 ## Rodar
 
-1. Backend (branch `feature/backend`, pasta `backend/`), conforme `backend/README.md`:
+1. Backend (pasta `backend/` neste checkout), conforme `backend/README.md`:
 
    ```bash
    uvicorn app.main:app --env-file .env --host 127.0.0.1 --port 8000 --no-access-log
@@ -23,16 +23,23 @@ frontend: OAuth do iFood e chave da OpenAI vivem só no backend.
 
 ## Fluxo (docs/HACKATHON_CONTEXT.md §4 e §10)
 
-1. **Contar** — texto livre. O agente devolve ingredientes reconhecidos (`INFERRED`, não confirmados).
-2. **Conferir** — a pessoa corrige, completa ou remove itens e, se quiser, declara objetivo, pessoas,
-   tempo e orçamento. Só então os itens viram `inventario_confirmado`.
-3. **Perfil** — só aparece quando o agente pergunta (`pergunta_tags=true`). Preferências (vegetariano/vegano)
-   separadas de alergias, intolerâncias e saúde, que exigem consentimento explícito. “Prefiro não informar”
-   envia `estado=DECLINED` e o agente não pergunta de novo.
-4. **Sugestões** — opções `USE_WHAT_I_HAVE`, `COMPLETE_WITH_MARKET` ou `CONVENIENCE` geradas pelo agente.
-5. **Mercado** — com a conta iFood conectada (login em nova aba via `/auth/login`) e uma localização escolhida
-   (geolocalização do navegador ou coordenadas), o agente busca os faltantes via `searchOffers`. A UI mostra
-   produtos, preços, frete, custo conhecido (estimativa) e as consultas feitas. Não há carrinho nem compra.
+1. **Sua despensa** — texto livre, foto pela câmera ou upload (JPEG/PNG/WebP, até 5 MB). A foto tem prévia e pode ser removida antes do envio. O agente extrai ingredientes e `contexto_reconhecido`
+   (objetivo, pessoas, tempo e orçamento explicitamente mencionados), todos ainda `INFERRED`.
+   A pessoa confere uma revisão compacta; nomes e quantidades podem ser corrigidos.
+   Objetivo e preferências podem ser ajustados em seções expansíveis na mesma tela.
+   Preferências são opcionais; alergias, intolerâncias e saúde exigem consentimento.
+   Ao confirmar, o frontend envia inventário e contexto completos. Não há uma etapa obrigatória de perfil.
+2. **Sugestões do agente** — cards para aproveitar o que tem, complementar ou buscar conveniência,
+   conforme as opções efetivamente retornadas. Explicações extensas ficam sob demanda.
+3. **Só o que falta** — escolher uma refeição com faltantes autoriza sua busca. Se necessário,
+   a pessoa conecta a conta iFood e escolhe uma localização. Quando ambas estão disponíveis,
+   a busca começa automaticamente uma vez, sem outro botão de confirmação. Erros exigem
+   repetição explícita; não há repetição automática infinita. Se não faltar nada, a opção termina
+   no caminho sem compra. Não há carrinho nem pedido.
+
+O frontend tolera backends anteriores sem `contexto_reconhecido`; nesse caso os campos ficam
+em branco para revisão. Para extrair os detalhes automaticamente, execute também o backend
+atualizado deste checkout. `contexto_reconhecido` não altera orçamento nem filtros até confirmação.
 
 Etiquetas de procedência: **Você informou**, **Sugerido pela IA**, **Dado do iFood (MCP)**, **Estimativa**.
 
@@ -44,3 +51,23 @@ não guarda a conversa. Perfil e dados sensíveis ficam só na memória da aba (
 ```bash
 npm run build   # tsc -b + vite build
 ```
+
+
+## Câmera e imagens
+
+- `Tirar foto` abre uma câmera com prévia ao vivo, preferindo a traseira no celular.
+  É necessário autorizar a câmera no navegador; localhost ou HTTPS é exigido.
+  Onde a API de câmera não está disponível, o seletor nativo permite fotografar/enviar.
+- `Enviar imagem` aceita uma foto estática JPEG, PNG ou WebP de até 5 MB.
+  HEIC não é aceito neste MVP. A câmera captura JPEG com lado máximo de 2048 px.
+- A foto só sai do navegador ao clicar em `Descobrir o que preparar`, com aviso de
+  envio à OpenAI. Texto complementar é opcional, inclusive objetivo e orçamento.
+- `POST /api/context/parse-image` recebe JSON `{ image_data_url, message }` e devolve
+  o mesmo `AgentResponse` usado na revisão. O backend valida o arquivo, limita a
+  20 megapixels, corrige orientação, remove metadados e reduz o lado para 2048 px.
+- Imagens são processadas em memória, sem upload público, gravação em disco ou
+  armazenamento em sessão. A câmera é desligada ao fechar, capturar, sair da aba
+  ou desmontar o componente; URLs de prévia são revogadas.
+- O reconhecimento não tem ferramentas MCP e não gera uma compra: devolve hipóteses
+  para revisão. Quantidade/unidade da imagem são removidas pelo backend. O planejamento
+  posterior usa apenas os ingredientes confirmados, sem reenviar a foto.

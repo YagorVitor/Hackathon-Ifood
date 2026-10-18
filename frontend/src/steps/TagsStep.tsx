@@ -5,7 +5,7 @@ import { Badge, Button, Card, Chip, Loading, Notice, StageTitle, focusRing, inpu
 import { LIMITS, hasSensitive, normalized } from '../flow'
 import type { DeclaredTags, Preference } from '../types'
 
-const PREFS: [Preference, string][] = [['VEGETARIAN', 'Vegetariano'], ['VEGAN', 'Vegano']]
+const PREFS: [Preference, string][] = [['VEGETARIAN', 'Vegetariano'], ['VEGAN', 'Vegano'], ['ORGANIC', 'Orgânico']]
 type SensitiveKey = 'alergias' | 'intolerancias' | 'condicoes_saude'
 
 export function TagsStep({ mode, tags, consent, onSubmit, onDecline, onCancel, loading, error }: {
@@ -23,13 +23,8 @@ export function TagsStep({ mode, tags, consent, onSubmit, onDecline, onCancel, l
   const sensitive = hasSensitive(draft)
   const any = draft.preferencias.length > 0 || sensitive
 
-  const togglePref = (p: Preference) => setDraft((d) => ({
-    ...d, preferencias: d.preferencias.includes(p) ? d.preferencias.filter((x) => x !== p) : [...d.preferencias, p],
-  }))
-  const setList = (k: SensitiveKey, values: string[]) => setDraft((d) => ({ ...d, [k]: values }))
   const toggleConsent = (on: boolean) => {
     setAllow(on)
-    // Retirar o consentimento apaga na hora o que foi digitado.
     if (!on) setDraft((d) => ({ ...d, alergias: [], intolerancias: [], condicoes_saude: [] }))
   }
 
@@ -50,6 +45,44 @@ export function TagsStep({ mode, tags, consent, onSubmit, onDecline, onCancel, l
         </Card>
       )}
 
+      <PreferenceFields draft={draft} onDraft={setDraft} allow={allow} onAllow={toggleConsent} disabled={loading} />
+
+      {loading && <Loading label="Atualizando sugestões…" detail="O agente está planejando com o seu perfil." />}
+      {error && !loading && <Notice tone="danger" role="alert" title="Não deu para gerar sugestões">{error.message}</Notice>}
+
+      <div className="space-y-2">
+        <Button icon="check" loading={loading}
+          disabled={mode === 'question' && !any}
+          onClick={() => onSubmit({ ...draft, estado: 'ANSWERED' }, allow && sensitive)}>
+          {mode === 'question' ? 'Continuar com essas informações' : 'Aplicar e atualizar sugestões'}
+        </Button>
+        {mode === 'question' ? (
+          <Button variant="secondary" onClick={onDecline} disabled={loading}>Prefiro não informar</Button>
+        ) : (
+          <Button variant="ghost" icon="back" onClick={onCancel} disabled={loading}>Voltar sem alterar</Button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export function PreferenceFields({ draft, onDraft, allow, onAllow, disabled = false }: {
+  draft: DeclaredTags
+  onDraft: (tags: DeclaredTags) => void
+  allow: boolean
+  onAllow: (allow: boolean) => void
+  disabled?: boolean
+}) {
+  const loading = disabled
+  const togglePref = (p: Preference) => onDraft({ ...draft,
+    preferencias: draft.preferencias.includes(p) ? draft.preferencias.filter((x) => x !== p) : [...draft.preferencias, p],
+  })
+  const setList = (k: SensitiveKey, values: string[]) => onDraft({ ...draft, [k]: values })
+  const toggleConsent = (on: boolean) => {
+    onAllow(on)
+    if (!on) onDraft({ ...draft, alergias: [], intolerancias: [], condicoes_saude: [] })
+  }
+  return <div className="space-y-4">
       <Card as="section" className="space-y-3">
         <h3 className="text-lg font-bold">Preferência alimentar</h3>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Preferência alimentar">
@@ -107,23 +140,7 @@ export function TagsStep({ mode, tags, consent, onSubmit, onDecline, onCancel, l
         )}
       </Card>
 
-      {loading && <Loading label="Atualizando sugestões…" detail="O agente está planejando com o seu perfil." />}
-      {error && !loading && <Notice tone="danger" role="alert" title="Não deu para gerar sugestões">{error.message}</Notice>}
-
-      <div className="space-y-2">
-        <Button icon="check" loading={loading}
-          disabled={mode === 'question' && !any}
-          onClick={() => onSubmit({ ...draft, estado: 'ANSWERED' }, allow && sensitive)}>
-          {mode === 'question' ? 'Continuar com essas informações' : 'Aplicar e atualizar sugestões'}
-        </Button>
-        {mode === 'question' ? (
-          <Button variant="secondary" onClick={onDecline} disabled={loading}>Prefiro não informar</Button>
-        ) : (
-          <Button variant="ghost" icon="back" onClick={onCancel} disabled={loading}>Voltar sem alterar</Button>
-        )}
-      </div>
-    </div>
-  )
+  </div>
 }
 
 function TagList({ label, placeholder, values, onChange, suggestions = [], disabled }: {

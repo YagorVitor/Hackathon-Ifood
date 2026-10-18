@@ -4,7 +4,7 @@
 export type Provenance = 'DECLARED' | 'INFERRED' | 'MCP' | 'ESTIMATED'
 export type Strategy = 'USE_WHAT_I_HAVE' | 'COMPLETE_WITH_MARKET' | 'CONVENIENCE'
 export type TagsState = 'NOT_ASKED' | 'ASKED' | 'ANSWERED' | 'DECLINED'
-export type Preference = 'VEGETARIAN' | 'VEGAN'
+export type Preference = 'VEGETARIAN' | 'VEGAN' | 'ORGANIC'
 
 // Decimal do Pydantic chega como string no JSON.
 export type DecimalValue = string | number
@@ -100,7 +100,17 @@ export interface SearchEvidence {
   quantidade_resultados: number
 }
 
+export interface RecognizedContext {
+  objetivo: string | null
+  pessoas: number | null
+  tempo_min: number | null
+  orcamento_centavos: number | null
+  provenance: 'INFERRED'
+  confirmado: false
+}
+
 export interface AgentOutput {
+  contexto_reconhecido?: RecognizedContext
   contract_version: '1'
   mensagem: string
   pergunta_tags: boolean

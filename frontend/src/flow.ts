@@ -1,5 +1,5 @@
 // Regras do lado do cliente: só montam e validam o contexto declarado; nada é inferido aqui.
-import type { DeclaredTags, Location, RecognizedIngredient, UserContext } from './types'
+import type { DeclaredTags, Location, RecognizedContext, RecognizedIngredient, UserContext } from './types'
 
 // Exemplo do fluxo principal em docs/HACKATHON_CONTEXT.md (Etapa 1).
 export const EXAMPLE_TEXT =
@@ -108,5 +108,16 @@ export function buildContext(opts: {
     tempo_min: num(fields.tempo),
     orcamento_centavos: orc === null ? null : Math.round(orc * 100),
     localizacao: location,
+  }
+}
+
+// O agente extrai; a pessoa revisa estes campos antes de confirmá-los.
+export function fromRecognizedContext(context?: RecognizedContext): DeclaredFields {
+  if (!context) return { ...emptyFields }
+  return {
+    objetivo: context.objetivo ?? '',
+    pessoas: context.pessoas == null ? '' : String(context.pessoas),
+    tempo: context.tempo_min == null ? '' : String(context.tempo_min),
+    orcamento: context.orcamento_centavos == null ? '' : (context.orcamento_centavos / 100).toFixed(2).replace('.', ','),
   }
 }
