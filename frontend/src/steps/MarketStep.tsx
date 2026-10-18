@@ -30,7 +30,8 @@ export function MarketStep({
 
   return (
     <div className="space-y-4">
-      <StageTitle kicker="Etapa 4 de 4">Completar no iFood Mercado</StageTitle>
+      <StageTitle kicker="O agente cuida dos faltantes">Só falta completar sua despensa.</StageTitle>
+      <p className="text-ink-muted">Vou procurar os ingredientes da opção que você escolheu no iFood Mercado.</p>
 
       <Card className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -44,7 +45,8 @@ export function MarketStep({
 
       {!result && (
         <Card as="section" className="space-y-4">
-          <h3 className="text-lg font-bold">Antes de consultar</h3>
+          <h3 className="text-lg font-bold">Tudo pronto para a busca?</h3>
+          <p className="text-sm text-ink-muted">Assim que a conta e a localização estiverem prontas, o agente inicia a busca automaticamente.</p>
           <ol className="space-y-4">
             <li className="space-y-2">
               <StepHead n={1} done={auth === 'yes'} title="Conta iFood" />
@@ -83,8 +85,7 @@ export function MarketStep({
         <div className="space-y-2">
           {!result ? (
             <>
-              <Button icon="search" onClick={onConsult} disabled={!ready}>Buscar o que falta no iFood Mercado</Button>
-              {!ready && <p className="text-center text-sm text-ink-muted">Conecte a conta e defina onde buscar para continuar.</p>}
+              {error && ready && <Button icon="refresh" onClick={onConsult}>Tentar a busca novamente</Button>}
             </>
           ) : (
             <Button variant="secondary" icon="refresh" onClick={onConsult} disabled={!ready}>Consultar de novo</Button>
@@ -96,7 +97,7 @@ export function MarketStep({
 
       {auth === 'yes' && tools && tools.length > 0 && (
         <details className="rounded-2xl border border-line bg-surface p-4 text-sm">
-          <summary className={`cursor-pointer font-bold ${focusRing}`}>Ferramentas anunciadas pelo MCP do iFood nesta sessão</summary>
+          <summary className={`cursor-pointer font-bold ${focusRing}`}>Detalhes técnicos da integração</summary>
           <ul className="mt-2 flex flex-wrap gap-1.5">
             {tools.map((t) => <li key={t.name} className="rounded-md bg-surface-2 px-2 py-1 font-mono text-xs">{t.name}</li>)}
           </ul>
@@ -222,10 +223,7 @@ function MarketResult({ result, budgetCents }: { result: AgentResponse; budgetCe
       <h3 id="result-title" className="sr-only">Resultado da consulta</h3>
 
       {result.mcpToolCalled ? (
-        <Notice tone="info" title="O agente consultou o iFood Mercado">
-          Usou a ferramenta oficial <code className="font-mono">{result.tool ?? 'searchOffers'}</code> do MCP do iFood,
-          somente leitura. Nomes, lojas e preços exibidos vêm dessas respostas.
-        </Notice>
+        <p className="flex items-center gap-2 text-sm text-ink-muted"><Icon name="check" className="size-4" /> Busca enviada ao iFood · confira os resultados abaixo.</p>
       ) : (
         <Notice tone="warn" title="O iFood não foi consultado nesta resposta">
           O agente respondeu sem chamar a ferramenta de busca. Veja a mensagem abaixo e tente consultar de novo.

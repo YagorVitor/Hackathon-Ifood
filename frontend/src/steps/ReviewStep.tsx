@@ -4,10 +4,13 @@ import { Icon } from '../components/icons'
 import { AgentNote, Badge, Button, Card, Loading, Notice, StageTitle, focusRing, inputCls } from '../components/ui'
 import { LIMITS, itemError, newKey, normalized, validateFields } from '../flow'
 import type { DeclaredFields, DraftItem } from '../flow'
+import type { DeclaredTags } from '../types'
+import { PreferenceFields } from './TagsStep'
 
 export function ReviewStep({
-  text, agentMessage, items, onItems, fields, onFields, onConfirm, onEditText, loading, error, nextIsTags,
+  text, agentMessage, items, onItems, fields, onFields, onConfirm, onEditText, loading, error, tags, onTags, consent, onConsent, photoBased,
 }: {
+  photoBased: boolean
   text: string
   agentMessage: string
   items: DraftItem[]
@@ -18,7 +21,10 @@ export function ReviewStep({
   onEditText: () => void
   loading: boolean
   error: ApiError | null
-  nextIsTags: boolean
+  tags: DeclaredTags
+  onTags: (tags: DeclaredTags) => void
+  consent: boolean
+  onConsent: (consent: boolean) => void
 }) {
   const [newName, setNewName] = useState('')
   const [addError, setAddError] = useState<string | null>(null)
@@ -62,49 +68,41 @@ export function ReviewStep({
 
   return (
     <div className="space-y-4">
-      <StageTitle kicker="Etapa 2 de 4">Confira seus ingredientes</StageTitle>
+      <StageTitle kicker="Sua despensa organizada">Só confira. O resto é com o agente.</StageTitle>
+      <p className="text-ink-muted">Separei os ingredientes e os detalhes do seu pedido. Corrija o que precisar antes de planejar.</p>
 
-      <Card className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Badge p="DECLARED" label="Seu pedido" />
-          <button type="button" onClick={onEditText} disabled={loading}
-            className={`inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-lg px-2 text-sm font-bold text-herb ${focusRing}`}>
-            <Icon name="pencil" className="size-4" /> Reescrever
-          </button>
-        </div>
-        <p className="whitespace-pre-line text-ink">“{text}”</p>
-      </Card>
+      <details className="quiet-details">
+        <summary>Rever meu pedido original</summary>
+        <div className="mt-2 flex items-start gap-3"><p className="flex-1 whitespace-pre-line text-sm">“{text}”</p><Button variant="ghost" full={false} icon="pencil" onClick={onEditText} disabled={loading}>Editar</Button></div>
+      </details>
 
-      <AgentNote text={agentMessage} />
-      {nextIsTags && (
-        <Notice tone="info">
-          O agente perguntou sobre preferências e restrições. Você responde (ou pula) logo depois de confirmar os ingredientes.
-        </Notice>
-      )}
+      {agentMessage && <details className="quiet-details"><summary>Ver interpretação do agente</summary><AgentNote text={agentMessage} /></details>}
 
       <Card as="section" className="space-y-3">
         <div>
           <h3 className="text-lg font-bold">O que você tem</h3>
           <p className="text-sm text-ink-muted">
             {inferredCount > 0
-              ? 'Itens com borda tracejada foram reconhecidos pela IA e ainda são hipóteses. Corrija, complete ou remova antes de confirmar. Não presumimos quantidades nem validade.'
+              ? photoBased ? 'Possíveis ingredientes reconhecidos na foto. Confira os nomes: a imagem não comprova quantidade, validade ou segurança.' : 'Reconhecidos pela IA. Confira os nomes; quantidade e unidade são opcionais.'
               : 'Confira a lista. Quantidade e unidade são opcionais.'}
           </p>
         </div>
 
         {items.length === 0 && (
           <Notice tone="info" title="Nenhum ingrediente na lista">
-            O agente não reconheceu ingredientes no seu texto. Adicione abaixo o que você tem em casa.
+            <p>{photoBased ? 'Não foi possível identificar alimentos nesta foto. Envie uma imagem mais nítida ou adicione os ingredientes abaixo.' : 'O agente não reconheceu ingredientes no seu texto. Adicione abaixo o que você tem em casa.'}</p>
+            {photoBased && <Button variant="secondary" full={false} icon="camera" onClick={onEditText}>Trocar a foto</Button>}
           </Notice>
         )}
 
-        <ul className="space-y-3">
+        <ul className="ingredient-grid">
           {items.map((it, idx) => {
             const err = itemErrors[idx]
             return (
               <li key={it.key}
-                className={`rounded-xl border-2 p-3 ${it.origem === 'INFERRED' ? 'border-dashed border-violet/50 bg-violet-soft/40' : 'border-line bg-surface'}`}>
-                <div className="mb-2 flex items-center justify-between gap-2">
+                className={`ingredient-editor rounded-xl border p-3 ${it.origem === 'INFERRED' ? 'border-line bg-surface' : 'border-line bg-surface'}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="ingredient-name"><Icon name="jar" className="size-4" />{it.nome}</span>
                   <Badge p={it.origem} label={it.origem === 'INFERRED' ? 'Reconhecido pela IA' : undefined} />
                   <button type="button" onClick={() => onItems(items.filter((x) => x.key !== it.key))} disabled={loading}
                     aria-label={`Remover ${it.nome || 'item'}`}
@@ -112,14 +110,14 @@ export function ReviewStep({
                     <Icon name="trash" />
                   </button>
                 </div>
-                <div className="grid grid-cols-[1fr] gap-2 sm:grid-cols-[2fr_1fr_1fr]">
+                <details className="ingredient-adjust" open={err ? true : undefined}><summary>Editar ingrediente</summary><div className="mt-3 grid grid-cols-[1fr] gap-2">
                   <div>
                     <label htmlFor={`n-${it.key}`} className="mb-1 block text-xs font-bold text-ink-muted">Ingrediente</label>
                     <input id={`n-${it.key}`} className={inputCls} value={it.nome} maxLength={LIMITS.text}
                       aria-invalid={!!err} aria-describedby={err ? `e-${it.key}` : undefined}
                       onChange={(e) => update(it.key, { nome: e.target.value })} disabled={loading} />
                   </div>
-                  <div className="grid grid-cols-2 gap-2 sm:contents">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label htmlFor={`q-${it.key}`} className="mb-1 block text-xs font-bold text-ink-muted">Quantidade</label>
                       <input id={`q-${it.key}`} className={inputCls} inputMode="decimal" placeholder="—" value={it.quantidade}
@@ -132,6 +130,7 @@ export function ReviewStep({
                     </div>
                   </div>
                 </div>
+                </details>
                 {err && <p id={`e-${it.key}`} className="mt-2 text-sm font-semibold text-tomato">{err}</p>}
               </li>
             )
@@ -150,28 +149,29 @@ export function ReviewStep({
         </form>
       </Card>
 
-      <Card as="section" className="space-y-3">
-        <div>
-          <h3 className="text-lg font-bold">Seu objetivo <span className="font-normal text-ink-muted">(opcional)</span></h3>
-          <p className="text-sm text-ink-muted">
-            O agente também lê o seu texto, mas só o que você preencher aqui entra como dado estruturado — por exemplo,
-            o orçamento usado para comparar com o custo dos produtos.
-          </p>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+      <details className="preferences-disclosure objective-disclosure" open={Object.keys(fieldErrors).length ? true : undefined}>
+        <summary><span className="objective-summary"><span className="flex items-center gap-2"><Icon name="bowl" className="size-5" /> Seu pedido</span><span className="objective-preview">{[fields.objetivo, fields.pessoas && `${fields.pessoas} pessoas`, fields.tempo && `${fields.tempo} min`, fields.orcamento && `até R$ ${fields.orcamento}`].filter(Boolean).join(' · ') || 'Objetivo, pessoas, tempo e orçamento são opcionais.'}</span></span><span className="optional-label">Ajustar +</span></summary>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {field('objetivo', 'Objetivo', { placeholder: 'ex.: jantar' })}
           {field('pessoas', 'Pessoas', { inputMode: 'numeric', placeholder: 'ex.: 2' })}
           {field('tempo', 'Tempo disponível (minutos)', { inputMode: 'numeric', placeholder: 'ex.: 30' })}
           {field('orcamento', 'Orçamento (R$)', { inputMode: 'decimal', placeholder: 'ex.: 35,00' })}
         </div>
-      </Card>
+        <p className="mt-3 text-xs text-ink-muted">O agente interpretou os detalhes do texto. Ao continuar, você confirma estes dados.</p>
+      </details>
+
+      <details className="preferences-disclosure">
+        <summary><span><Icon name="leaf" className="size-5" /> Preferências e restrições</span><span className="optional-label">Opcional +</span></summary>
+        <p className="mb-4 mt-2 text-sm text-ink-muted">Vegetariano, vegano ou alguma restrição? Você escolhe o que informar. Se deixar em branco, seguimos sem restrições declaradas.</p>
+        <PreferenceFields draft={tags} onDraft={onTags} allow={consent} onAllow={onConsent} disabled={loading} />
+      </details>
 
       {loading && <Loading label="Planejando refeições…" detail="O agente está considerando seus ingredientes, objetivo e preferências." />}
       {error && !loading && <Notice tone="danger" role="alert" title="Não deu para gerar sugestões">{error.message}</Notice>}
 
-      <Button icon="check" onClick={onConfirm} disabled={invalid} loading={loading}>
-        {nextIsTags ? 'Confirmar ingredientes' : 'Confirmar e ver sugestões'}
-      </Button>
+      <div className="review-actions"><Button icon="check" onClick={onConfirm} disabled={invalid} loading={loading}>
+        Confirmar e receber sugestões <span aria-hidden="true">→</span>
+      </Button></div>
       {items.length === 0 && <p className="text-center text-sm text-ink-muted">Adicione pelo menos um ingrediente para continuar.</p>}
     </div>
   )

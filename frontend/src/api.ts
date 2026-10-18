@@ -23,7 +23,7 @@ async function request<T>(path: string, init: RequestInit = {}, timeoutMs = 15_0
     if (controller.signal.aborted) {
       throw new ApiError('timeout', 'A resposta demorou demais. Nenhuma compra foi realizada; tente novamente.')
     }
-    throw new ApiError('network', 'Não foi possível falar com o backend. Verifique se ele está rodando em localhost:8000.')
+    throw new ApiError('network', 'Não foi possível conectar ao serviço. Suas informações continuam nesta tela; tente novamente em instantes.')
   } finally {
     clearTimeout(timer)
   }
@@ -45,21 +45,25 @@ function toApiError(status: number, body: unknown, emptyBody: boolean): ApiError
   }
   const text = typeof detail === 'string' ? detail : null
   switch (status) {
+    case 413:
+      return new ApiError('validation', text ?? 'A foto deve ter no máximo 5 MB.', status)
+    case 415:
+      return new ApiError('validation', text ?? 'Escolha uma imagem JPEG, PNG ou WebP.', status)
     case 401:
       return new ApiError('auth', text ?? 'Conecte sua conta iFood para continuar.', status)
     case 404:
       return new ApiError('not_found', text ?? 'Recurso não encontrado.', status)
     case 503:
-      return new ApiError('unavailable', text ?? 'O backend ainda não está configurado.', status)
+      return new ApiError('unavailable', text ?? 'O serviço de sugestões está indisponível no momento.', status)
     case 504:
       return new ApiError('timeout', text ?? 'O agente excedeu o tempo de execução. Nenhuma compra foi realizada.', status)
     default:
       // Proxy do Vite responde 5xx com corpo vazio quando o backend está fora do ar.
       if (status >= 500 && emptyBody) {
-        return new ApiError('network', 'Não foi possível falar com o backend. Verifique se ele está rodando em localhost:8000.', status)
+        return new ApiError('network', 'Não foi possível conectar ao serviço. Suas informações continuam nesta tela; tente novamente em instantes.', status)
       }
       if (status >= 500 && !text) {
-        return new ApiError('failed', `O backend teve um erro interno (${status}). Nenhuma compra foi realizada.`, status)
+        return new ApiError('failed', `O serviço encontrou um erro (${status}). Nenhuma compra foi realizada.`, status)
       }
       return new ApiError('failed', text ?? `Erro inesperado (${status}).`, status)
   }
@@ -75,5 +79,10 @@ export const api = {
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) },
       AGENT_TIMEOUT_MS,
     ),
+  parseImage: (image_data_url: string, message: string) =>
+    request<AgentResponse>('/api/context/parse-image', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_data_url, message }),
+    }, AGENT_TIMEOUT_MS),
   loginUrl: '/auth/login',
 }
