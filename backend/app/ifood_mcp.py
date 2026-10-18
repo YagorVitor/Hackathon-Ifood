@@ -103,6 +103,33 @@ async def _search_groceries_once(
         ) from exc
 
 
+def tool_failure(name: str, exc: Exception) -> HTTPException:
+    """Classifica causas sem registrar URLs, corpos, tokens ou endereços."""
+    pending: list[BaseException] = [exc]
+    seen: set[int] = set()
+    statuses: set[int] = set()
+    timed_out = False
+    while pending:
+        current = pending.pop()
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        if isinstance(current, BaseExceptionGroup):
+            pending.extend(current.exceptions)
+        if current.__cause__ is not None:
+            pending.append(current.__cause__)
+        if isinstance(current, httpx2.HTTPStatusError):
+            statuses.add(current.response.status_code)
+        timed_out |= isinstance(current, (TimeoutError, httpx2.TimeoutException))
+    if 401 in statuses:
+        return HTTPException(401, f"A sessão iFood não autorizou {name}. Conecte sua conta novamente.")
+    if 403 in statuses:
+        return HTTPException(403, f"O iFood negou acesso a {name}. Confira os escopos homologados e refaça a conexão após atualizar a configuração.")
+    if timed_out:
+        return HTTPException(504, f"A consulta {name} ao iFood demorou demais. Tente novamente mais tarde.")
+    return HTTPException(502, f"A chamada {name} ao MCP do iFood falhou. Não foi possível confirmar o resultado da consulta.")
+
+
 async def call_tool(*, mcp_url: str, access_token: str, name: str, candidates: list[dict[str, Any]]) -> dict[str, Any]:
     """Chamada única, sem retry: createCart não é idempotente.
 
@@ -130,7 +157,7 @@ async def call_tool(*, mcp_url: str, access_token: str, name: str, candidates: l
         raise
     except Exception as exc:
         logging.getLogger(__name__).warning("MCP %s falhou (%s)", name, type(exc).__name__)
-        raise HTTPException(status_code=502, detail=f"A chamada {name} ao MCP do iFood falhou.") from exc
+        raise tool_failure(name, exc) from exc
 
 
 def _transient(exc: BaseException | None) -> bool:

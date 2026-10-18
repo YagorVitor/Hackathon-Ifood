@@ -15,7 +15,7 @@ from typing import Any, Literal
 from fastapi import HTTPException
 
 from .contracts import (Address, CartConfirmRequest, CartItemSnapshot, CartLine, CartProposal,
-    CartProposalRequest, CartResult, CartTotals, ObservedProduct)
+    CartProposalRequest, CartResult, CartTotals, ObservedProduct, Location)
 from .recommendations import catalogue_payload, to_cents
 
 PROPOSAL_TTL_SECONDS = 600
@@ -27,6 +27,7 @@ ERROR_CODE = re.compile(r"^[A-Z][A-Z0-9_]{2,60}$")
 class _Evidence:
     product: ObservedProduct
     expires_at: float
+    location: Location | None = None
 
 
 @dataclass
@@ -42,22 +43,41 @@ class CartStore:
     """Estado local de um único usuário; métodos síncronos, sem await entre leitura e escrita."""
     _evidence: dict[tuple[str, str], _Evidence] = field(default_factory=dict)
     _proposals: dict[str, _Proposal] = field(default_factory=dict)
+    _addresses: dict[str, tuple[Address, float]] = field(default_factory=dict)
 
     def _expire(self, now: float):
+        self._addresses = {k: v for k, v in self._addresses.items() if v[1] > now}
         self._evidence = {k: v for k, v in self._evidence.items() if v.expires_at > now}
         self._proposals = {k: v for k, v in self._proposals.items() if v.expires_at > now or v.status != "READY"}
 
-    def remember(self, products: list[ObservedProduct]):
+    def set_addresses(self, addresses: list[Address]):
+        self._addresses = {a.id: (a.model_copy(deep=True), time.monotonic() + PROPOSAL_TTL_SECONDS) for a in addresses}
+
+    def _validate_delivery(self, merchant_id: str, address_id: str, item_ids: list[str]):
+        entry = self._addresses.get(address_id)
+        if entry is None or entry[1] <= time.monotonic():
+            raise HTTPException(409, "Atualize os endereços do iFood e refaça a busca para o destino escolhido.")
+        address = entry[0]
+        if address.latitude is None or address.longitude is None:
+            raise HTTPException(409, "O endereço não tem coordenadas válidas retornadas pelo iFood.")
+        for item_id in item_ids:
+            evidence = self._evidence.get((merchant_id, item_id))
+            location = evidence.location if evidence else None
+            if location is None or abs(location.latitude - address.latitude) > 0.000001 or abs(location.longitude - address.longitude) > 0.000001:
+                raise HTTPException(409, "O destino mudou ou não corresponde à busca destes produtos. Busque novamente para o endereço escolhido.")
+
+    def remember(self, products: list[ObservedProduct], location: Location | None = None):
         now = time.monotonic()
         self._expire(now)
         for product in products:
             # Só o snapshot do MCP: nome, preço e IDs não vêm do navegador.
             snapshot = ObservedProduct(**product.model_dump(include=set(ObservedProduct.model_fields)))
-            self._evidence[(snapshot.merchant_id, snapshot.item_id)] = _Evidence(snapshot, now + EVIDENCE_TTL_SECONDS)
+            self._evidence[(snapshot.merchant_id, snapshot.item_id)] = _Evidence(snapshot, now + EVIDENCE_TTL_SECONDS, location.model_copy(deep=True) if location else None)
 
     def propose(self, request: CartProposalRequest) -> CartProposal:
         now = time.monotonic()
         self._expire(now)
+        self._validate_delivery(request.merchant_id, request.address_id, [line.item_id for line in request.linhas])
         if len({line.item_id for line in request.linhas}) != len(request.linhas):
             raise HTTPException(422, "Cada produto deve aparecer uma única vez no carrinho.")
         lines, products = [], []
@@ -103,6 +123,7 @@ class CartStore:
             return entry.result
         if entry.status == "IN_PROGRESS":
             raise HTTPException(409, "O carrinho já está sendo criado. Aguarde a resposta.")
+        self._validate_delivery(entry.data.merchant_id, entry.data.address_id, [line.item_id for line in entry.data.linhas])
         entry.status = "IN_PROGRESS"
         return entry.data
 
@@ -152,7 +173,9 @@ def _money(row: dict[str, Any], *keys: str) -> int | None:
 
 def parse_addresses(response: dict[str, Any]) -> list[Address]:
     payload = _unwrap(response)
-    rows = next((payload[k] for k in ("results", "addresses", "items") if isinstance(payload.get(k), list)), [])
+    rows = next((payload[k] for k in ("results", "addresses", "items") if isinstance(payload.get(k), list)), None)
+    if rows is None:
+        raise HTTPException(502, "A resposta de endereços do iFood veio em formato inesperado. Nenhuma lista vazia foi confirmada.")
     addresses = []
     for row in rows:
         if not isinstance(row, dict) or not (address_id := _text(row, "addressId", "id")):
@@ -167,6 +190,8 @@ def parse_addresses(response: dict[str, Any]) -> list[Address]:
             longitude=lng if valid and abs(lng) <= 180 else None,
             ultimo_usado=row.get("isLastUsedAddress") is True,
         ))
+    if rows and not addresses:
+        raise HTTPException(502, "O iFood retornou endereços sem identificadores utilizáveis.")
     return addresses
 
 

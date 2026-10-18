@@ -78,6 +78,8 @@ async def ifood_callback(
     await request.app.state.ifood_oauth.finish_authorization(
         code=code, state=state, settings=Settings.from_env()
     )
+    # Um novo login pode trocar a conta: nenhum destino/produto anterior é reutilizado.
+    request.app.state.cart = cart.CartStore()
     return HTMLResponse(
         "<main><h1>Conta iFood conectada</h1>"
         "<p>Agora você pode consultar <a href='/mcp/tools'>as ferramentas MCP</a>.</p></main>"
@@ -138,7 +140,7 @@ async def agent_test(payload: AgentRequest, request: Request) -> AgentResponse:
             raise HTTPException(502, "O agente não produziu uma resposta válida. Tente novamente.") from exc
         store.commit(session_id, envelope, execution.output)
         # Só estes snapshots do MCP podem entrar numa proposta de carrinho.
-        request.app.state.cart.remember(execution.output.produtos)
+        request.app.state.cart.remember(execution.output.produtos, envelope.contexto.localizacao)
         return AgentResponse(
             response=execution.output.mensagem, mcpToolCalled=execution.mcp_called,
             tool="searchOffers" if execution.mcp_called else None,
@@ -189,12 +191,17 @@ async def forget_agent_session(session_id: str, request: Request) -> dict[str, b
 async def list_addresses(request: Request) -> list[Address]:
     settings = Settings.from_env()
     token = await request.app.state.ifood_oauth.access_token(settings)
+    if 'mcp.user.addresses.read' not in settings.scopes.split():
+        raise HTTPException(503, "A conexão atual não solicita leitura de endereços. Configure mcp.user.addresses.read apenas se homologado para o agente, reinicie o backend e conecte o iFood novamente.")
     response = await ifood_mcp.call_tool(mcp_url=settings.mcp_url, access_token=token, name="listAddresses", candidates=[{}])
-    return cart.parse_addresses(response)
+    addresses = cart.parse_addresses(response)
+    request.app.state.cart.set_addresses(addresses)
+    return addresses
 
 
 @app.post("/api/cart/proposal", response_model=CartProposal)
 async def cart_proposal(payload: CartProposalRequest, request: Request) -> CartProposal:
+    await request.app.state.ifood_oauth.access_token(Settings.from_env())
     return request.app.state.cart.propose(payload)
 
 

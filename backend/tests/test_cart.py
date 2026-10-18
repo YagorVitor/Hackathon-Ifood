@@ -6,7 +6,7 @@ import httpx2
 from fastapi import HTTPException
 
 from app import cart
-from app.contracts import CartConfirmRequest, CartProposalRequest, ObservedProduct
+from app.contracts import Address, Location, CartConfirmRequest, CartProposalRequest, ObservedProduct
 from app.main import app
 
 
@@ -19,14 +19,53 @@ def mcp(result, tool='createCart', error=False):
     return dict(tool=tool, isError=error, result=result)
 
 
+LOCATION = Location(latitude=-23.5, longitude=-46.6)
+
+
+def seed(store):
+    store.set_addresses([Address(id='synthetic-address', latitude=LOCATION.latitude, longitude=LOCATION.longitude)])
+    store.remember([product()], LOCATION)
+
+
 def proposal_request(item='synthetic-item-1', quantity=2, store='synthetic-store'):
     return CartProposalRequest(merchant_id=store, address_id='synthetic-address', linhas=[dict(item_id=item, quantidade=quantity)])
 
 
 class CartStoreTests(unittest.TestCase):
+    def test_changed_unknown_and_expired_destinations_are_rejected(self):
+        store = cart.CartStore()
+        seed(store)
+        request = proposal_request()
+        store.set_addresses([Address(id=request.address_id, latitude=0, longitude=0)])
+        with self.assertRaises(HTTPException) as exc:
+            store.propose(request)
+        self.assertEqual(exc.exception.status_code, 409)
+        seed(store)
+        proposal = store.propose(request)
+        store.set_addresses([])
+        with self.assertRaises(HTTPException):
+            store.begin(CartConfirmRequest(proposal_id=proposal.id, snapshot_hash=proposal.snapshot_hash, confirm=True))
+        seed(store)
+        store._addresses[request.address_id] = (store._addresses[request.address_id][0], 0)
+        with self.assertRaises(HTTPException):
+            store.propose(request)
+
+    def test_region_only_search_cannot_create_delivery_cart(self):
+        store = cart.CartStore()
+        seed(store)
+        store.remember([product()])
+        with self.assertRaises(HTTPException):
+            store.propose(proposal_request())
+
+    def test_missing_address_envelope_is_not_an_empty_list(self):
+        self.assertEqual(cart.parse_addresses(mcp({'results': []}, tool='listAddresses')), [])
+        for payload in ({}, {'unexpected': []}, {'results': [{'alias': 'invalid'}]}, {'errors': {'code': 'SERVICE_UNAVAILABLE'}}):
+            with self.assertRaises(HTTPException):
+                cart.parse_addresses(mcp(payload, tool='listAddresses'))
+
     def test_only_observed_products_enter_the_proposal(self):
         store = cart.CartStore()
-        store.remember([product()])
+        seed(store)
         with self.assertRaises(HTTPException) as exc:
             store.propose(proposal_request(item='invented-item'))
         self.assertEqual(exc.exception.status_code, 409)
@@ -39,7 +78,7 @@ class CartStoreTests(unittest.TestCase):
 
     def test_confirmation_requires_matching_hash_and_runs_once(self):
         store = cart.CartStore()
-        store.remember([product()])
+        seed(store)
         proposal = store.propose(proposal_request())
         with self.assertRaises(HTTPException) as exc:
             store.begin(CartConfirmRequest(proposal_id=proposal.id, snapshot_hash='0' * 64, confirm=True))
@@ -64,7 +103,7 @@ class CartStoreTests(unittest.TestCase):
 
     def test_get_cart_totals_prevail_and_differences_are_flagged(self):
         store = cart.CartStore()
-        store.remember([product()])
+        seed(store)
         proposal = store.propose(proposal_request())
         snapshot = mcp({'cart': {'cartId': 'cart-1', 'items': [{'itemId': 'synthetic-item-1', 'name': 'Produto', 'quantity': 2, 'totalPrice': 10.5}],
                                  'totals': {'subtotal': 10.5, 'deliveryFee': {'value': 4.5}, 'discount': 0, 'total': 15.0}}}, tool='getCart')
@@ -83,18 +122,49 @@ class CartStoreTests(unittest.TestCase):
         self.assertEqual([a.id for a in addresses], ['a1'])
         self.assertTrue(addresses[0].ultimo_usado)
         store = cart.CartStore()
-        store.remember([product()])
+        seed(store)
         args = cart.create_cart_arguments(store.propose(proposal_request()))
         self.assertEqual(args[0], {'merchantId': 'synthetic-store', 'addressId': 'synthetic-address',
                                    'items': [{'itemId': 'synthetic-item-1', 'quantity': 2}]})
 
 
 class CartAPITests(unittest.IsolatedAsyncioTestCase):
+    async def test_new_login_clears_addresses_products_and_proposals(self):
+        old_proposal = await self.propose()
+        with patch.object(app.state.ifood_oauth, 'finish_authorization', new=AsyncMock()):
+            response = await self.client.get('/auth/callback', params={'code': 'synthetic-code', 'state': 'synthetic-state'})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(app.state.cart._addresses)
+        self.assertFalse(app.state.cart._evidence)
+        self.assertFalse(app.state.cart._proposals)
+        response = await self.client.post('/api/cart/confirm', json=dict(proposal_id=old_proposal['id'], snapshot_hash=old_proposal['snapshot_hash'], confirm=True))
+        self.assertEqual(response.status_code, 404)
+
+    async def test_address_scope_failure_does_not_call_mcp_or_return_empty_list(self):
+        with patch('app.main.Settings.from_env') as settings, patch('app.main.ifood_mcp.call_tool', new=AsyncMock()) as call:
+            settings.return_value.scopes = 'mcp.discovery.search.read'
+            response = await self.client.get('/api/addresses')
+        self.assertEqual(response.status_code, 503)
+        self.assertIn('mcp.user.addresses.read', response.json()['detail'])
+        call.assert_not_awaited()
+
+    async def test_address_service_failure_and_success_remain_distinct(self):
+        with patch('app.main.Settings.from_env') as settings:
+            settings.return_value.scopes = 'mcp.user.addresses.read'
+            with patch('app.main.ifood_mcp.call_tool', new=AsyncMock(side_effect=HTTPException(502, 'Service failed'))):
+                response = await self.client.get('/api/addresses')
+            self.assertEqual(response.status_code, 502)
+            for payload in ({'results': []}, {'results': [{'addressId': 'a1', 'coordinates': {'latitude': 0, 'longitude': 0}}]}):
+                with patch('app.main.ifood_mcp.call_tool', new=AsyncMock(return_value=mcp(payload, tool='listAddresses'))):
+                    response = await self.client.get('/api/addresses')
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(len(response.json()), len(payload['results']))
+
     async def asyncSetUp(self):
         self.life = app.router.lifespan_context(app)
         await self.life.__aenter__()
         self.client = httpx2.AsyncClient(transport=httpx2.ASGITransport(app=app), base_url='http://test')
-        app.state.cart.remember([product()])
+        seed(app.state.cart)
         self.token = patch.object(app.state.ifood_oauth, 'access_token', new=AsyncMock(return_value='synthetic-token'))
         self.token.start()
 
