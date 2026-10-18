@@ -17,10 +17,7 @@ chamada, verifica se a ferramenta foi anunciada e valida os argumentos pelo
 escritas. A ausência de uma ferramenta gera erro, sem substituir a operação por
 uma API não documentada.
 
-A revisão de 18/10/2026 consultou o portal oficial e o `tools/list` do backend
-local autenticado. A sessão anunciou 13 ferramentas, incluindo as quatro usadas
-pelo produto. Anúncio não significa implementação: pagamento, entrega e envio
-de pedido continuam fora do fluxo do MVP.
+As ferramentas disponíveis dependem da conexão e dos escopos autorizados. Pagamento e envio de pedido ficam fora do MVP.
 
 ## Operações usadas
 
@@ -84,7 +81,21 @@ OAuth, coordenadas e credenciais ficam fora do contexto do modelo.
 
 ## Referências
 
-- [Offer Discovery MCP — Tools](https://mcp-developer.ifood.com.br/pt-BR/docs/guides/mcps/discovery/tools)
-- [Cart MCP — Tools](https://mcp-developer.ifood.com.br/pt-BR/docs/guides/mcps/cart/tools)
+- [Offer Discovery MCP: Tools](https://mcp-developer.ifood.com.br/pt-BR/docs/guides/mcps/discovery/tools)
+- [Cart MCP: Tools](https://mcp-developer.ifood.com.br/pt-BR/docs/guides/mcps/cart/tools)
 - Schemas capturados: `backend/tests/fixtures/search_offers_schema.json` e
   `backend/tests/fixtures/create_cart_schema.json`.
+
+## Autorização e troca de conta
+
+O fluxo OAuth usa Authorization Code com PKCE S256, validação de `state` e tentativas com validade de 10 minutos. Os endpoints do provedor são `https://id.ifood.com.br/authorize` e `https://id.ifood.com.br/token`. O token é renovado quando necessário; `/auth/status` também verifica essa renovação antes de informar que a conta está conectada.
+
+Os escopos e o callback são configurados conforme o [guia de execução](../README.md). Após mudar credenciais ou escopos, reinicie o backend e conecte novamente. A autorização precisa ter sido concedida no portal.
+
+Cada login muda `connection_id` e limpa o estado comercial anterior. O frontend descarta endereços e ofertas da conexão antiga, incluindo respostas atrasadas. Esse identificador não representa uma conta própria da CompletAI.
+
+## Endereço e confirmação
+
+Os endereços consultados ficam disponíveis por 10 minutos. A proposta exige um endereço conhecido, com coordenadas válidas, e produtos encontrados para essas mesmas coordenadas. Trocar o destino exige refazer a busca. Explorar por localização sem endereço salvo não habilita a criação de carrinho.
+
+A proposta expira em 10 minutos e as evidências de catálogo em 30 minutos. `snapshot_hash` vincula a confirmação ao conteúdo revisado. A conferência distingue `confirmed`, `unverified` e `mismatch`; falha de leitura após criação preserva o identificador obtido.

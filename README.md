@@ -194,3 +194,7 @@ O backend foi preparado para demonstração local com uma conta por processo. Co
 | Busca sem produtos | Endereço, critérios e disponibilidade retornada pelo catálogo |
 | Carrinho não aparece no app | A criação via MCP não confirma sincronização com a sacola principal |
 | Microfone ou câmera indisponível | Permissões e suporte do navegador; texto e upload continuam disponíveis |
+
+## Documentação
+
+O [índice de documentação](docs/README.md) reúne os guias técnicos, os contratos e os entregáveis do hackathon.

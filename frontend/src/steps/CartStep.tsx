@@ -13,7 +13,7 @@ interface Store { id: string; name: string; products: SelectedProduct[]; subtota
 
 const asApiError = (e: unknown) => (e instanceof ApiError ? e : new ApiError('failed', 'Erro inesperado. Tente novamente.'))
 
-// Mesma regra do backend (PLANO-BACKEND §11): maior cobertura de faltantes, depois menor subtotal.
+// Prioriza a loja que cobre mais faltantes; em empate, usa o menor subtotal.
 function groupStores(products: SelectedProduct[]): Store[] {
   const map = new Map<string, Store>()
   for (const p of products) {

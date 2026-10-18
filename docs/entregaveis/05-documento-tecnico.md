@@ -1,115 +1,55 @@
-# 05 — Documento Técnico Resumido
-
-Arquitetura, uso do MCP do iFood e decisões técnicas principais. Detalhes
-operacionais em [`backend/README.md`](../../backend/README.md) e
-[`frontend/README.md`](../../frontend/README.md); verificação real em
-[`docs/IMPLEMENTACAO-AGENTE.md`](../IMPLEMENTACAO-AGENTE.md).
-
-## Stack
-
-| Camada | Tecnologia |
-|---|---|
-| Frontend | React + Vite + TypeScript + Tailwind v4 |
-| Backend | Python 3.11+ · FastAPI · Pydantic |
-| Agente | OpenAI Agents SDK (modelo padrão `gpt-4.1-mini`, configurável por `OPENAI_MODEL`) |
-| Integração | MCP oficial do iFood, Streamable HTTP, `https://consumer-mcp.ifood.com.br/marketplace` |
-| Autenticação | OAuth 2.0 Authorization Code + PKCE do consumidor (`id.ifood.com.br`), com refresh |
+# 05. Documento Técnico Resumido
 
 ## Arquitetura
 
-Monólito modular em um único processo: o backend guarda o contexto, e o agente é
-uma biblioteca stateless que recebe tudo de que precisa em cada execução.
+- **Frontend:** React 18, TypeScript, Vite e Tailwind CSS 4. Controla o fluxo, revisão, acessibilidade e perfil opcional no navegador.
+- **API:** FastAPI e contratos Pydantic. Organiza contexto, OAuth, imagens, evidências comerciais e carrinho.
+- **Agente:** OpenAI Agents SDK com saída estruturada. Modelo configurável por `OPENAI_MODEL`, com padrão `gpt-4.1-mini`.
+- **MCP:** adaptador em `backend/app/ifood_mcp.py`, usando cliente MCP, descoberta paginada de ferramentas e validação dos argumentos contra o schema anunciado.
+- **Estado:** conversas, conexão OAuth e carrinho em memória do backend; perfil lembrado opcionalmente no armazenamento local do navegador.
 
-```
-frontend (React)
-   │  POST /api/agent/message  (contexto completo a cada chamada)
-   ▼
-backend (FastAPI)
-   ├─ main.py             rotas, OAuth callback, erros HTTP
-   ├─ contracts.py        contratos Pydantic versionados (AgentEnvelope/AgentOutput)
-   ├─ context.py          sessões opt-in em memória (TTL 30 min, até 100 sessões)
-   ├─ agent.py            agente único + ferramenta searchOffers (somente leitura)
-   ├─ recommendations.py  evidências do MCP, custos em centavos, limitações
-   ├─ ifood_mcp.py        cliente MCP, validação por schema, retry de transporte
-   └─ oauth.py            PKCE, troca e refresh de tokens
-   ▼
-MCP oficial do iFood
+```text
+Frontend React
+    → FastAPI
+        → context.py / vision.py: contexto e extração da foto
+        → agent.py: interpretação e recomendações via OpenAI
+            → ferramenta local de busca → ifood_mcp.py → searchOffers
+        → cart.py: evidências, proposta e controle da confirmação
+            → ifood_mcp.py → listAddresses / createCart / getCart
+        → oauth.py: autorização iFood com PKCE e renovação de token
 ```
 
 ## Uso do MCP
 
-| Item | Como usamos |
-|---|---|
-| Ferramenta | **`searchOffers`**, a única exposta ao agente |
-| Parâmetros | `merchantType=GROCERIES`, `resultKind=ITEM`, `userLocation` escolhida pelo usuário, 5 resultados |
-| Filtros | `refinements.itemRestrictions` (VEGETARIAN, VEGAN, ORGANIC, LAC_FREE, GLUTEN_FREE, SUGAR_FREE), `maxItemPrice`, `maxDeliveryFee`, `sort` |
-| Escopo OAuth | `mcp.discovery.search.read` |
-| Limites | Até 3 buscas distintas por execução, cache local contra repetição, respeitado inclusive em chamadas concorrentes |
-| Validação | Argumentos validados contra o **schema anunciado em runtime** antes de `tools/call` |
-| Erros | 1 retry só para falha de transporte; erros de schema ou negócio não são repetidos; falha ≠ lista vazia |
-| Não usado | Ferramentas de voucher anunciadas no `tools/list` não são expostas; `getItem`/`getMerchant` não foram anunciadas na sessão verificada |
-
-Endpoints de diagnóstico: `GET /mcp/tools` (capacidades desta sessão) e
-`POST /mcp/test-search` (busca direta, sem LLM).
-
-## Decisões técnicas principais
-
-1. **Um agente, uma ferramenta.** O problema não justifica orquestração
-   multiagente. Menos superfície significa menos comportamento imprevisível.
-2. **Somente leitura nesta versão.** Nenhuma operação de escrita no MCP. O agente
-   é instruído a não executar carrinho, voucher, checkout ou compra.
-3. **O modelo não escreve dados comerciais.** O agente seleciona referências
-   locais (`offer_N`); nomes, IDs e preços são preenchidos pelo backend a partir
-   dos resultados da execução atual. IDs inventados, referências antigas e
-   seleções sem faltante associado são descartados.
-4. **Dinheiro em centavos inteiros.** Valores em BRL vindos do MCP são
-   convertidos com `Decimal`. Custos são calculados por opção (alternativas não se
-   somam), com frete contado uma vez por loja. O total final é sempre marcado
-   como não confirmado.
-5. **Schema real acima da documentação.** O adaptador segue o schema anunciado
-   pelo servidor (`itemRestrictions`), não o nome descrito no guia (`dietary`).
-6. **Contexto pertence ao backend.** Sem memória própria do agente e sem sessão
-   da OpenAI (`store=False`). A localização vai só para o MCP, nunca para o
-   modelo. Tracing do SDK desligado para não exportar contexto sensível.
-7. **Consentimento é uma regra de API.** Alergias, intolerâncias e saúde sem
-   `consentimento_dados_sensiveis=true` são rejeitadas. Revogar o consentimento
-   limpa o histórico imediatamente, mesmo se o modelo falhar.
-8. **Restrições não viram garantias.** Alergia a leite não vira `LAC_FREE`, e
-   diabetes não vira `SUGAR_FREE`. Filtros são classificação de catálogo, não
-   prova de composição.
-9. **Credenciais só no backend.** OAuth e chave da OpenAI ficam no `.env`
-   (ignorado pelo Git). O log de acesso é desligado para não registrar códigos
-   OAuth.
-
-## Segurança e privacidade
-
-- Nenhuma credencial no frontend nem no repositório.
-- Perfil só na memória da aba. Sessão no servidor é opt-in, com exclusão
-  explícita (`DELETE /api/agent/sessions/{id}`).
-- Códigos HTTP distintos por causa: 401 (sem OAuth iFood), 502 (falha de
-  modelo/saída), 503 (sem chave OpenAI), 504 (timeout).
-
-## Qualidade e testes
-
-- **20 testes automatizados** (`backend/tests/test_agent.py`): contratos,
-  consentimento e revogação, sessões, orçamento, procedência comercial, schema
-  MCP, ferramentas e API. Usam modelo e transporte substituídos e produtos
-  sintéticos.
-- Schema real de `searchOffers` salvo como fixture
-  (`backend/tests/fixtures/search_offers_schema.json`), sem dados pessoais.
-- Contratos exportados como JSON Schema em `docs/contracts/`.
-- **Verificação real em 17/10/2026:** OAuth autenticado, `tools/list` real e
-  fluxo HTTP → agente OpenAI → `searchOffers` real com resposta HTTP 200 e
-  `mcpToolCalled=true`. O teste usou coordenadas fictícias e retornou lista vazia
-  corretamente, sem produto inventado. Ainda falta validar com uma localização
-  real e produtos disponíveis.
-
-## Limitações conhecidas
-
-| Limitação | Impacto | Próximo passo |
+| Ferramenta | Responsável | Uso implementado |
 |---|---|---|
-| **Sem carrinho nem pedido** | O fluxo para na lista de produtos; não fecha o carrinho | `createCart` → `getCart` → revisão → confirmação → `submitOrder`, com escopos de carrinho |
-| **Endpoint de foto ausente** | O frontend chama `POST /api/context/parse-image`, que não existe no backend | Implementar o endpoint (validação, remoção de metadados, redimensionamento) ou ocultar a foto na demo |
-| Um usuário por vez | Tokens OAuth globais em memória | Sessão por cookie e isolamento multiusuário |
-| Sem persistência | Perfil e sessões somem ao reiniciar | Perfil persistente com consentimento por finalidade |
-| Sem revalidação de preço | Preço é o observado na busca | `getItem`/`getMerchant` quando disponíveis no escopo |
+| `searchOffers` | Ferramenta de leitura exposta ao agente | Buscar ofertas para a localização e critérios autorizados |
+| `listAddresses` | Backend | Recuperar destinos da conta conectada |
+| `createCart` | Backend, após confirmação | Criar carrinho de uma loja com os itens revisados |
+| `getCart` | Backend | Ler e conferir o carrinho criado |
+
+O agente não recebe uma ferramenta de criação de carrinho. Ele seleciona referências observadas; o backend resolve dados comerciais a partir dessas evidências. `tools/list` consulta capacidades, incluindo paginação, antes da chamada; nomes ou argumentos incompatíveis são rejeitados.
+
+OAuth usa Authorization Code com PKCE S256 e validação de `state`. Os escopos são configuráveis. Para o fluxo completo implementado, a configuração usada deve contemplar busca, endereços e leitura e escrita de carrinho conforme as permissões concedidas ao cliente. A configuração padrão contém apenas o escopo de busca e precisa ser ampliada para demonstrar o carrinho.
+
+## Controles principais
+
+- Até três buscas por execução do agente, com cache de consultas idênticas e filtro de parceiros abertos.
+- Coordenadas e credenciais ficam fora do prompt do modelo; são usadas pela ferramenta local.
+- Valores monetários internos em centavos; totais ausentes permanecem desconhecidos.
+- Proposta de carrinho com validade de 10 minutos; evidências de catálogo com validade de 30 minutos.
+- Produtos vinculados à loja e ao destino da busca, com revisão de quantidades e confirmação explícita.
+- Proteção contra repetição automática de criação com resultado incerto; verificação posterior por `getCart`.
+- Nova conexão iFood invalida estado comercial anterior.
+- Imagens JPEG/PNG/WebP até 5 MB e 20 megapixels, validadas e reprocessadas sem metadados; reconhecimento tratado como hipótese.
+- Preferências e dados sensíveis separados; consentimento controla envio de alergias e intolerâncias e saúde. Condição de saúde não vira filtro clínico automaticamente.
+
+## Testes
+
+O repositório inclui testes de OAuth, agente, carrinho, erros MCP, visão e idioma no backend, além de perfil, acessibilidade e ciclo de vida no frontend. As suítes não foram reexecutadas nesta revisão editorial.
+
+## Escopo operacional
+
+A arquitetura atual é de demonstração local de um usuário. OAuth e estado comercial são compartilhados no processo. Reiniciar o backend perde o estado em memória. Faltam persistência por usuário, autenticação própria e instrumentação completa para operação pública.
+
+Não há pagamento ou envio de pedido implementado. Criar e consultar um carrinho não comprova que ele aparecerá na sacola principal do aplicativo. A aplicação só utiliza links retornados e validados.

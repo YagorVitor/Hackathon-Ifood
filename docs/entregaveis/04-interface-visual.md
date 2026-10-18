@@ -1,72 +1,41 @@
-# 04 — Interface Visual
+# 04. Interface visual
 
-A interface é um **protótipo funcional** em React, integrado ao backend real
-(sem dados simulados na aplicação). Código em [`frontend/`](../../frontend/).
+A interface da CompletAI está implementada em React, no diretório `frontend` da branch `develop`. Ela reúne a entrada do contexto, as sugestões e a revisão do carrinho em uma jornada por etapas.
 
-## Telas
+## Telas da aplicação
 
-> **[PREENCHER]** Adicionar as capturas em `docs/entregaveis/img/` antes da
-> submissão. Sugestão: rodar o cenário de exemplo do início ao fim e capturar
-> cada etapa no celular (375 px) e no desktop.
+| Tela | O que a pessoa faz |
+|---|---|
+| Entrada | Explica a ocasião por texto, ditado, câmera ou envio de imagem. |
+| Revisão | Confere e corrige os ingredientes e as informações reconhecidas. |
+| Meu perfil | Informa preferências, autoriza dados sensíveis e escolhe se quer lembrar no navegador. |
+| Sugestões | Compara alternativas, ingredientes necessários e acompanhamentos opcionais. |
+| Ofertas iFood | Conecta a conta, escolhe o destino e consulta os produtos encontrados. |
+| Carrinho | Revisa quantidades, confirma a criação e acompanha a conferência do resultado. |
+| Preparo sem compra | Consulta o resumo da sugestão que aproveita o que já tem. |
+| Acessibilidade | Ajusta idioma, aparência, texto, contraste e movimento. |
 
-### 1. Sua despensa
-Texto livre com exemplo pronto, botões **Tirar foto** e **Enviar imagem**
-(JPEG/PNG/WebP até 5 MB) com prévia e remoção.
+## Direção visual
 
-![Sua despensa](img/01-despensa.png)
+A identidade CompletAI usa vermelho, cards e títulos com hierarquia clara. As ações principais recebem destaque, enquanto a navegação por etapas mostra o avanço da jornada. Tema, contraste e tamanho de texto permitem adaptar a leitura.
 
-### 2. Revisão
-Ingredientes reconhecidos em cards editáveis (nome, quantidade, unidade), todos
-marcados como *Sugerido pela IA*. Seções expansíveis para objetivo, pessoas,
-tempo, orçamento e preferências. Consentimento separado para dados sensíveis.
+## Demonstração sugerida
 
-![Revisão](img/02-revisao.png)
+1. Enviar uma foto real acompanhada de um objetivo curto.
+2. Conferir os ingredientes identificados e corrigir o que for necessário.
+3. Mostrar como o perfil entra nas recomendações.
+4. Escolher uma opção com itens para comprar.
+5. Selecionar o endereço e mostrar ofertas retornadas pelo iFood.
+6. Revisar quantidades, confirmar o carrinho e apresentar a conferência.
 
-### 3. Sugestões do agente
-Cards por estratégia: *aproveitar o que tenho*, *complementar* e *conveniência*,
-com ingredientes usados, faltantes e justificativa sob demanda.
+As marcações sobre a foto usada no pitch são ilustrativas. A aplicação reconhece itens para revisão, mas não implementa essas caixas sobre a imagem.
 
-![Sugestões](img/03-sugestoes.png)
+## Acesso para avaliação
 
-### 4. Só o que falta
-Conexão com a conta iFood e localização (GPS ou digitada). Produtos reais do
-iFood Mercado por faltante, com loja, preço observado, frete, pedido mínimo,
-etiqueta *Dado do iFood (MCP)* e aviso de limitações.
+O frontend pode ser iniciado com `npm run dev` no diretório `frontend`, com o backend configurado na porta 8000. A porta padrão do Vite é 5173; a porta efetiva aparece no terminal.
 
-![Só o que falta](img/04-faltantes.png)
+Para avaliação fora do computador de demonstração, é necessário anexar capturas, um vídeo ou um link publicado. O endereço localhost não dá acesso remoto. Este documento acompanha a interface do repositório; não substitui sua demonstração visual.
 
-### 5. Conclusão
-Resumo da escolha. Explica que nenhum carrinho foi criado nem pedido feito.
+## Localização no código
 
-![Conclusão](img/05-conclusao.png)
-
-## Como rodar
-
-```bash
-# Backend (ver backend/README.md para o .env)
-cd backend
-uvicorn app.main:app --env-file .env --host 127.0.0.1 --port 8000 --no-access-log
-
-# Frontend
-cd frontend
-npm install
-npm run dev   # http://localhost:5173
-```
-
-## Componentes de destaque
-
-| Componente | Arquivo | Papel |
-|---|---|---|
-| Captura | `frontend/src/steps/CaptureStep.tsx`, `components/PhotoInput.tsx` | Texto, câmera ao vivo e upload |
-| Revisão | `frontend/src/steps/ReviewStep.tsx` | Edição de ingredientes e contexto |
-| Perfil | `frontend/src/steps/TagsStep.tsx` | Preferências e dados sensíveis com consentimento |
-| Sugestões | `frontend/src/steps/OptionsStep.tsx` | Cards das estratégias |
-| Mercado | `frontend/src/steps/MarketStep.tsx` | OAuth, localização e produtos do MCP |
-
-## Limitações conhecidas da interface
-
-- **Foto não funciona ponta a ponta:** o frontend chama
-  `POST /api/context/parse-image`, que ainda não existe no backend. Até ser
-  implementado, a demonstração deve usar o caminho por texto.
-- Não há tela de carrinho nem de pedido (ver
-  [05 — Documento Técnico](05-documento-tecnico.md)).
+As telas ficam em `frontend/src/steps`. Câmera, ditado, seleção de endereço e acessibilidade ficam em `frontend/src/components`. O perfil é controlado por `frontend/src/hooks/useUserProfile.ts`, e os estilos estão em `frontend/src/index.css`.

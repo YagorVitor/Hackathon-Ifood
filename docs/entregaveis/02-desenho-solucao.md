@@ -1,93 +1,40 @@
-# 02 — Desenho de Solução
+# 02. Desenho da solução
 
-Como a CompletAI resolve o problema, do contexto do consumidor até os
-produtos reais do iFood Mercado.
+A jornada começa com a ocasião e termina, quando há compra, com a conferência do carrinho criado no iFood.
 
-## Princípio
+## Da intenção à recomendação
 
-> A IA interpreta, planeja e explica. O backend valida, calcula e controla.
-> O MCP fornece as capacidades comerciais disponíveis.
+1. **Contar o que precisa.** A pessoa digita, dita ou envia uma foto. Pode informar o objetivo, o número de pessoas, o tempo disponível e o orçamento.
+2. **Conferir as informações.** O agente organiza o que reconheceu. A pessoa corrige ingredientes e contexto antes de continuar.
+3. **Usar o perfil.** Preferências já autorizadas entram na recomendação. Quem ainda não informou pode preencher ou pular essa etapa. Alergias, intolerâncias e condições de saúde exigem consentimento.
+4. **Escolher uma sugestão.** O agente propõe até três opções: aproveitar os ingredientes disponíveis, completar com compras ou buscar uma refeição pronta. Também pode sugerir acompanhamentos opcionais.
 
-## Fluxo geral
+## Da escolha ao carrinho
+
+5. **Conectar o iFood e escolher o destino.** A aplicação consulta os endereços da conta. O endereço escolhido define onde buscar ofertas.
+6. **Encontrar produtos.** O agente consulta o catálogo para atender à opção escolhida. A interface apresenta os produtos, as lojas e os preços retornados pelo MCP.
+7. **Revisar a compra.** A pessoa confere produtos, quantidades e endereço. Cada proposta reúne itens de uma única loja.
+8. **Confirmar.** O backend cria o carrinho com `createCart` e consulta `getCart` para conferir o identificador, os itens e as quantidades.
+
+Se a opção escolhida não precisa de compras, a jornada pode terminar com a sugestão de preparo. Os complementos aparecem nas recomendações, mas ainda falta um fluxo dedicado para comprá-los nesse caso.
 
 ```mermaid
 flowchart TD
-    A["1. Captura<br/>texto livre ou foto"] --> B["2. Revisão<br/>ingredientes, objetivo, pessoas,<br/>tempo, orçamento e perfil"]
-    B --> C["3. Planejamento pelo agente<br/>(sem MCP)"]
-    C --> D{"Estratégias sugeridas"}
-    D -->|Aproveitar o que tenho| E["Receita sem compra<br/>(fim)"]
-    D -->|Complementar| F["4. Faltantes da refeição escolhida"]
-    D -->|Conveniência| F
-    F --> G["Conectar conta iFood (OAuth)<br/>+ escolher localização"]
-    G --> H["5. Agente consulta o MCP<br/>searchOffers · GROCERIES · ITEM"]
-    H --> I["6. Backend valida evidências,<br/>calcula custos e limitações"]
-    I --> J["Lista do que falta com<br/>produtos e preços reais"]
-    J -.->|roadmap| K["Carrinho e pedido<br/>createCart → submitOrder"]
+ A[Texto, foto ou ditado] --> B[Conferir informações e aplicar perfil opcional]
+ B --> C[Escolher uma sugestão]
+ C --> D{Há itens para comprar?}
+ D -->|Não| E[Sugestão de preparo]
+ D -->|Sim| F[Conectar iFood e escolher endereço]
+ F --> G[Buscar ofertas]
+ G --> H[Revisar produtos e quantidades]
+ H --> I[Confirmar criação do carrinho]
+ I --> J[Consultar e conferir o resultado]
 ```
 
-## Etapas
+## Quando o fluxo precisa se adaptar
 
-| # | Etapa | Quem faz | O que acontece |
-|---|---|---|---|
-| 1 | **Captura** | Usuário | Descreve o que tem em casa e o objetivo ("Tenho arroz, ovos, tomate e cenoura. Jantar para duas pessoas, 30 min, até R$ 35."). Opcionalmente tira ou envia uma foto. |
-| 2 | **Revisão** | Agente → usuário | O agente extrai ingredientes e contexto, todos marcados como *sugerido pela IA*. A pessoa corrige nomes e quantidades, ajusta objetivo e preferências e confirma. Nada inferido é usado sem confirmação. |
-| 3 | **Planejamento** | Agente | Com o inventário confirmado e o perfil, o agente propõe opções nas três estratégias: aproveitar, complementar ou conveniência. Esta etapa não chama o MCP nem exige login no iFood. |
-| 4 | **Escolha** | Usuário | Escolher uma refeição com faltantes autoriza a busca desses itens. Se não falta nada, o fluxo termina sem compra. |
-| 5 | **Consulta comercial** | Agente + MCP | Após OAuth e escolha da localização, o agente faz até três buscas distintas em `searchOffers` (iFood Mercado, resultados por item), com filtros reais: restrições alimentares, preço máximo, frete máximo e ordenação. |
-| 6 | **Recomendação** | Backend | O backend preenche nomes, IDs e preços **somente** a partir das respostas do MCP nesta execução, descarta seleções sem evidência, calcula custos por opção em centavos e lista as limitações (embalagem, taxas, pedido mínimo, total não confirmado). |
-| 7 | **Compra** | — | **Não implementada nesta versão.** A interface diz claramente que nada foi adicionado ao carrinho. Roadmap: `createCart` → `getCart` → revisão → confirmação explícita → `submitOrder`. |
+Uma busca sem resultados em uma categoria pode ser ampliada para o catálogo geral, respeitando o limite de três consultas. Erro de integração é tratado como falha, sem concluir que não existem ofertas.
 
-## Separação em camadas
+Se o usuário troca o endereço, precisa buscar novamente para o novo destino. Uma nova conexão iFood também limpa o estado comercial anterior.
 
-```mermaid
-flowchart LR
-    subgraph Entrada
-      T[Texto] --- P[Foto]
-    end
-    subgraph Frontend["Frontend (React)"]
-      UI[Etapas visuais<br/>+ etiquetas de procedência]
-    end
-    subgraph Backend["Backend (FastAPI)"]
-      CTX[Contexto e consentimento]
-      RULES[Regras determinísticas<br/>custos · evidências · limites]
-      AG[Agente<br/>OpenAI Agents SDK]
-      MCPA[Adaptador MCP<br/>validação por schema]
-      OA[OAuth PKCE]
-    end
-    MCP[(MCP oficial iFood)]
-    Entrada --> UI --> CTX --> AG
-    AG -->|tool searchOffers| MCPA --> MCP
-    OA --> MCPA
-    AG --> RULES --> UI
-```
-
-- **Entrada:** texto e imagem viram a mesma representação estruturada. O núcleo
-  não depende do formato de entrada, o que abre caminho para voz e outros canais.
-- **Contexto:** inventário confirmado, perfil, orçamento, tempo e localização
-  ficam no backend, nunca na memória do modelo.
-- **Agente:** um único agente com uma única ferramenta comercial, somente
-  leitura. Não há arquitetura multiagente sem justificativa.
-- **Regras determinísticas:** valores, vínculos com o MCP e limites ficam no
-  backend, em código testado.
-- **Integração:** o adaptador valida os argumentos contra o schema anunciado pelo
-  próprio MCP antes de cada chamada.
-
-## Garantias do fluxo
-
-- Nenhum produto, preço ou loja é inventado. Se a busca vier vazia ou falhar, a
-  tela informa isso, e falha não é apresentada como "nada encontrado".
-- Preferências alimentares nunca viram promessa de segurança. Alergia a leite não
-  vira filtro "sem lactose", e diabetes não vira "sem açúcar".
-- A localização é enviada só ao MCP, nunca ao modelo.
-- Nenhuma ação comercial acontece sem confirmação explícita.
-
-## Expansão para outras verticais
-
-O mesmo fluxo atende outros cenários trocando apenas as regras da vertical:
-
-- **Petshop:** "A ração do meu gato está acabando" → perfil do animal →
-  `searchOffers` com `merchantType=PETSTORE`.
-- **Farmácia:** "Meu protetor solar está acabando" → reposição de cuidados
-  pessoais com `merchantType=DRUGSTORE`, sem recomendar medicamentos.
-
-Captura, perfil, sessão, agente, validação e auditoria são compartilhados.
+Se a criação do carrinho tiver resultado incerto, o sistema bloqueia a repetição automática. O fluxo termina no carrinho conferido; a exibição na sacola principal do aplicativo não está garantida.

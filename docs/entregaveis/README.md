@@ -1,12 +1,14 @@
-# Entregáveis — CompletAI
+# Entregáveis do hackathon
 
-Hackathon SEMCOMP × iFood 2026 — Vendendo com Agentes.
+Os seis documentos para avaliação da CompletAI:
 
-| # | Entregável | Documento |
-|---|---|---|
-| 01 | Proposta de Negócio | [01-proposta-negocio.md](01-proposta-negocio.md) |
-| 02 | Desenho de Solução | [02-desenho-solucao.md](02-desenho-solucao.md) |
-| 03 | Racional da Experiência | [03-racional-experiencia.md](03-racional-experiencia.md) |
-| 04 | Interface Visual | [04-interface-visual.md](04-interface-visual.md) · código em [`frontend/`](../../frontend/) |
-| 05 | Documento Técnico Resumido | [05-documento-tecnico.md](05-documento-tecnico.md) |
-| 06 | Feedback sobre os MCPs | [06-feedback-mcp.md](06-feedback-mcp.md) |
+1. [Proposta de negócio](01-proposta-negocio.md)
+2. [Desenho da solução](02-desenho-solucao.md)
+3. [Racional da experiência](03-racional-experiencia.md)
+4. [Interface visual](04-interface-visual.md)
+5. [Documento técnico resumido](05-documento-tecnico.md)
+6. [Feedback sobre os MCPs](06-feedback-mcp.md)
+
+A interface funcional está no [frontend](../../frontend). Inclua capturas, vídeo ou link publicado se a submissão exigir demonstração sem execução local. O projeto chega ao carrinho criado e conferido; não implementa pagamento ou envio do pedido.
+
+Para execução e configuração, consulte o [README principal](../../README.md). Para detalhes de implementação, use o [índice técnico](../README.md).

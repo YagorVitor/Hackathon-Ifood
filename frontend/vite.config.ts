@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-// Proxy conforme PLANO-BACKEND §12: /api, /auth e /health -> backend :8000
+// Encaminha API, autenticação e health check para o backend local.
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
