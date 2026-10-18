@@ -10,7 +10,7 @@ Para o cliente, a proposta é chegar a uma escolha com menos esforço. Para o iF
 
 ## Como a solução gera valor
 
-O agente parte da ocasião, do tempo disponível, do orçamento e do que a pessoa já tem. A partir disso, recomenda opções e busca ofertas quando o usuário escolhe comprar. Produtos, lojas e preços vêm do MCP oficial do iFood. O carrinho é criado após a revisão e a confirmação do usuário.
+O agente parte da ocasião, do tempo disponível, do orçamento e do que a pessoa já tem. O orçamento orienta a recomendação e os filtros, mas o total depende dos itens, das quantidades e das taxas informadas pelo iFood. A partir disso, recomenda opções e busca ofertas quando o usuário escolhe comprar. Produtos, lojas e preços vêm do MCP oficial do iFood. O carrinho é criado após a revisão e a confirmação do usuário.
 
 Mesmo uma refeição que dispensa ingredientes adicionais pode abrir espaço para uma bebida, sobremesa ou acompanhamento. A CompletAI já apresenta essas sugestões como opcionais. O caminho dedicado para selecionar e comprar esses extras em opções sem faltantes ainda precisa ser concluído.
 
@@ -28,4 +28,8 @@ Essas métricas ainda precisam ser instrumentadas. O projeto não tem resultados
 
 ## Entrega atual
 
-O MVP funciona localmente e chega ao carrinho criado e conferido. A versão atende uma conta iFood por processo do backend. Pagamento, envio do pedido e histórico persistente de compras ficam fora desta entrega.
+O MVP funciona localmente, parte de ingredientes confirmados e oferece um caminho até a criação e conferência do carrinho. A versão atende uma conta iFood por processo do backend. Pagamento, envio do pedido e histórico persistente de compras ficam fora desta entrega.
+
+## Referências no projeto
+
+[Regras do agente](../../backend/app/agent.py), [sugestões](../../frontend/src/steps/OptionsStep.tsx) e [fluxo da aplicação](../../frontend/src/App.tsx).

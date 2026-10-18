@@ -8,13 +8,13 @@ A revisão vem logo depois. Ela permite corrigir o reconhecimento antes que um i
 
 ## Concentrar a participação nas decisões
 
-O agente organiza as informações, propõe alternativas e realiza as buscas autorizadas. O usuário confirma o contexto, escolhe a opção e aprova o carrinho. Essas intervenções preservam o controle sobre o resultado sem exigir que a pessoa conduza cada consulta ao catálogo.
+O agente organiza as informações, propõe alternativas e realiza as buscas autorizadas. O usuário confirma o contexto, escolhe a opção e aprova o carrinho. A busca começa automaticamente quando a opção escolhida, a conexão e o destino estão prontos. A montagem gera primeiro uma proposta local; a confirmação seguinte é que cria o carrinho no iFood.
 
 ## Pedir preferências uma vez
 
 “Meu perfil” reúne preferências e informações alimentares. A pessoa pode autorizar o uso, escolher lembrar no navegador ou apagar o perfil. Também pode seguir sem preenchê-lo.
 
-Alergias, intolerâncias e condições de saúde só são enviadas com consentimento. O objetivo é reutilizar o que foi informado e evitar perguntas repetidas nas próximas recomendações.
+Alergias, intolerâncias e condições de saúde só são enviadas com consentimento. O objetivo é reutilizar o que foi informado e evitar perguntas repetidas nas próximas recomendações. O perfil lembrado vale naquele navegador; conectar o iFood não importa preferências nem cria uma conta própria da CompletAI.
 
 ## Dar clareza à escolha
 
@@ -30,4 +30,8 @@ O ditado depende do navegador e da permissão de microfone. Quando ele não est�
 
 ## Próximos ajustes
 
-As prioridades de experiência são reduzir transições que não exigem uma decisão, completar a compra de acompanhamentos opcionais e observar onde as pessoas abandonam o fluxo. Esses pontos devem orientar os próximos testes com usuários.
+As prioridades de experiência são permitir um início sem ingredientes cadastrados, reduzir transições que não exigem uma decisão, completar a compra de acompanhamentos opcionais e observar onde as pessoas abandonam o fluxo. Esses pontos devem orientar os próximos testes com usuários.
+
+## Referências no projeto
+
+[Perfil](../../frontend/src/hooks/useUserProfile.ts), [acessibilidade](../../frontend/src/components/AccessibilityMenu.tsx) e [entrada por voz](../../frontend/src/components/VoiceInput.tsx).
