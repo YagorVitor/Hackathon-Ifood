@@ -1,3 +1,6 @@
+import { focusRing } from './styles'
+import { t } from '../accessibility/i18n'
+import { SpeakButton } from './SpeakButton'
 import { forwardRef } from 'react'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import type { Provenance } from '../types'
@@ -29,7 +32,7 @@ export function Badge({ p, label }: { p: Provenance; label?: string }) {
   return (
     <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${b.cls}`}>
       <Icon name={b.icon} className="size-3.5" />
-      {label ?? b.label}
+      {t(label ?? b.label)}
     </span>
   )
 }
@@ -45,7 +48,7 @@ const VARIANTS: Record<Variant, string> = {
   ghost: 'text-ink hover:bg-surface-2',
 }
 
-export const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-herb focus-visible:ring-offset-2 focus-visible:ring-offset-paper'
+export { focusRing } from './styles'
 
 export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant; loading?: boolean; icon?: IconName; full?: boolean
@@ -95,17 +98,17 @@ const TONES: Record<Tone, { cls: string; icon: IconName }> = {
   info: { cls: 'border-blue/30 bg-blue-soft text-ink', icon: 'info' },
   warn: { cls: 'border-amber/40 bg-amber-soft text-ink', icon: 'alert' },
   danger: { cls: 'border-tomato/40 bg-tomato-soft text-ink', icon: 'alert' },
-  success: { cls: 'border-[#cddfca] bg-[#eff5ed] text-ink', icon: 'check' },
+  success: { cls: 'border-success/40 bg-success-soft text-ink', icon: 'check' },
 }
-const TONE_ICON: Record<Tone, string> = { info: 'text-blue', warn: 'text-amber', danger: 'text-tomato', success: 'text-[#3c653b]' }
+const TONE_ICON: Record<Tone, string> = { info: 'text-blue', warn: 'text-amber', danger: 'text-tomato', success: 'text-success' }
 
 export function Notice({ tone = 'info', title, children, role }: { tone?: Tone; title?: string; children?: ReactNode; role?: 'alert' | 'status' }) {
-  const t = TONES[tone]
+  const toneStyle = TONES[tone]
   return (
-    <div role={role} className={`flex gap-3 rounded-xl border p-3 text-sm ${t.cls}`}>
-      <span className={TONE_ICON[tone]}><Icon name={t.icon} /></span>
+    <div role={role} className={`flex gap-3 rounded-xl border p-3 text-sm ${toneStyle.cls}`}>
+      <span className={TONE_ICON[tone]}><Icon name={toneStyle.icon} /></span>
       <div className="min-w-0 space-y-1">
-        {title && <p className="font-bold">{title}</p>}
+        {title && <p className="font-bold">{t(title)}</p>}
         {children}
       </div>
     </div>
@@ -117,8 +120,8 @@ export function Loading({ label, detail }: { label: string; detail?: string }) {
     <div role="status" className="flex items-center gap-3 rounded-2xl border border-dashed border-herb/50 bg-herb-soft p-4 text-ink">
       <span className="text-herb"><Spinner className="size-6" /></span>
       <div>
-        <p className="font-bold">{label}</p>
-        {detail && <p className="text-sm text-ink-muted">{detail}</p>}
+        <p className="font-bold">{t(label)}</p>
+        {detail && <p className="text-sm text-ink-muted">{t(detail)}</p>}
       </div>
     </div>
   )
@@ -128,8 +131,9 @@ export function AgentNote({ text }: { text: string }) {
   if (!text.trim()) return null
   return (
     <figure className="rounded-2xl border border-violet/30 bg-violet-soft p-4">
-      <figcaption className="mb-2"><Badge p="INFERRED" label="Mensagem do agente" /></figcaption>
+      <figcaption className="mb-2"><Badge p="INFERRED" label={t("Mensagem do agente")} /></figcaption>
       <blockquote className="whitespace-pre-line text-ink">{text}</blockquote>
+      <SpeakButton text={text} />
     </figure>
   )
 }
@@ -137,7 +141,7 @@ export function AgentNote({ text }: { text: string }) {
 export function Limitations({ items }: { items: string[] }) {
   if (items.length === 0) return null
   return (
-    <Notice tone="warn" title="Limitações informadas pelo sistema">
+    <Notice tone="warn" title={t("Limitações informadas pelo sistema")}>
       <ul className="list-disc space-y-1 pl-4">
         {items.map((l) => <li key={l}>{l}</li>)}
       </ul>
@@ -148,7 +152,7 @@ export function Limitations({ items }: { items: string[] }) {
 export function StageTitle({ children, kicker }: { children: ReactNode; kicker?: string }) {
   return (
     <div>
-      {kicker && <p className="text-sm font-bold uppercase tracking-wide text-herb">{kicker}</p>}
+      {kicker && <p className="text-sm font-bold uppercase tracking-wide text-herb">{t(kicker)}</p>}
       <h1 id="stage-title" tabIndex={-1} className="text-2xl font-bold leading-tight text-ink outline-none sm:text-3xl">
         {children}
       </h1>

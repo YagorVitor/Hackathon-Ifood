@@ -1,12 +1,16 @@
+import { t } from './accessibility/i18n'
+import { useAccessibility } from './accessibility/settings'
+import { AccessibilityMenu } from './components/AccessibilityMenu'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, api } from './api'
 import { Icon } from './components/icons'
 import { Button, Notice, PROVENANCE, Badge, focusRing } from './components/ui'
 import { LIMITS, buildContext, emptyFields, emptyTags, fromRecognized, parseNumber, fromRecognizedContext } from './flow'
 import type { DeclaredFields, DraftItem } from './flow'
-import type { AgentResponse, DeclaredTags, Location, McpTool, MealOption, SelectedProduct, UserContext } from './types'
+import type { AgentResponse, DeclaredTags, Location, McpTool, MealOption, OptionalComplement, SelectedProduct, UserContext } from './types'
 import { photoDataUrl } from './components/PhotoInput'
 import { IfoodConnection } from './components/IfoodConnection'
+import { useUserProfile } from './hooks/useUserProfile'
 import { useIfoodConnection } from './hooks/useIfoodConnection'
 import type { AuthState } from './hooks/useIfoodConnection'
 import { CaptureStep } from './steps/CaptureStep'
@@ -28,15 +32,16 @@ const STEP_OF: Record<Stage, number> = { capture: 0, review: 0, tags: 0, options
 const asApiError = (e: unknown) => (e instanceof ApiError ? e : new ApiError('failed', 'Erro inesperado. Tente novamente.'))
 
 export default function App() {
+  useAccessibility(true)
   const [stage, setStage] = useState<Stage>('capture')
   const [text, setText] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
   const [captureMessage, setCaptureMessage] = useState('')
   const [items, setItems] = useState<DraftItem[]>([])
   const [fields, setFields] = useState<DeclaredFields>(emptyFields)
-  // Perfil só em memória desta aba: nada vai para localStorage.
-  const [tags, setTags] = useState<DeclaredTags>(emptyTags())
-  const [consent, setConsent] = useState(false)
+  const profile = useUserProfile()
+  const { tags, consent } = profile
+  const profileReturn = useRef<Stage>('capture')
   const [tagsMode, setTagsMode] = useState<'question' | 'edit'>('question')
   const [plan, setPlan] = useState<AgentResponse | null>(null)
   const [chosen, setChosen] = useState<MealOption | null>(null)
@@ -129,7 +134,7 @@ export default function App() {
     setCaptureMessage(res.data.mensagem)
     // Opções geradas antes da confirmação partem de um inventário vazio; não são exibidas.
     setPlan(null)
-    if (res.data.pergunta_tags) setTags((t) => ({ ...t, estado: 'ASKED' }))
+    if (res.data.pergunta_tags && tags.estado === 'NOT_ASKED') profile.save({ ...tags, estado: 'ASKED' }, consent, profile.remember)
     go('review')
   }
 
@@ -140,7 +145,7 @@ export default function App() {
     setChosen(null)
     setMarket(null)
     if (res.data.pergunta_tags && t.estado === 'NOT_ASKED') {
-      setTags({ ...t, estado: 'ASKED' })
+      profile.save({ ...t, estado: 'ASKED' }, c, profile.remember)
       setTagsMode('question')
       go('tags')
       return
@@ -150,23 +155,54 @@ export default function App() {
 
   function confirmReview() {
     const t: DeclaredTags = { ...tags, estado: 'ANSWERED' }
-    setTags(t)
+    profile.save(t, consent, profile.remember)
     void runPlan(t, consent)
   }
 
-  function submitTags(t: DeclaredTags, c: boolean) {
-    setTags(t)
-    setConsent(c)
-    void runPlan(t, c)
+  function openProfile() {
+    profileReturn.current = stage === 'tags' ? profileReturn.current : stage
+    setTagsMode('edit')
+    go('tags')
+  }
+
+  function submitTags(t: DeclaredTags, c: boolean, remember: boolean) {
+    profile.save(t, c, remember)
+    invalidateSearch()
+    setPlan(null)
+    setChosen(null)
+    if (tagsMode === 'question' || ['options', 'market', 'cart', 'done'].includes(profileReturn.current)) void runPlan(t, c)
+    else go(profileReturn.current)
+  }
+
+  function forgetProfile() {
+    profile.forget()
+    invalidateSearch()
+    setPlan(null)
+    setChosen(null)
+    setCaptureMessage('')
+    go(items.length ? 'review' : 'capture')
   }
 
   function declineTags() {
     const t = emptyTags('DECLINED')
-    setTags(t)
-    setConsent(false)
-    // Se o agente já trouxe opções junto com a pergunta, elas valem para quem não quis informar.
-    if (plan && plan.data.opcoes.length > 0) go('options')
-    else void runPlan(t, false)
+    profile.save(t, false, profile.remember)
+    setPlan(null)
+    void runPlan(t, false)
+  }
+
+  function chooseComplement(complement: OptionalComplement) {
+    const parent = chosen?.titulo ?? 'sua refeição'
+    invalidateSearch()
+    choose({ titulo: `Complemento opcional: ${complement.nome}`, estrategia: 'CONVENIENCE',
+      usa: [], faltantes: [complement.nome], justificativa: `${complement.justificativa} Opcional para acompanhar ${parent}.`,
+      complementos_opcionais: [], provenance: 'INFERRED' })
+  }
+
+  function exploreComplements() {
+    if (!chosen) return
+    const request = `A refeição escolhida é ${JSON.stringify(chosen)}. Quero avaliar um acompanhamento OPCIONAL no iFood, sem mudar ou invalidar a refeição. Sugira até três opções CONVENIENCE de complementos genéricos compatíveis com meu perfil autorizado. Não busque produtos ainda: vou escolher. Não recompre itens do inventário.`
+    go('options')
+    void runPlan(tags, consent, request)
   }
 
   function choose(o: MealOption) {
@@ -215,31 +251,36 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <a href="#conteudo" className={`skip-link ${focusRing}`}>Pular para o conteúdo</a>
+      <a href="#conteudo" className={`skip-link ${focusRing}`}>{t("Pular para o conteúdo")}</a>
       <header className="site-header">
         <div className="header-inner">
-          <a href="/" className={`brand ${focusRing}`} aria-label="Despensa Reversa — início">
+          <a href="/" className={`brand ${focusRing}`} aria-label={t("Despensa Reversa — início")}>
             <span className="brand-symbol"><Icon name="bowl" className="size-7" /></span>
             <span>despensa<span className="brand-second">reversa<span className="brand-dot">.</span></span></span>
           </a>
           <div className="header-links">
-            <span className="header-section"><Icon name="jar" className="size-4" /> Minha despensa</span>
-            <a href="#como-funciona" className={`help-link ${focusRing}`}>Como funciona</a>
+            <span className="header-section"><Icon name="jar" className="size-4" />{t(" Minha despensa")}</span>
+            <a href="#como-funciona" className={`help-link ${focusRing}`}>{t("Como funciona")}</a>
           </div>
+          <button type="button" className={`help-link profile-trigger inline-flex min-h-11 items-center gap-1 ${focusRing}`} onClick={openProfile} disabled={busy !== null}>
+            <Icon name="leaf" className="size-4" />{t("Meu perfil")}{profile.remember ? t(' · salvo') : ''}
+          </button>
+          <AccessibilityMenu />
           <ConnectionPill auth={auth} backend={backend} onConnect={connect} />
         </div>
       </header>
 
+      <p role="status" className="sr-only">{busy ? t("Processando seu pedido. Aguarde.") : ""}</p>
       <div className="page-container">
-        <nav aria-label="Progresso" className="progress-nav">
+        <nav aria-label={t("Progresso")} className="progress-nav">
           <ol>
             {STEPS.map((label, i) => {
               const current = STEP_OF[stage] === i
               const done = STEP_OF[stage] > i
               return (
-                <li key={label} aria-current={current ? 'step' : undefined} className={current ? 'is-current' : done ? 'is-done' : ''}>
+                <li key={t(label)} aria-current={current ? 'step' : undefined} className={current ? 'is-current' : done ? 'is-done' : ''}>
                   <span className="step-number">{done ? <Icon name="check" className="size-4" /> : i + 1}</span>
-                  <span>{label}</span>
+                  <span>{t(label)}</span>
                 </li>
               )
             })}
@@ -248,36 +289,38 @@ export default function App() {
 
         {backend === 'down' && (
           <div className="mb-6">
-            <Notice tone="danger" role="alert" title="Não foi possível conectar ao serviço">
-              <p>Suas informações continuam nesta tela. Tente reconectar para analisar os ingredientes.</p>
-              <div className="pt-2"><Button variant="secondary" icon="refresh" full={false} onClick={() => { checkBackend(); refreshAuth() }}>Tentar reconectar</Button></div>
+            <Notice tone="danger" role="alert" title={t("Não foi possível conectar ao serviço")}>
+              <p>{t("Suas informações continuam nesta tela. Tente reconectar para analisar os ingredientes.")}</p>
+              <div className="pt-2"><Button variant="secondary" icon="refresh" full={false} onClick={() => { checkBackend(); refreshAuth() }}>{t("Tentar reconectar")}</Button></div>
             </Notice>
           </div>
         )}
 
         <div className={`workspace ${stage === 'capture' ? 'workspace-capture' : ''}`}>
-          <main id="conteudo" className={`stage-content stage-${stage}`}>
+          <main tabIndex={-1} aria-busy={busy !== null} id="conteudo" className={`stage-content stage-${stage}`}>
+        {profile.storageError && <Notice tone="warn" role="alert">{profile.storageError}</Notice>}
         {stage === 'capture' && (
           <CaptureStep text={text} onText={setText} photo={photo} onPhoto={setPhoto} onSubmit={capture} loading={busy === 'capture'} error={error}
             connection={<IfoodConnection auth={auth} waiting={waitingForLogin} disabled={backend !== 'up'} onConnect={connect} onRecheck={refreshAuth} />} />
         )}
         {stage === 'review' && (
           <ReviewStep
-            photoBased={!!photo} text={text || 'Ingredientes enviados por fotografia.'} agentMessage={captureMessage} items={items} onItems={setItems} fields={fields} onFields={setFields}
+            photoBased={!!photo} text={text || t("Ingredientes enviados por fotografia.")} agentMessage={captureMessage} items={items} onItems={setItems} fields={fields} onFields={setFields}
             onConfirm={confirmReview} onEditText={() => go('capture')} loading={busy === 'plan'} error={error}
-            tags={tags} onTags={setTags} consent={consent} onConsent={setConsent}
+            onProfile={openProfile}
           />
         )}
         {stage === 'tags' && (
           <TagsStep
             key={tagsMode} mode={tagsMode} tags={tags} consent={consent} onSubmit={submitTags} onDecline={declineTags}
-            onCancel={() => go('options')} loading={busy === 'plan'} error={error}
+            remember={profile.remember} onForget={forgetProfile} storageError={profile.storageError}
+            onCancel={() => go(profileReturn.current)} loading={busy === 'plan'} error={error}
           />
         )}
         {stage === 'options' && plan && (
           <OptionsStep
-            message={plan.data.mensagem} options={plan.data.opcoes} limitations={plan.data.limitacoes} tags={tags} consent={consent}
-            onChoose={choose} onEditItems={() => go('review')} onEditTags={() => { setTagsMode('edit'); go('tags') }}
+            message={plan.data.mensagem} options={plan.data.opcoes} limitations={plan.data.limitacoes}
+            onChoose={choose} onEditItems={() => go('review')} onEditTags={openProfile}
             onRetry={() => void runPlan()} loading={busy === 'plan'} error={error}
           />
         )}
@@ -290,6 +333,7 @@ export default function App() {
               onReconnect={connect}
               onSelect={(id) => { invalidateSearch(); delivery.select(id) }} onReload={() => { invalidateSearch(); delivery.reload() }} />}
             tools={tools} loading={busy === 'market'} error={error} onBack={() => go('options')} onRestart={restart}
+            onComplement={chooseComplement} onExploreComplements={exploreComplements}
             onCart={(products) => { setCartProducts(products); go('cart') }}
             onConvenience={() => { go('options'); void runPlan(tags, consent, `Não encontrei complementos adequados para a opção escolhida: ${JSON.stringify(chosen)}. Sugira até três alternativas CONVENIENCE de refeições ou acompanhamentos prontos no iFood que atendam meu objetivo, preferências e restrições. Não faça buscas ainda; vou escolher uma alternativa. Pedido original: ${text}`) }}
           />
@@ -301,49 +345,49 @@ export default function App() {
             onBack={() => go('market')} onRestart={restart}
           />
         )}
-        {stage === 'done' && chosen && <DoneStep option={chosen} onBack={() => go('options')} onRestart={restart} />}
+        {stage === 'done' && chosen && <DoneStep option={chosen} onComplement={chooseComplement} onExplore={exploreComplements} onBack={() => go('options')} onRestart={restart} />}
           </main>
-          <aside className="context-sidebar" aria-label="Resumo da sua despensa">
+          <aside className="context-sidebar" aria-label={t("Resumo da sua despensa")}>
             <div className="sidebar-card">
               <span className="sidebar-icon"><Icon name="jar" className="size-6" /></span>
-              <h2>Sua despensa, primeiro.</h2>
-              <p>A melhor compra começa pelo que você já tem.</p>
+              <h2>{t("Sua despensa, primeiro.")}</h2>
+              <p>{t("A melhor compra começa pelo que você já tem.")}</p>
               {items.length > 0 && stage !== 'capture' ? (
                 <>
                   <div className="sidebar-divider" />
-                  <p className="sidebar-label">{stage === 'review' ? 'PARA VOCÊ CONFERIR' : 'SEUS INGREDIENTES'}</p>
+                  <p className="sidebar-label">{stage === 'review' ? t("PARA VOCÊ CONFERIR") : t("SEUS INGREDIENTES")}</p>
                   <ul className="pantry-chips">{items.map((item) => <li key={item.key}><Icon name={stage === 'review' ? 'jar' : 'check'} className="size-3.5" />{item.nome}</li>)}</ul>
                   <dl className="context-facts">
-                    {fields.objetivo && <div><dt>Objetivo</dt><dd>{fields.objetivo}</dd></div>}
-                    {fields.pessoas && <div><dt>Pessoas</dt><dd>{fields.pessoas}</dd></div>}
-                    {fields.tempo && <div><dt>Tempo</dt><dd>{fields.tempo} min</dd></div>}
-                    {budgetCents !== null && <div><dt>Orçamento</dt><dd>{(budgetCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</dd></div>}
+                    {fields.objetivo && <div><dt>{t("Objetivo")}</dt><dd>{fields.objetivo}</dd></div>}
+                    {fields.pessoas && <div><dt>{t("Pessoas")}</dt><dd>{fields.pessoas}</dd></div>}
+                    {fields.tempo && <div><dt>{t("Tempo")}</dt><dd>{fields.tempo} min</dd></div>}
+                    {budgetCents !== null && <div><dt>{t("Orçamento")}</dt><dd>{(budgetCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</dd></div>}
                   </dl>
                 </>
               ) : (
                 <ol className="sidebar-how">
-                  <li><span>01</span><div><b>Conte o que tem</b><p>Ingredientes e o que você quer preparar.</p></div></li>
-                  <li><span>02</span><div><b>Encontre uma ideia</b><p>Confira os itens e escolha uma sugestão.</p></div></li>
-                  <li><span>03</span><div><b>Complete se precisar</b><p>Busque só o que falta e monte o carrinho no iFood.</p></div></li>
+                  <li><span>01</span><div><b>{t("Conte o que tem")}</b><p>{t("Ingredientes e o que você quer preparar.")}</p></div></li>
+                  <li><span>02</span><div><b>{t("Encontre uma ideia")}</b><p>{t("Confira os itens e escolha uma sugestão.")}</p></div></li>
+                  <li><span>03</span><div><b>{t("Complete se precisar")}</b><p>{t("Busque só o que falta e monte o carrinho no iFood.")}</p></div></li>
                 </ol>
               )}
-              <div className="sidebar-bottom"><Icon name="leaf" className="size-4" /><span>Mais aproveitamento.<br />Compras com mais sentido.</span></div>
+              <div className="sidebar-bottom"><Icon name="leaf" className="size-4" /><span>{t("Mais aproveitamento.")}<br />{t("Compras com mais sentido.")}</span></div>
             </div>
-            <div className="privacy-note"><Icon name="shield" className="size-4" /><p>Você decide o que compartilhar. Preferências e restrições são opcionais.</p></div>
+            <div className="privacy-note"><Icon name="shield" className="size-4" /><p>{t("Você decide o que compartilhar. Preferências e restrições são opcionais.")}</p></div>
           </aside>
         </div>
 
         <footer id="como-funciona" className="site-footer">
-          <div className="footer-intro"><Icon name="bowl" className="size-5" /><span>Despensa Reversa</span><span className="footer-caption">Da sua despensa à próxima refeição.</span></div>
+          <div className="footer-intro"><Icon name="bowl" className="size-5" /><span>Despensa Reversa</span><span className="footer-caption">{t("Da sua despensa à próxima refeição.")}</span></div>
           <details>
-            <summary className={`cursor-pointer ${focusRing}`}>Como funciona e de onde vêm os dados?</summary>
-            <p className="mt-3">Conte o que tem, confira o que o agente entendeu e escolha uma sugestão. Se precisar completar a refeição, o agente busca ingredientes no Mercado ou opções prontas no iFood com a localização que você autorizar, e você pode montar o carrinho com eles.</p>
+            <summary className={`cursor-pointer ${focusRing}`}>{t("Como funciona e de onde vêm os dados?")}</summary>
+            <p className="mt-3">{t("Conte o que tem, confira o que o agente entendeu e escolha uma sugestão. Se precisar completar a refeição, o agente busca ingredientes no Mercado ou opções prontas no iFood com a localização que você autorizar, e você pode montar o carrinho com eles.")}</p>
             <ul className="mt-4 grid gap-3 sm:grid-cols-2">
               {(Object.keys(PROVENANCE) as (keyof typeof PROVENANCE)[]).map((p) => (
-                <li key={p} className="space-y-1"><Badge p={p} /><p>{PROVENANCE[p].hint}</p></li>
+                <li key={p} className="space-y-1"><Badge p={p} /><p>{t(PROVENANCE[p].hint)}</p></li>
               ))}
             </ul>
-            <p className="mt-4">O carrinho só é criado na sua conta iFood depois que você revisa e confirma. Entrega, pagamento e envio do pedido continuam no app do iFood.</p>
+            <p className="mt-4">{t("O carrinho só é criado na sua conta iFood depois que você revisa e confirma. Entrega, pagamento e envio do pedido não são executados nesta versão. A abertura no app depende do link devolvido pelo MCP.")}</p>
           </details>
         </footer>
       </div>
@@ -360,12 +404,11 @@ function ConnectionPill({ auth, backend, onConnect }: { auth: AuthState; backend
             : ['Verificando…', 'bg-surface-2 text-ink-muted']
   if (backend === 'up' && (auth === 'no' || auth === 'error')) return (
     <button type="button" onClick={onConnect} className={`connection-pill inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold ${cls} ${focusRing}`}>
-      <Icon name="plug" className="size-4" />Conectar conta iFood
-    </button>
+      <Icon name="plug" className="size-4" />{t("Conectar conta iFood ")}</button>
   )
   return (
     <p role="status" className={`connection-pill inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold ${cls}`}>
-      <Icon name="plug" className="size-4" />{label}
+      <Icon name="plug" className="size-4" />{t(label)}
     </p>
   )
 }

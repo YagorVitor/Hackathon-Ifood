@@ -31,6 +31,7 @@ export interface InventoryItem {
 }
 
 export interface UserContext {
+  idioma_resposta?: 'pt-BR' | 'en'
   tags_declaradas: DeclaredTags
   inventario_confirmado: InventoryItem[]
   objetivo: string | null
@@ -55,12 +56,19 @@ export interface RecognizedIngredient {
   confirmado: false
 }
 
+export interface OptionalComplement {
+  nome: string
+  justificativa: string
+  provenance: 'INFERRED'
+}
+
 export interface MealOption {
   titulo: string
   estrategia: Strategy
   usa: string[]
   faltantes: string[]
   justificativa: string
+  complementos_opcionais?: OptionalComplement[]
   provenance: 'INFERRED'
 }
 

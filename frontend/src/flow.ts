@@ -1,3 +1,4 @@
+import { getLanguage } from './accessibility/settings'
 // Regras do lado do cliente: só montam e validam o contexto declarado; nada é inferido aqui.
 import type { DeclaredTags, Location, RecognizedContext, RecognizedIngredient, UserContext } from './types'
 
@@ -90,6 +91,7 @@ export function buildContext(opts: {
   const num = (s: string) => parseNumber(s)
   const orc = num(fields.orcamento)
   return {
+    idioma_resposta: getLanguage(),
     // Sem consentimento, nenhum dado sensível sai do navegador (o backend também rejeita).
     tags_declaradas: consent ? tags : { ...tags, alergias: [], intolerancias: [], condicoes_saude: [] },
     consentimento_dados_sensiveis: consent && hasSensitive(tags),

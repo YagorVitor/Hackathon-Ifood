@@ -1,15 +1,17 @@
+import { t } from '../accessibility/i18n'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { ApiError } from '../api'
 import { Icon } from '../components/icons'
 import { AgentNote, Badge, Button, Card, Limitations, Loading, Notice, StageTitle, brl, focusRing, inputCls } from '../components/ui'
 import { normalized, parseNumber } from '../flow'
-import type { AgentResponse, CostSummary, Location, McpTool, MealOption, SearchEvidence, SelectedProduct } from '../types'
+import type { AgentResponse, CostSummary, Location, McpTool, MealOption, SearchEvidence, SelectedProduct, OptionalComplement } from '../types'
+import { OptionalComplements } from '../components/OptionalComplements'
 import { IngredientLine, StrategyTag } from './OptionsStep'
 import type { AuthState } from '../hooks/useIfoodConnection'
 
 export function MarketStep({
-  option, auth, onConnect, onRecheck, location, onLocation, onConsult, result, budgetCents, tools, loading, error, onBack, onRestart, onCart, addressPicker, cartEnabled, onConvenience,
+  option, auth, onConnect, onRecheck, location, onLocation, onConsult, result, budgetCents, tools, loading, error, onBack, onRestart, onCart, addressPicker, cartEnabled, onConvenience, onComplement, onExploreComplements,
 }: {
   option: MealOption
   auth: AuthState
@@ -28,51 +30,53 @@ export function MarketStep({
   onCart: (products: SelectedProduct[]) => void
   addressPicker: ReactNode
   cartEnabled: boolean
+  onComplement: (complement: OptionalComplement) => void
+  onExploreComplements: () => void
   onConvenience: () => void
 }) {
   const ready = auth === 'yes' && location !== null
 
   return (
     <div className="space-y-4">
-      <StageTitle kicker="O agente busca no iFood">{option.estrategia === 'CONVENIENCE' ? 'Uma opção pronta para sua refeição.' : 'Só falta completar sua despensa.'}</StageTitle>
-      <p className="text-ink-muted">{option.estrategia === 'CONVENIENCE' ? 'Vou buscar opções prontas no iFood, incluindo restaurantes, conforme a sua escolha.' : 'Vou buscar seus ingredientes no Mercado e ampliar a consulta no iFood se não encontrar opções adequadas.'}</p>
+      <StageTitle kicker={t("O agente busca no iFood")}>{option.estrategia === 'CONVENIENCE' ? t("Uma opção pronta para sua refeição.") : t("Só falta completar sua despensa.")}</StageTitle>
+      <p className="text-ink-muted">{option.estrategia === 'CONVENIENCE' ? t("Vou buscar opções prontas no iFood, incluindo restaurantes, conforme a sua escolha.") : t("Vou buscar seus ingredientes no Mercado e ampliar a consulta no iFood se não encontrar opções adequadas.")}</p>
 
       <Card className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <StrategyTag s={option.estrategia} />
-          <Badge p="INFERRED" label="Opção escolhida" />
+          <Badge p="INFERRED" label={t("Opção escolhida")} />
         </div>
         <h3 className="text-xl font-bold">{option.titulo}</h3>
-        <IngredientLine label="Você já tem" items={option.usa} tone="have" />
-        <IngredientLine label="Vamos procurar" items={option.faltantes} tone="missing" />
+        <IngredientLine label={t("Você já tem")} items={option.usa} tone="have" />
+        <IngredientLine label={t("Vamos procurar")} items={option.faltantes} tone="missing" />
       </Card>
 
       {(
         <Card as="section" className="space-y-4">
-          <h3 className="text-lg font-bold">Tudo pronto para a busca?</h3>
-          <p className="text-sm text-ink-muted">Assim que a conta e a localização estiverem prontas, o agente inicia a busca automaticamente.</p>
+          <h3 className="text-lg font-bold">{t("Tudo pronto para a busca?")}</h3>
+          <p className="text-sm text-ink-muted">{t("Assim que a conta e a localização estiverem prontas, o agente inicia a busca automaticamente.")}</p>
           <ol className="space-y-4">
             <li className="space-y-2">
-              <StepHead n={1} done={auth === 'yes'} title="Conta iFood" />
-              {auth === 'checking' && <p className="text-sm text-ink-muted" role="status">Verificando conexão…</p>}
-              {auth === 'yes' && <p className="text-sm font-semibold text-herb">Conta conectada. A busca usa o MCP oficial do iFood.</p>}
-              {auth === 'error' && <Notice tone="danger" role="alert">Não foi possível verificar a conexão com o backend.</Notice>}
+              <StepHead n={1} done={auth === 'yes'} title={t("Conta iFood")} />
+              {auth === 'checking' && <p className="text-sm text-ink-muted" role="status">{t("Verificando conexão…")}</p>}
+              {auth === 'yes' && <p className="text-sm font-semibold text-herb">{t("Conta conectada. A busca usa o MCP oficial do iFood.")}</p>}
+              {auth === 'error' && <Notice tone="danger" role="alert">{t("Não foi possível verificar a conexão com o backend.")}</Notice>}
               {(auth === 'no' || auth === 'error') && (
                 <div className="space-y-2">
-                  <p className="text-sm text-ink-muted">O login acontece no iFood, em uma nova aba. Depois volte para esta página.</p>
+                  <p className="text-sm text-ink-muted">{t("O login acontece no iFood, em uma nova aba. Depois volte para esta página.")}</p>
                   <div className="flex flex-col gap-2 sm:flex-row">
-                    <Button icon="external" onClick={onConnect}>Conectar conta iFood</Button>
-                    <Button variant="secondary" icon="refresh" onClick={onRecheck}>Já conectei, verificar</Button>
+                    <Button icon="external" onClick={onConnect}>{t("Conectar conta iFood")}</Button>
+                    <Button variant="secondary" icon="refresh" onClick={onRecheck}>{t("Já conectei, verificar")}</Button>
                   </div>
                 </div>
               )}
             </li>
             <li className="space-y-2">
-              <StepHead n={2} done={cartEnabled} title="Endereço de entrega" />
+              <StepHead n={2} done={cartEnabled} title={t("Endereço de entrega")} />
               {auth === 'yes' && addressPicker}
               {auth === 'yes' && !cartEnabled && <details className="rounded-xl border border-line p-3">
-                <summary className={`cursor-pointer text-sm font-bold ${focusRing}`}>Explorar por localização, sem criar carrinho</summary>
-                <p className="my-2 text-sm text-ink-muted">Isso permite consultar ofertas. Um carrinho exige endereço salvo e uma nova busca para esse destino.</p>
+                <summary className={`cursor-pointer text-sm font-bold ${focusRing}`}>{t("Explorar por localização, sem criar carrinho")}</summary>
+                <p className="my-2 text-sm text-ink-muted">{t("Isso permite consultar ofertas. Um carrinho exige endereço salvo e uma nova busca para esse destino.")}</p>
                 <LocationPicker location={location} onLocation={onLocation} disabled={loading} />
               </details>}
             </li>
@@ -80,11 +84,13 @@ export function MarketStep({
         </Card>
       )}
 
-      {loading && <Loading label="Consultando o iFood…" detail="O agente consulta parceiros abertos para o seu destino. Pode levar até um minuto." />}
+      <OptionalComplements option={option} onChoose={onComplement} onExplore={onExploreComplements} disabled={loading} />
+
+      {loading && <Loading label={t("Consultando o iFood…")} detail={t("O agente consulta parceiros abertos para o seu destino. Pode levar até um minuto.")} />}
       {error && !loading && (
-        <Notice tone="danger" role="alert" title={error.kind === 'auth' ? 'Conexão com o iFood necessária' : 'A consulta não foi concluída'}>
-          <p>{error.message}</p>
-          <p>Nenhum produto foi confirmado e nenhuma compra foi feita.</p>
+        <Notice tone="danger" role="alert" title={error.kind === 'auth' ? t("Conexão com o iFood necessária") : t("A consulta não foi concluída")}>
+          <p>{t(error.message)}</p>
+          <p>{t("Nenhum produto foi confirmado e nenhuma compra foi feita.")}</p>
         </Notice>
       )}
 
@@ -92,9 +98,9 @@ export function MarketStep({
 
       {result && !loading && !error && option.estrategia !== 'CONVENIENCE' && result.data.produtos.length === 0 && result.data.buscas.some((b) => b.status === 'empty') && (
         <Card className="space-y-3">
-          <h3 className="font-bold">Podemos pensar em algo pronto.</h3>
-          <p className="text-sm text-ink-muted">A busca não confirmou os ingredientes necessários. O agente pode sugerir alternativas de restaurantes e outras opções do iFood, mantendo suas preferências.</p>
-          <Button variant="secondary" icon="sparkle" onClick={onConvenience}>Ver alternativas prontas no iFood</Button>
+          <h3 className="font-bold">{t("Podemos pensar em algo pronto.")}</h3>
+          <p className="text-sm text-ink-muted">{t("A busca não confirmou os ingredientes necessários. O agente pode sugerir alternativas de restaurantes e outras opções do iFood, mantendo suas preferências.")}</p>
+          <Button variant="secondary" icon="sparkle" onClick={onConvenience}>{t("Ver alternativas prontas no iFood")}</Button>
         </Card>
       )}
 
@@ -102,23 +108,23 @@ export function MarketStep({
         <div className="space-y-2">
           {!result ? (
             <>
-              {error && ready && <Button icon="refresh" onClick={onConsult}>Tentar a busca novamente</Button>}
+              {error && ready && <Button icon="refresh" onClick={onConsult}>{t("Tentar a busca novamente")}</Button>}
             </>
           ) : (
-            <Button variant="secondary" icon="refresh" onClick={onConsult} disabled={!ready}>Consultar de novo</Button>
+            <Button variant="secondary" icon="refresh" onClick={onConsult} disabled={!ready}>{t("Consultar de novo")}</Button>
           )}
-          <Button variant="ghost" icon="back" onClick={onBack}>Voltar às sugestões</Button>
-          {result && <Button variant="ghost" icon="plus" onClick={onRestart}>Começar uma nova consulta</Button>}
+          <Button variant="ghost" icon="back" onClick={onBack}>{t("Voltar às sugestões")}</Button>
+          {result && <Button variant="ghost" icon="plus" onClick={onRestart}>{t("Começar uma nova consulta")}</Button>}
         </div>
       )}
 
       {auth === 'yes' && tools && tools.length > 0 && (
         <details className="rounded-2xl border border-line bg-surface p-4 text-sm">
-          <summary className={`cursor-pointer font-bold ${focusRing}`}>Detalhes técnicos da integração</summary>
+          <summary className={`cursor-pointer font-bold ${focusRing}`}>{t("Detalhes técnicos da integração")}</summary>
           <ul className="mt-2 flex flex-wrap gap-1.5">
             {tools.map((t) => <li key={t.name} className="rounded-md bg-surface-2 px-2 py-1 font-mono text-xs">{t.name}</li>)}
           </ul>
-          <p className="mt-2 text-ink-muted">O agente só tem acesso a <code className="font-mono">searchOffers</code>, em modo de leitura. O carrinho é criado pelo backend, só depois da sua confirmação.</p>
+          <p className="mt-2 text-ink-muted">{t("O agente só tem acesso a ")}<code className="font-mono">searchOffers</code>{t(", em modo de leitura. O carrinho é criado pelo backend, só depois da sua confirmação.")}</p>
         </details>
       )}
     </div>
@@ -131,7 +137,7 @@ function StepHead({ n, done, title }: { n: number; done: boolean; title: string 
       <span className={`inline-flex size-7 items-center justify-center rounded-full text-sm ${done ? 'bg-herb text-on-herb' : 'bg-surface-2 text-ink'}`}>
         {done ? <Icon name="check" className="size-4" /> : n}
       </span>
-      {title}
+      {t(title)}
       <span className="sr-only">{done ? '(pronto)' : '(pendente)'}</span>
     </p>
   )
@@ -176,28 +182,25 @@ function LocationPicker({ location, onLocation, disabled }: { location: Location
         <p className="flex items-center gap-2 text-sm">
           <span className="text-herb"><Icon name="pin" /></span>
           <span>
-            <b>Localização definida</b>{' '}
+            <b>{t("Localização definida")}</b>{' '}
             <span className="tabular-nums text-ink-muted">({location.latitude.toFixed(3)}, {location.longitude.toFixed(3)})</span>
           </span>
         </p>
         <button type="button" onClick={() => onLocation(null)} disabled={disabled}
-          className={`min-h-11 cursor-pointer rounded-lg px-2 text-sm font-bold text-herb ${focusRing}`}>Trocar</button>
+          className={`min-h-11 cursor-pointer rounded-lg px-2 text-sm font-bold text-herb ${focusRing}`}>{t("Trocar")}</button>
       </div>
     )
   }
 
   return (
     <div className="space-y-2">
-      <p className="text-sm text-ink-muted">
-        A busca do iFood precisa de uma localização escolhida por você. As coordenadas vão só para a consulta ao
-        iFood — não são enviadas ao modelo de IA nem deduzidas da conversa.
-      </p>
+      <p className="text-sm text-ink-muted">{t(" A busca do iFood precisa de uma localização escolhida por você. As coordenadas vão só para a consulta ao iFood — não são enviadas ao modelo de IA nem deduzidas da conversa. ")}</p>
       <Button variant="secondary" icon="pin" onClick={locate} loading={status === 'locating'} disabled={disabled}>
-        {status === 'locating' ? 'Obtendo localização…' : 'Usar minha localização atual'}
+        {status === 'locating' ? t("Obtendo localização…") : t("Usar minha localização atual")}
       </Button>
       {geoError && <p role="alert" className="text-sm font-semibold text-tomato">{geoError}</p>}
       <details className="rounded-xl border border-line p-3">
-        <summary className={`cursor-pointer text-sm font-bold ${focusRing}`}>Informar coordenadas manualmente</summary>
+        <summary className={`cursor-pointer text-sm font-bold ${focusRing}`}>{t("Informar coordenadas manualmente")}</summary>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <div>
             <label htmlFor="lat" className="mb-1 block text-xs font-bold text-ink-muted">Latitude</label>
@@ -211,7 +214,7 @@ function LocationPicker({ location, onLocation, disabled }: { location: Location
           </div>
         </div>
         {manualError && <p id="coord-err" className="mt-2 text-sm font-semibold text-tomato">{manualError}</p>}
-        <div className="mt-3"><Button variant="secondary" onClick={applyManual}>Usar estas coordenadas</Button></div>
+        <div className="mt-3"><Button variant="secondary" onClick={applyManual}>{t("Usar estas coordenadas")}</Button></div>
       </details>
     </div>
   )
@@ -237,37 +240,27 @@ function MarketResult({ result, budgetCents, onCart, cartEnabled }: { result: Ag
 
   return (
     <section className="space-y-4" aria-labelledby="result-title">
-      <h3 id="result-title" className="sr-only">Resultado da consulta</h3>
+      <h3 id="result-title" className="sr-only">{t("Resultado da consulta")}</h3>
 
       {result.mcpToolCalled ? (
-        <p className="flex items-center gap-2 text-sm text-ink-muted"><Icon name="check" className="size-4" /> Busca enviada ao iFood · confira os resultados abaixo.</p>
+        <p className="flex items-center gap-2 text-sm text-ink-muted"><Icon name="check" className="size-4" />{t(" Busca enviada ao iFood · confira os resultados abaixo.")}</p>
       ) : (
-        <Notice tone="warn" title="O iFood não foi consultado nesta resposta">
-          O agente respondeu sem chamar a ferramenta de busca. Veja a mensagem abaixo e tente consultar de novo.
-        </Notice>
+        <Notice tone="warn" title={t("O iFood não foi consultado nesta resposta")}>{t(" O agente respondeu sem chamar a ferramenta de busca. Veja a mensagem abaixo e tente consultar de novo. ")}</Notice>
       )}
 
       <AgentNote text={data.mensagem} />
 
       {failed && (
-        <Notice tone="danger" role="alert" title="A consulta ao iFood falhou">
-          Nenhum produto foi confirmado. Isso é uma falha de consulta, não um catálogo vazio.
-        </Notice>
+        <Notice tone="danger" role="alert" title={t("A consulta ao iFood falhou")}>{t(" Nenhum produto foi confirmado. Isso é uma falha de consulta, não um catálogo vazio. ")}</Notice>
       )}
       {partlyFailed && (
-        <Notice tone="warn" title="Parte das consultas falhou">
-          Itens sem produto podem não ter sido consultados com sucesso. Veja o registro de consultas abaixo.
-        </Notice>
+        <Notice tone="warn" title={t("Parte das consultas falhou")}>{t(" Itens sem produto podem não ter sido consultados com sucesso. Veja o registro de consultas abaixo. ")}</Notice>
       )}
       {empty && (
-        <Notice tone="info" role="status" title="Nenhum produto encontrado">
-          O iFood não retornou produtos de parceiros abertos para esses termos, filtros e destino. Isso não significa que todas as lojas estejam fechadas.
-        </Notice>
+        <Notice tone="info" role="status" title={t("Nenhum produto encontrado")}>{t(" O iFood não retornou produtos de parceiros abertos para esses termos, filtros e destino. Isso não significa que todas as lojas estejam fechadas. ")}</Notice>
       )}
       {noneSelected && (
-        <Notice tone="info" role="status" title="Nenhum produto selecionado">
-          O iFood retornou resultados, mas nenhum foi associado aos itens que faltam.
-        </Notice>
+        <Notice tone="info" role="status" title={t("Nenhum produto selecionado")}>{t(" O iFood retornou resultados, mas nenhum foi associado aos itens que faltam. ")}</Notice>
       )}
 
       {options.map(({ o, i, products, cost }) => (
@@ -281,11 +274,9 @@ function MarketResult({ result, budgetCents, onCart, cartEnabled }: { result: Ag
               const matches = products.filter((p) => normalized(p.faltante) === normalized(f))
               return (
                 <li key={f}>
-                  <p className="mb-1.5 text-sm font-bold">Para: <span className="text-tomato">{f}</span></p>
+                  <p className="mb-1.5 text-sm font-bold">{t("Para: ")}<span className="text-tomato">{f}</span></p>
                   {matches.length === 0 ? (
-                    <p className="rounded-xl border-2 border-dashed border-line p-3 text-sm text-ink-muted">
-                      Nenhum produto selecionado para este item.
-                    </p>
+                    <p className="rounded-xl border-2 border-dashed border-line p-3 text-sm text-ink-muted">{t(" Nenhum produto selecionado para este item. ")}</p>
                   ) : (
                     <ul className="space-y-2">{matches.map((p) => <ProductRow key={`${p.merchant_id}-${p.item_id}`} p={p} />)}</ul>
                   )}
@@ -294,8 +285,8 @@ function MarketResult({ result, budgetCents, onCart, cartEnabled }: { result: Ag
             })}
           </ul>
           {cost && <CostCard cost={cost} budgetCents={budgetCents} stores={new Set(products.map((p) => p.merchant_id)).size} />}
-          {products.length > 0 && <Button icon="cart" disabled={!cartEnabled} onClick={() => onCart(products)}>Montar carrinho com estes itens</Button>}
-          {products.length > 0 && !cartEnabled && <p className="text-sm text-ink-muted">Escolha um endereço salvo acima para refazer a busca e montar o carrinho.</p>}
+          {products.length > 0 && <Button icon="cart" disabled={!cartEnabled} onClick={() => onCart(products)}>{t("Montar carrinho com estes itens")}</Button>}
+          {products.length > 0 && !cartEnabled && <p className="text-sm text-ink-muted">{t("Escolha um endereço salvo acima para refazer a busca e montar o carrinho.")}</p>}
         </Card>
       ))}
 
@@ -303,11 +294,8 @@ function MarketResult({ result, budgetCents, onCart, cartEnabled }: { result: Ag
       <Limitations items={data.limitacoes} />
 
       <Card className="space-y-2 border-dashed">
-        <p className="flex items-center gap-2 font-bold"><Icon name="info" /> Próximo passo</p>
-        <p className="text-sm text-ink-muted">
-          Se fizer sentido comprar, monte o carrinho: você ajusta quantidades e endereço e revisa tudo antes de
-          confirmar. Nada foi adicionado a um carrinho até agora e nenhum pedido é feito por aqui.
-        </p>
+        <p className="flex items-center gap-2 font-bold"><Icon name="info" />{t(" Próximo passo")}</p>
+        <p className="text-sm text-ink-muted">{t(" Se fizer sentido comprar, monte o carrinho: você ajusta quantidades e endereço e revisa tudo antes de confirmar. Nada foi adicionado a um carrinho até agora e nenhum pedido é feito por aqui. ")}</p>
       </Card>
     </section>
   )
@@ -320,11 +308,11 @@ function ProductRow({ p }: { p: SelectedProduct }) {
         <div className="min-w-0">
           <p className="font-bold break-words">{p.nome_observado}</p>
           <p className="flex items-center gap-1 text-sm text-ink-muted">
-            <Icon name="store" className="size-4" />{p.loja_observada ?? 'Loja não informada'}
+            <Icon name="store" className="size-4" />{p.loja_observada ?? t("Loja não informada")}
           </p>
         </div>
         <p className="shrink-0 text-right font-bold tabular-nums">
-          {p.preco_observado_centavos === null ? <span className="text-sm text-ink-muted">Preço não informado</span> : brl(p.preco_observado_centavos)}
+          {p.preco_observado_centavos === null ? <span className="text-sm text-ink-muted">{t("Preço não informado")}</span> : brl(p.preco_observado_centavos)}
         </p>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -332,10 +320,10 @@ function ProductRow({ p }: { p: SelectedProduct }) {
         <Badge p="INFERRED" label={`${p.quantidade_embalagens} embalagem(ns) · não confirmado`} />
       </div>
       <dl className="mt-2 grid grid-cols-2 gap-x-3 text-sm">
-        <dt className="text-ink-muted">Frete observado</dt>
-        <dd className="text-right tabular-nums">{p.frete_observado_centavos === null ? 'não informado' : brl(p.frete_observado_centavos)}</dd>
-        <dt className="text-ink-muted">Pedido mínimo</dt>
-        <dd className="text-right tabular-nums">{p.minimo_pedido_centavos === null ? 'não informado' : brl(p.minimo_pedido_centavos)}</dd>
+        <dt className="text-ink-muted">{t("Frete observado")}</dt>
+        <dd className="text-right tabular-nums">{p.frete_observado_centavos === null ? t("não informado") : brl(p.frete_observado_centavos)}</dd>
+        <dt className="text-ink-muted">{t("Pedido mínimo")}</dt>
+        <dd className="text-right tabular-nums">{p.minimo_pedido_centavos === null ? t("não informado") : brl(p.minimo_pedido_centavos)}</dd>
       </dl>
     </li>
   )
@@ -344,7 +332,7 @@ function ProductRow({ p }: { p: SelectedProduct }) {
 function CostCard({ cost, budgetCents, stores }: { cost: CostSummary; budgetCents: number | null; stores: number }) {
   const row = (label: string, value: number, strong = false) => (
     <div className={`flex items-baseline gap-2 ${strong ? 'font-bold' : ''}`}>
-      <dt>{label}</dt>
+      <dt>{t(label)}</dt>
       <span aria-hidden="true" className="flex-1 border-b border-dotted border-ink-muted/50" />
       <dd className="tabular-nums">{brl(value)}</dd>
     </div>
@@ -352,29 +340,27 @@ function CostCard({ cost, budgetCents, stores }: { cost: CostSummary; budgetCent
   return (
     <div className="space-y-3 rounded-xl bg-surface-2 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-bold">Custo conhecido</p>
-        <Badge p="ESTIMATED" label="Estimativa — não é o total final" />
+        <p className="font-bold">{t("Custo conhecido")}</p>
+        <Badge p="ESTIMATED" label={t("Estimativa — não é o total final")} />
       </div>
       <dl className="space-y-1 text-sm">
-        {row('Subtotal dos itens', cost.subtotal_conhecido_centavos)}
-        {row('Frete conhecido', cost.taxas_conhecidas_centavos)}
-        {row('Total conhecido', cost.total_conhecido_centavos, true)}
+        {row(t("Subtotal dos itens"), cost.subtotal_conhecido_centavos)}
+        {row(t("Frete conhecido"), cost.taxas_conhecidas_centavos)}
+        {row(t("Total conhecido"), cost.total_conhecido_centavos, true)}
       </dl>
       <ul className="list-disc space-y-1 pl-4 text-sm text-ink-muted">
-        {!cost.precos_completos && <li>Há itens sem preço informado; eles não entram na soma.</li>}
-        {!cost.fretes_completos && <li>O frete não foi informado (ou variou) para todas as lojas.</li>}
-        {stores > 1 && <li>Os produtos vêm de {stores} lojas diferentes; cada loja cobra a própria entrega.</li>}
-        <li>Quantidade de embalagens, taxas e pedido mínimo ainda precisam ser revisados antes de qualquer compra.</li>
+        {!cost.precos_completos && <li>{t("Há itens sem preço informado; eles não entram na soma.")}</li>}
+        {!cost.fretes_completos && <li>{t("O frete não foi informado (ou variou) para todas as lojas.")}</li>}
+        {stores > 1 && <li>{t("Os produtos vêm de ")}{stores}{t(" lojas diferentes; cada loja cobra a própria entrega.")}</li>}
+        <li>{t("Quantidade de embalagens, taxas e pedido mínimo ainda precisam ser revisados antes de qualquer compra.")}</li>
       </ul>
       {cost.orcamento_status === 'over' && budgetCents !== null && (
-        <Notice tone="warn" title="Acima do orçamento">
-          Só o custo já conhecido ({brl(cost.total_conhecido_centavos)}) passa do seu orçamento de {brl(budgetCents)}.
+        <Notice tone="warn" title={t("Acima do orçamento")}>{t(" Só o custo já conhecido (")}{brl(cost.total_conhecido_centavos)}{t(") passa do seu orçamento de ")}{brl(budgetCents)}.
         </Notice>
       )}
       {cost.orcamento_status === 'unknown_total' && budgetCents !== null && (
         <p className="text-sm">
-          <b>Orçamento de {brl(budgetCents)}:</b> não dá para afirmar que cabe, porque o total final ainda não é conhecido.
-        </p>
+          <b>{t("Orçamento de ")}{brl(budgetCents)}:</b>{t(" não dá para afirmar que cabe, porque o total final ainda não é conhecido. ")}</p>
       )}
     </div>
   )
@@ -389,14 +375,14 @@ const SEARCH_STATUS: Record<SearchEvidence['status'], { label: string; cls: stri
 function SearchLog({ searches }: { searches: SearchEvidence[] }) {
   return (
     <details className="rounded-2xl border border-line bg-surface p-4 text-sm">
-      <summary className={`cursor-pointer font-bold ${focusRing}`}>Consultas feitas ao iFood ({searches.length})</summary>
+      <summary className={`cursor-pointer font-bold ${focusRing}`}>{t("Consultas feitas ao iFood (")}{searches.length})</summary>
       <ul className="mt-3 space-y-2">
         {searches.map((s, i) => (
           <li key={`${i}-${s.query}`} className="rounded-lg bg-surface-2 p-2">
             <p><code className="font-mono">searchOffers</code> · “{s.query}” · <span className={`font-bold ${SEARCH_STATUS[s.status].cls}`}>{SEARCH_STATUS[s.status].label}</span>
               {s.status === 'success' && <> ({s.quantidade_resultados})</>}
             </p>
-            <p className="text-ink-muted">Vertical: {s.vertical || 'Todas'} · Parceiros abertos · Filtros de catálogo: {s.restricoes_aplicadas.length ? s.restricoes_aplicadas.join(', ') : 'nenhum'}</p>
+            <p className="text-ink-muted">{t("Vertical: ")}{s.vertical || 'Todas'}{t(" · Parceiros abertos · Filtros de catálogo: ")}{s.restricoes_aplicadas.length ? s.restricoes_aplicadas.join(', ') : 'nenhum'}</p>
           </li>
         ))}
       </ul>

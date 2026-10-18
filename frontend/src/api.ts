@@ -1,3 +1,4 @@
+import { getLanguage } from './accessibility/settings'
 // Cliente das rotas realmente implementadas em backend/app/main.py.
 // Tudo passa pelo proxy do Vite (/api, /auth, /health -> :8000); nenhuma credencial no frontend.
 import type { Address, AgentRequest, AgentResponse, CartProposal, CartProposalRequest, CartResult, McpTool } from './types'
@@ -86,7 +87,7 @@ export const api = {
   parseImage: (image_data_url: string, message: string) =>
     request<AgentResponse>('/api/context/parse-image', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image_data_url, message }),
+      body: JSON.stringify({ image_data_url, message, language: getLanguage() }),
     }, AGENT_TIMEOUT_MS),
   addresses: () => request<Address[]>('/api/addresses', {}, 30_000),
   cartProposal: (payload: CartProposalRequest) =>

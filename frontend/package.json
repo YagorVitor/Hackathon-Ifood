@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:accessibility": "node scripts/test-accessibility.mjs",
+    "test:profile": "node scripts/test-profile.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

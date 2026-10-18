@@ -1,3 +1,4 @@
+import { t } from '../accessibility/i18n'
 import { useEffect, useId, useRef, useState } from 'react'
 import { Icon } from './icons'
 import { Button, Notice, focusRing } from './ui'
@@ -49,27 +50,25 @@ export function PhotoInput({ file, onFile, disabled }: {
     <div className="photo-input">
       <div className="photo-buttons">
         <button type="button" className={`photo-action ${focusRing}`} onClick={openCamera} disabled={disabled}>
-          <Icon name="camera" className="size-4" /> Tirar foto
-        </button>
+          <Icon name="camera" className="size-4" />{t(" Tirar foto ")}</button>
         <label className={`photo-action photo-file-control ${disabled ? 'is-disabled' : ''}`}>
-          <Icon name="image" className="size-4" /> Enviar imagem
-          <input ref={picker} type="file" accept="image/jpeg,image/png,image/webp"
-            aria-label="Enviar imagem" aria-describedby={`${id}-help`} disabled={disabled}
+          <Icon name="image" className="size-4" />{t(" Enviar imagem ")}<input ref={picker} type="file" accept="image/jpeg,image/png,image/webp"
+            aria-label={t("Enviar imagem")} aria-describedby={`${id}-help`} disabled={disabled}
             onChange={(e) => { accept(e.target.files?.[0]); e.target.value = '' }} />
         </label>
-        <span id={`${id}-help`}>JPEG, PNG ou WebP · até 5 MB</span>
+        <span id={`${id}-help`}>{t("JPEG, PNG ou WebP · até 5 MB")}</span>
       </div>
       <input ref={nativeCamera} type="file" accept="image/jpeg,image/png,image/webp" capture="environment"
-        className="sr-only" tabIndex={-1} aria-label="Fotografar alimentos" disabled={disabled}
+        className="sr-only" tabIndex={-1} aria-label={t("Fotografar alimentos")} disabled={disabled}
         onChange={(e) => { accept(e.target.files?.[0]); e.target.value = '' }} />
       {file && preview && (
         <figure className="photo-preview">
-          <img src={preview} alt="Foto dos alimentos escolhida para análise" onError={() => { onFile(null); setError('Não foi possível abrir essa imagem. Escolha outra foto.') }} />
-          <figcaption><b>Foto pronta para analisar</b><span>{file.size < 1024 * 1024 ? `${Math.ceil(file.size / 1024)} KB` : `${(file.size / 1024 / 1024).toFixed(1).replace('.', ',')} MB`} · Você confere os ingredientes depois.</span></figcaption>
-          <button type="button" onClick={() => onFile(null)} disabled={disabled} aria-label="Remover foto" className={`photo-remove ${focusRing}`}><Icon name="x" className="size-4" /></button>
+          <img src={preview} alt={t("Foto dos alimentos escolhida para análise")} onError={() => { onFile(null); setError('Não foi possível abrir essa imagem. Escolha outra foto.') }} />
+          <figcaption><b>{t("Foto pronta para analisar")}</b><span>{file.size < 1024 * 1024 ? `${Math.ceil(file.size / 1024)} KB` : `${(file.size / 1024 / 1024).toFixed(1).replace('.', ',')} MB`}{t(" · Você confere os ingredientes depois.")}</span></figcaption>
+          <button type="button" onClick={() => onFile(null)} disabled={disabled} aria-label={t("Remover foto")} className={`photo-remove ${focusRing}`}><Icon name="x" className="size-4" /></button>
         </figure>
       )}
-      {error && <div className="mt-3"><Notice tone="danger" role="alert">{error}</Notice></div>}
+      {error && <div className="mt-3"><Notice tone="danger" role="alert">{t(error)}</Notice></div>}
       {camera && <CameraDialog onCapture={(photo) => { accept(photo); setCamera(false) }} onClose={() => setCamera(false)} onUpload={() => { setCamera(false); picker.current?.click() }} />}
     </div>
   )
@@ -141,11 +140,11 @@ function CameraDialog({ onCapture, onClose, onUpload }: {
 
   return (
     <dialog ref={dialog} className="camera-dialog" aria-labelledby="camera-title" aria-describedby="camera-help" onCancel={(e) => { e.preventDefault(); onClose() }}>
-      <div className="camera-heading"><h2 id="camera-title">Mostre sua despensa</h2><button type="button" onClick={onClose} aria-label="Fechar câmera" className={`photo-remove ${focusRing}`}><Icon name="x" /></button></div>
-      <p id="camera-help">Enquadre os alimentos com boa iluminação. A foto só será enviada quando você pedir a análise.</p>
-      <div className="camera-view"><video ref={video} autoPlay playsInline muted onLoadedData={() => setReady(true)} /><span>{!ready && !error ? 'Autorize o acesso à câmera no navegador…' : ''}</span></div>
-      {error && <Notice tone="warn" role="alert">{error}</Notice>}
-      <div className="camera-actions"><Button icon="camera" disabled={!ready || !!error} loading={capturing} onClick={takePhoto}>Capturar foto</Button><Button variant="secondary" onClick={onUpload}>Escolher foto salva</Button></div>
+      <div className="camera-heading"><h2 id="camera-title">{t("Mostre sua despensa")}</h2><button type="button" onClick={onClose} aria-label={t("Fechar câmera")} className={`photo-remove ${focusRing}`}><Icon name="x" /></button></div>
+      <p id="camera-help">{t("Enquadre os alimentos com boa iluminação. A foto só será enviada quando você pedir a análise.")}</p>
+      <div className="camera-view"><video ref={video} autoPlay playsInline muted onLoadedData={() => setReady(true)} /><span>{!ready && !error ? t("Autorize o acesso à câmera no navegador…") : ''}</span></div>
+      {error && <Notice tone="warn" role="alert">{t(error)}</Notice>}
+      <div className="camera-actions"><Button icon="camera" disabled={!ready || !!error} loading={capturing} onClick={takePhoto}>{t("Capturar foto")}</Button><Button variant="secondary" onClick={onUpload}>{t("Escolher foto salva")}</Button></div>
     </dialog>
   )
 }

@@ -81,3 +81,14 @@ npm run build   # tsc -b + vite build
 - O reconhecimento não tem ferramentas MCP e não gera uma compra: devolve hipóteses
   para revisão. Quantidade/unidade da imagem são removidas pelo backend. O planejamento
   posterior usa apenas os ingredientes confirmados, sem reenviar a foto.
+
+## Perfil e complementos opcionais
+
+Meu perfil centraliza as informações declaradas e pode ser lembrado neste navegador
+mediante escolha explícita. O agente as reutiliza em receitas e complementos.
+Mesmo uma refeição sem faltantes oferece acompanhamentos opcionais; só buscar
+quando a pessoa escolher. Consulte [o escopo e a privacidade](../docs/PERFIL-E-COMPLEMENTOS.md).
+
+Validação local do perfil e da interface: `npm run test:profile`.
+
+Acessibilidade: veja [controles, voz, idiomas e verificação](../docs/ACESSIBILIDADE.md). Testes: `npm run test:accessibility`.

@@ -1,5 +1,9 @@
 // Ícones vetoriais no traço 2px (estilo Lucide), desenhados inline para não adicionar dependência.
 const PATHS = {
+  settings: ['M4 7h16', 'M4 17h16', 'M8 4v6', 'M16 14v6'],
+  mic: ['M9 4a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0Z', 'M5 10v1a7 7 0 0 0 14 0v-1', 'M12 18v4', 'M8 22h8'],
+  volume: ['m11 5-6 4H2v6h3l6 4Z', 'M15 8a6 6 0 0 1 0 8', 'M18 5a10 10 0 0 1 0 14'],
+  stop: ['M5 5h14v14H5Z'],
   camera: ['M14.5 4h-5L7 7H3v13h18V7h-4Z', 'M12 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z'],
   image: ['M3 3h18v18H3Z', 'm3 16 5-5 4 4 4-6 5 7', 'M8 7h.01'],
   jar: ['M7 3h10v3H7z', 'M6 6h12v2a2 2 0 0 1 1 1.7V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9.7A2 2 0 0 1 6 8Z', 'M8.5 13.5h7'],

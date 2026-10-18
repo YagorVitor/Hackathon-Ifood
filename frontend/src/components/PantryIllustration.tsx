@@ -1,7 +1,8 @@
+import { t } from '../accessibility/i18n'
 // Ilustração editorial local; não representa uma receita ou um produto retornado pelo agente.
 export function PantryIllustration() {
   return (
-    <svg viewBox="0 0 340 280" fill="none" role="img" aria-label="Ilustração de um prato com ingredientes da despensa">
+    <svg viewBox="0 0 340 280" fill="none" role="img" aria-label={t("Ilustração de um prato com ingredientes da despensa")}>
       <ellipse cx="177" cy="244" rx="119" ry="13" fill="#ddbbb0" opacity=".25" />
       <path d="M63 65 266 40l36 176-201 29Z" fill="#f2c7b7" opacity=".5" />
       <path d="m89 70 181-21M96 100l181-21M102 132l181-21M108 163l181-21M115 195l181-21M121 225l181-21" stroke="#fff6f0" strokeWidth="9" opacity=".6" />

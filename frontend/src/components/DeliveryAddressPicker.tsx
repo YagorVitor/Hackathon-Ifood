@@ -1,3 +1,4 @@
+import { t } from '../accessibility/i18n'
 import { useEffect, useState } from 'react'
 import { ApiError, api } from '../api'
 import type { Address } from '../types'
@@ -31,31 +32,31 @@ export function useDeliveryAddress(enabled: boolean) {
 export function DeliveryAddressPicker({ state, selected, onSelect, onReload, onReconnect, disabled }: {
   state: AddressState; selected: Address | null; onSelect: (id: string) => void; onReload: () => void; onReconnect: () => void; disabled: boolean
 }) {
-  if (state.status === 'idle' || state.status === 'loading') return <p role="status">Consultando endereços salvos no iFood…</p>
+  if (state.status === 'idle' || state.status === 'loading') return <p role="status">{t("Consultando endereços salvos no iFood…")}</p>
   if (state.status === 'error') return (
-    <Notice tone="danger" role="alert" title="Não foi possível consultar os endereços">
+    <Notice tone="danger" role="alert" title={t("Não foi possível consultar os endereços")}>
       <p>{state.error.message}</p>
-      <p>Isso não significa que sua conta esteja sem endereços.</p>
-      {state.error.kind === 'auth' && <Button onClick={onReconnect}>Reconectar conta iFood</Button>}
-      <Button variant="secondary" onClick={onReload} disabled={disabled}>Tentar consultar novamente</Button>
+      <p>{t("Isso não significa que sua conta esteja sem endereços.")}</p>
+      {state.error.kind === 'auth' && <Button onClick={onReconnect}>{t("Reconectar conta iFood")}</Button>}
+      <Button variant="secondary" onClick={onReload} disabled={disabled}>{t("Tentar consultar novamente")}</Button>
     </Notice>
   )
-  if (!state.addresses.length) return <Notice title="Sua conta não retornou endereços salvos">
-    <p>Cadastre um endereço no app iFood e atualize esta lista. O cadastro de endereço por aqui ainda não está disponível.</p>
-    <Button variant="secondary" onClick={onReload} disabled={disabled}>Atualizar endereços</Button>
+  if (!state.addresses.length) return <Notice title={t("Sua conta não retornou endereços salvos")}>
+    <p>{t("Cadastre um endereço no app iFood e atualize esta lista. O cadastro de endereço por aqui ainda não está disponível.")}</p>
+    <Button variant="secondary" onClick={onReload} disabled={disabled}>{t("Atualizar endereços")}</Button>
   </Notice>
   return <fieldset className="space-y-2">
-    <legend className="font-bold">Onde você quer receber?</legend>
-    <p className="text-sm text-ink-muted">A busca usará este destino. Se você trocar, os resultados anteriores serão descartados.</p>
+    <legend className="font-bold">{t("Onde você quer receber?")}</legend>
+    <p className="text-sm text-ink-muted">{t("A busca usará este destino. Se você trocar, os resultados anteriores serão descartados.")}</p>
     {state.addresses.map(address => {
       const valid = address.latitude !== null && address.longitude !== null
       return <label key={address.id} className="flex items-start gap-3 rounded-xl border border-line p-3 text-sm">
         <input type="radio" name="delivery-address" checked={selected?.id === address.id} disabled={disabled || !valid}
           onChange={() => onSelect(address.id)} className="mt-1 size-5" />
-        <span><b>{address.rotulo ?? 'Endereço salvo'}</b><br />{address.endereco ?? 'Detalhes não informados'}
-          {!valid && <span className="block text-tomato">O iFood não retornou coordenadas válidas para este endereço.</span>}</span>
+        <span><b>{address.rotulo ?? t("Endereço salvo")}</b><br />{address.endereco ?? t("Detalhes não informados")}
+          {!valid && <span className="block text-tomato">{t("O iFood não retornou coordenadas válidas para este endereço.")}</span>}</span>
       </label>
     })}
-    <Button variant="ghost" onClick={onReload} disabled={disabled}>Atualizar endereços</Button>
+    <Button variant="ghost" onClick={onReload} disabled={disabled}>{t("Atualizar endereços")}</Button>
   </fieldset>
 }
