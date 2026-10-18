@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "orderId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "The ID of a previous order to rebuild into a new cart. When provided, merchantId, addressId, and items are all derived from this order — do not send them separately."
+    },
+    "addressId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "The delivery address ID for this cart. Required when creating a cart from scratch (no orderId). Collect this from the user if not already known."
+    },
+    "merchantId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "The merchant ID to order from. Required when creating a cart from scratch. Omit when providing an orderId — the merchant is derived from the order."
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "cartItemId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The cartItemId of an existing item. Required when updating an item with updateCartItem; omit when creating a new cart or adding a new item.",
+            "default": "##default"
+          },
+          "customerNote": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Any special instructions or note the user gave for this item (e.g. \"well done\", \"extra spicy\"). Omit if the user did not provide one.",
+            "default": "##default"
+          },
+          "itemId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The catalog item ID the user wants to order",
+            "default": "##default"
+          },
+          "options": {
+            "description": "The options the user selected for this item (size, extras, toppings, etc.). Use the option IDs from the catalog item. Leave empty if the item has no options.",
+            "default": "##default",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "customerNote": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Any note the user gave for this specific option. Omit if none.",
+                  "default": "##default"
+                },
+                "customizations": {
+                  "description": "Customizations on this option (e.g. removing an ingredient from an extra). Leave empty if none.",
+                  "default": "##default",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "customerNote": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "Any note for this specific customization. Omit if none.",
+                        "default": "##default"
+                      },
+                      "customizationId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "The customization ID from the catalog item's option",
+                        "default": "##default"
+                      },
+                      "quantity": {
+                        "type": "integer",
+                        "format": "int32",
+                        "description": "How many of this customization to apply (almost always 1)",
+                        "default": "##default"
+                      }
+                    },
+                    "required": [
+                      "customizationId",
+                      "quantity"
+                    ],
+                    "description": "A customization applied to an option (e.g. \"remove onions\", \"add bacon\")"
+                  }
+                },
+                "optionId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "The option ID from the catalog item",
+                  "default": "##default"
+                },
+                "quantity": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "How many of this option to apply (almost always 1)",
+                  "default": "##default"
+                }
+              },
+              "required": [
+                "optionId",
+                "quantity"
+              ],
+              "description": "A selected option on a cart item (e.g. size choice, extra topping)"
+            }
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many units of the item. Must be at least 1.",
+            "default": "##default"
+          }
+        },
+        "required": [
+          "itemId",
+          "quantity"
+        ],
+        "description": "A cart item with quantity, notes, and selected options. Used in createCart, addItem, and updateItem."
+      },
+      "description": "The items to place in the new cart. Required when creating a cart from scratch. Omit when providing an orderId — items are derived from the order."
+    },
+    "deliveryMethod": {
+      "type": "object",
+      "properties": {
+        "deliveryMethodId": {
+          "type": "string",
+          "description": "The delivery method ID from the getCartDeliveryMethods response (e.g. \"DELIVERY\", \"PICKUP\")",
+          "default": "##default"
+        },
+        "selectedTimeSlotId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid",
+          "description": "The time slot ID the user picked from the delivery method's available slots. Omit for ASAP delivery.",
+          "default": "##default"
+        }
+      },
+      "required": [
+        "deliveryMethodId"
+      ],
+      "description": "The delivery method and optional time slot to set on the cart. Omit if the user has not chosen one yet."
+    },
+    "paymentMethod": {
+      "type": "object",
+      "properties": {
+        "cardTokenId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid",
+          "description": "The card token ID to charge, if the user chose a saved credit or debit card. Omit for PIX or cash.",
+          "default": "##default"
+        },
+        "paymentMethodId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "The payment method ID from the listPaymentMethods response (e.g. \"PIX\", \"CREDIT_CARD\")",
+          "default": "##default"
+        }
+      },
+      "required": [
+        "paymentMethodId"
+      ],
+      "description": "The payment method to set on the cart. Omit if the user has not chosen one yet."
+    }
+  },
+  "required": []
+}

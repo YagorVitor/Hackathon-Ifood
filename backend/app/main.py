@@ -235,10 +235,15 @@ async def cart_confirm(payload: CartConfirmRequest, request: Request) -> CartRes
             )
         except HTTPException as exc:
             if exc.__cause__ is not None:
+                store.uncertain(proposal.id)
                 # Falha de transporte após o envio: o carrinho pode ter sido criado.
                 raise HTTPException(502, "Não foi possível confirmar a criação do carrinho. Confira o app do iFood antes de tentar de novo.") from exc
             raise
-        cart_id = cart.cart_id_of(created)
+        try:
+            cart_id = cart.cart_id_of(created)
+        except cart.CartCreationUncertain:
+            store.uncertain(proposal.id)
+            raise
         try:
             snapshot = await ifood_mcp.call_tool(
                 mcp_url=settings.mcp_url, access_token=token, name="getCart", candidates=[{"cartId": cart_id}],

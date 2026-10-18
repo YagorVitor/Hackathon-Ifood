@@ -1,5 +1,8 @@
 """Carrinho com dados sintéticos; formatos de resposta do Cart MCP são hipóteses tolerantes."""
 import unittest
+import json
+from pathlib import Path
+from jsonschema import Draft202012Validator
 from unittest.mock import AsyncMock, patch
 
 import httpx2
@@ -124,8 +127,11 @@ class CartStoreTests(unittest.TestCase):
         store = cart.CartStore()
         seed(store)
         args = cart.create_cart_arguments(store.propose(proposal_request()))
+        self.assertEqual(len(args),1)
+        schema=json.loads((Path(__file__).parent/'fixtures/create_cart_schema.json').read_text())
+        self.assertTrue(Draft202012Validator(schema).is_valid(args[0]))
         self.assertEqual(args[0], {'merchantId': 'synthetic-store', 'addressId': 'synthetic-address',
-                                   'items': [{'itemId': 'synthetic-item-1', 'quantity': 2}]})
+                                   'items': [{'itemId': 'synthetic-item-1', 'quantity': 2, 'options': []}]})
 
 
 class CartHandoffTests(unittest.TestCase):
@@ -182,6 +188,7 @@ class CartAPITests(unittest.IsolatedAsyncioTestCase):
             response=await self.client.get(f'/api/cart/{identifier}')
         self.assertEqual(response.status_code,200)
         self.assertEqual(response.json()['quantidade_linhas'],1)
+        self.assertEqual(response.json()['app_deeplink_estado'],'valid')
         self.assertNotIn('SECRET',response.text)
         self.assertNotIn('PRIVATE',response.text)
         self.assertEqual(response.headers['cache-control'],'no-store')
@@ -251,6 +258,23 @@ class CartAPITests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(first.json()['totais']['total_centavos'], 1448)
         self.assertEqual(first.json()['verificacao'], 'mismatch')
         self.assertEqual([c.kwargs['name'] for c in calls.await_args_list], ['createCart', 'getCart'])
+
+    async def test_uncertain_creation_is_not_repeated(self):
+        for failure in ('transport','missing-id'):
+            proposal = await self.propose()
+            body = dict(proposal_id=proposal['id'],snapshot_hash=proposal['snapshot_hash'],confirm=True)
+            if failure == 'transport':
+                error=HTTPException(502,'Falha sintética')
+                error.__cause__=TimeoutError('offline')
+                call=AsyncMock(side_effect=error)
+            else:
+                call=AsyncMock(return_value=mcp({}))
+            with patch('app.main.ifood_mcp.call_tool',new=call):
+                first=await self.client.post('/api/cart/confirm',json=body)
+                repeated=await self.client.post('/api/cart/confirm',json=body)
+            self.assertEqual(first.status_code,502)
+            self.assertEqual(repeated.status_code,409)
+            self.assertEqual(call.await_count,1)
 
     async def test_confirm_flag_is_mandatory_and_failure_allows_explicit_retry(self):
         proposal = await self.propose()

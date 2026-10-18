@@ -35,7 +35,7 @@ class _Evidence:
 class _Proposal:
     data: CartProposal
     expires_at: float
-    status: Literal["READY", "IN_PROGRESS", "CREATED"] = "READY"
+    status: Literal["READY", "IN_PROGRESS", "CREATED", "UNCERTAIN"] = "READY"
     result: CartResult | None = None
 
 
@@ -122,11 +122,18 @@ class CartStore:
             raise HTTPException(409, "A proposta mudou desde a revisão. Confira os itens antes de confirmar.")
         if entry.status == "CREATED" and entry.result is not None:
             return entry.result
+        if entry.status == "UNCERTAIN":
+            raise HTTPException(409, "A criação anterior teve resultado indeterminado. Não repita a criação; confira o carrinho com o iFood.")
         if entry.status == "IN_PROGRESS":
             raise HTTPException(409, "O carrinho já está sendo criado. Aguarde a resposta.")
         self._validate_delivery(entry.data.merchant_id, entry.data.address_id, [line.item_id for line in entry.data.linhas])
         entry.status = "IN_PROGRESS"
         return entry.data
+
+    def uncertain(self, proposal_id: str):
+        entry = self._proposals.get(proposal_id)
+        if entry and entry.status == "IN_PROGRESS":
+            entry.status = "UNCERTAIN"
 
     def release(self, proposal_id: str):
         entry = self._proposals.get(proposal_id)
@@ -197,20 +204,21 @@ def parse_addresses(response: dict[str, Any]) -> list[Address]:
 
 
 def create_cart_arguments(proposal: CartProposal) -> list[dict[str, Any]]:
-    """Variações aceitas conforme o schema anunciado (documentação cita options e customizations)."""
-    items = [{"itemId": line.item_id, "quantity": line.quantidade} for line in proposal.linhas]
-    base = {"merchantId": proposal.merchant_id, "addressId": proposal.address_id}
-    return [
-        {**base, "items": items},
-        {**base, "items": [{**item, "options": []} for item in items]},
-        {**base, "items": [{**item, "customizations": []} for item in items]},
-    ]
+    """Formato documentado: opções aninhadas no item, mesmo quando vazias."""
+    return [{
+        "merchantId": proposal.merchant_id, "addressId": proposal.address_id,
+        "items": [{"itemId": line.item_id, "quantity": line.quantidade, "options": []} for line in proposal.linhas],
+    }]
+
+
+class CartCreationUncertain(HTTPException):
+    """Resposta de criação sem erro explícito, mas sem ID que permita conferir."""
 
 
 def cart_id_of(response: dict[str, Any]) -> str:
     cart_id = _text(_unwrap(response), "cartId", "id")
     if cart_id is None:
-        raise HTTPException(502, "O iFood não devolveu o identificador do carrinho. Confira o app antes de tentar de novo.")
+        raise CartCreationUncertain(502, "O iFood não devolveu o identificador do carrinho. Confira o app antes de tentar de novo.")
     return cart_id
 
 
@@ -250,7 +258,9 @@ def inspect_result(response: dict[str, Any], cart_id: str) -> dict[str, Any]:
             "nome": _text(row, "name", "itemName", "description"),
             "quantidade": quantity if isinstance(quantity, int) and not isinstance(quantity, bool) and 0 < quantity <= 1000 else None,
         })
-    return {"cart_id": cart_id, "app_deeplink": app_deeplink_of(payload, cart_id),
+    link = app_deeplink_of(payload, cart_id)
+    link_state = "valid" if link else "absent" if payload.get("appDeeplink") is None else "rejected"
+    return {"cart_id": cart_id, "app_deeplink": link, "app_deeplink_estado": link_state,
             "itens": items, "quantidade_linhas": len(items), "pedido_enviado": False,
             "aviso": "Consulta getCart; a presença na sacola principal do aplicativo não foi verificada."}
 
