@@ -1,12 +1,12 @@
 # RESUMO GERAL DO SISTEMA
 
-## Despensa Reversa — diagnóstico técnico e plano do MVP
+## CompletAI — diagnóstico técnico e plano do MVP
 
 **Inspeção técnica realizada em 17/10/2026, por volta de 17h \(Brasília\)\. Esta revisão organiza o planejamento; não representa uma nova auditoria do código\. Referência de produto: docs/HACKATHON\_CONTEXT\.md\.** Preservar a proposta validada pelos mentores: compreender o contexto e os ingredientes existentes, planejar uma refeição e comprar somente o que faltar\. Mercado é a vertical do MVP; Farmácia, Petshop, voz e dispositivos ficam no roadmap\.
 
 ## Decisões para execução
 
-- **Produto fechado:** Despensa Reversa para o consumidor, com Mercado como vertical do MVP\. A ideia B2B permanece registrada apenas como brainstorming não selecionado\.
+- **Produto fechado:** CompletAI para o consumidor, com Mercado como vertical do MVP\. A ideia B2B permanece registrada apenas como brainstorming não selecionado\.
 - **P0:** texto → ingredientes confirmados → refeição/faltantes → consulta real ao MCP → recomendação comercial utilizável\. A estratégia sem compra também deve funcionar\.
 - **Próximo marco:** OAuth do consumidor, tools/list e consulta GROCERIES\. Ferramenta documentada e cadastro aprovado ainda não comprovam integração funcionando\.
 - **Condicional:** fotografia após o fluxo textual; checkout próprio após validação de entrega/pagamento\. Voz e dispositivos são P2; histórico é complementar e depende do acesso efetivamente disponível\.

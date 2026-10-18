@@ -254,9 +254,9 @@ export default function App() {
       <a href="#conteudo" className={`skip-link ${focusRing}`}>{t("Pular para o conteúdo")}</a>
       <header className="site-header">
         <div className="header-inner">
-          <a href="/" className={`brand ${focusRing}`} aria-label={t("Despensa Reversa — início")}>
+          <a href="/" className={`brand ${focusRing}`} aria-label={t("CompletAI — início")}>
             <span className="brand-symbol"><Icon name="bowl" className="size-7" /></span>
-            <span>despensa<span className="brand-second">reversa<span className="brand-dot">.</span></span></span>
+            <span>Complet<span className="brand-ai">AI</span></span>
           </a>
           <div className="header-links">
             <span className="header-section"><Icon name="jar" className="size-4" />{t(" Minha despensa")}</span>
@@ -378,7 +378,7 @@ export default function App() {
         </div>
 
         <footer id="como-funciona" className="site-footer">
-          <div className="footer-intro"><Icon name="bowl" className="size-5" /><span>Despensa Reversa</span><span className="footer-caption">{t("Da sua despensa à próxima refeição.")}</span></div>
+          <div className="footer-intro"><Icon name="bowl" className="size-5" /><span>CompletAI</span><span className="footer-caption">{t("Da sua despensa à próxima refeição.")}</span></div>
           <details>
             <summary className={`cursor-pointer ${focusRing}`}>{t("Como funciona e de onde vêm os dados?")}</summary>
             <p className="mt-3">{t("Conte o que tem, confira o que o agente entendeu e escolha uma sugestão. Se precisar completar a refeição, o agente busca ingredientes no Mercado ou opções prontas no iFood com a localização que você autorizar, e você pode montar o carrinho com eles.")}</p>

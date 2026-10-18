@@ -2,7 +2,7 @@
 
 ## O que é
 
-A **Despensa Reversa** é um agente de conveniência para o iFood Mercado. Em vez
+A **CompletAI** é um agente de conveniência para o iFood Mercado. Em vez
 de começar pela busca de produtos, ele começa pelo que a pessoa já tem em casa:
 
 > "Antes de descobrir o que você quer comprar, entendemos o que você realmente

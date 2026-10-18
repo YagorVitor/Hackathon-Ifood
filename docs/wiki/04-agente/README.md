@@ -1,6 +1,6 @@
 # Agente
 
-O agente da Despensa Reversa interpreta o contexto do consumidor, planeja
+O agente da CompletAI interpreta o contexto do consumidor, planeja
 refeições e decide quando consultar o iFood Mercado. Código em
 [`backend/app/agent.py`](../../../backend/app/agent.py).
 
@@ -9,7 +9,7 @@ refeições e decide quando consultar o iFood Mercado. Código em
 | Item | Valor |
 |---|---|
 | Biblioteca | OpenAI Agents SDK (`openai-agents`) |
-| Nome | `Despensa Reversa` |
+| Nome | `CompletAI` |
 | Modelo | `OPENAI_MODEL`, padrão `gpt-4.1-mini` |
 | Instruções | `AGENT_INSTRUCTIONS` (português) |
 | Ferramentas | Uma: `search_market_items` |

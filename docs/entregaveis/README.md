@@ -1,4 +1,4 @@
-# Entregáveis — Despensa Reversa
+# Entregáveis — CompletAI
 
 Hackathon SEMCOMP × iFood 2026 — Vendendo com Agentes.
 

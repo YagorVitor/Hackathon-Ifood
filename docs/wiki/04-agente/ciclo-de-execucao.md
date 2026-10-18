@@ -94,7 +94,7 @@ Não há coordenadas nem tokens no prompt.
 
 ```python
 Agent(
-    name="Despensa Reversa",
+    name="CompletAI",
     model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
     instructions=AGENT_INSTRUCTIONS,
     tools=[search_market_items],

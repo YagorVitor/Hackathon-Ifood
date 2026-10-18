@@ -50,7 +50,7 @@ class AuthAPITests(unittest.IsolatedAsyncioTestCase):
             result = await self.client.get('/auth/callback', params={'code': 'private-code', 'state': 'private-state'})
         finish.assert_awaited_once()
         self.assertEqual(result.status_code, 200)
-        self.assertIn('Volte para a aba da Despensa Reversa', result.text)
+        self.assertIn('Volte para a aba da CompletAI', result.text)
         self.assertNotIn('private-code', result.text)
         self.assertNotIn('private-state', result.text)
         self.assertNotIn('/mcp/tools', result.text)

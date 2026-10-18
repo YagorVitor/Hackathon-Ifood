@@ -5,7 +5,7 @@ import type { ApiError } from '../api'
 import { Icon } from '../components/icons'
 import { AgentNote, Badge, Button, Card, Limitations, Loading, Notice, StageTitle, brl, focusRing, inputCls } from '../components/ui'
 import { normalized, parseNumber } from '../flow'
-import type { AgentResponse, CostSummary, Location, McpTool, MealOption, SearchEvidence, SelectedProduct, OptionalComplement } from '../types'
+import type { AgentResponse, CostSummary, Location, McpTool, MealOption, SelectedProduct, OptionalComplement } from '../types'
 import { OptionalComplements } from '../components/OptionalComplements'
 import { IngredientLine, StrategyTag } from './OptionsStep'
 import type { AuthState } from '../hooks/useIfoodConnection'
@@ -254,7 +254,7 @@ function MarketResult({ result, budgetCents, onCart, cartEnabled }: { result: Ag
         <Notice tone="danger" role="alert" title={t("A consulta ao iFood falhou")}>{t(" Nenhum produto foi confirmado. Isso é uma falha de consulta, não um catálogo vazio. ")}</Notice>
       )}
       {partlyFailed && (
-        <Notice tone="warn" title={t("Parte das consultas falhou")}>{t(" Itens sem produto podem não ter sido consultados com sucesso. Veja o registro de consultas abaixo. ")}</Notice>
+        <Notice tone="warn" title={t("Parte das consultas falhou")}>{t(" Itens sem produto podem não ter sido consultados com sucesso. Tente consultar de novo. ")}</Notice>
       )}
       {empty && (
         <Notice tone="info" role="status" title={t("Nenhum produto encontrado")}>{t(" O iFood não retornou produtos de parceiros abertos para esses termos, filtros e destino. Isso não significa que todas as lojas estejam fechadas. ")}</Notice>
@@ -290,7 +290,6 @@ function MarketResult({ result, budgetCents, onCart, cartEnabled }: { result: Ag
         </Card>
       ))}
 
-      {data.buscas.length > 0 && <SearchLog searches={data.buscas} />}
       <Limitations items={data.limitacoes} />
 
       <Card className="space-y-2 border-dashed">
@@ -363,29 +362,5 @@ function CostCard({ cost, budgetCents, stores }: { cost: CostSummary; budgetCent
           <b>{t("Orçamento de ")}{brl(budgetCents)}:</b>{t(" não dá para afirmar que cabe, porque o total final ainda não é conhecido. ")}</p>
       )}
     </div>
-  )
-}
-
-const SEARCH_STATUS: Record<SearchEvidence['status'], { label: string; cls: string }> = {
-  success: { label: 'com resultados', cls: 'text-herb' },
-  empty: { label: 'sem resultados', cls: 'text-ink-muted' },
-  error: { label: 'falhou', cls: 'text-tomato' },
-}
-
-function SearchLog({ searches }: { searches: SearchEvidence[] }) {
-  return (
-    <details className="rounded-2xl border border-line bg-surface p-4 text-sm">
-      <summary className={`cursor-pointer font-bold ${focusRing}`}>{t("Consultas feitas ao iFood (")}{searches.length})</summary>
-      <ul className="mt-3 space-y-2">
-        {searches.map((s, i) => (
-          <li key={`${i}-${s.query}`} className="rounded-lg bg-surface-2 p-2">
-            <p><code className="font-mono">searchOffers</code> · “{s.query}” · <span className={`font-bold ${SEARCH_STATUS[s.status].cls}`}>{SEARCH_STATUS[s.status].label}</span>
-              {s.status === 'success' && <> ({s.quantidade_resultados})</>}
-            </p>
-            <p className="text-ink-muted">{t("Vertical: ")}{s.vertical || 'Todas'}{t(" · Parceiros abertos · Filtros de catálogo: ")}{s.restricoes_aplicadas.length ? s.restricoes_aplicadas.join(', ') : 'nenhum'}</p>
-          </li>
-        ))}
-      </ul>
-    </details>
   )
 }

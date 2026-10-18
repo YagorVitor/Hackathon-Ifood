@@ -1,4 +1,4 @@
-# Front-end — Despensa Reversa
+# Front-end — CompletAI
 
 React + Vite + TypeScript + Tailwind v4. Responsivo, pt-BR, tema claro com vermelho de destaque e hierarquia visual inspirada no iFood.
 Sem dados simulados na aplicação: tudo vem do backend deste repositório por `POST /api/agent/message`.

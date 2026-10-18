@@ -15,7 +15,7 @@ from .recommendations import build_refinements, finalize, observe_products
 
 MAX_MARKET_SEARCHES_PER_RUN = 3
 AGENT_INSTRUCTIONS = """
-Você é o agente da Despensa Reversa. Interprete o contexto declarado e planeje o
+Você é o agente da CompletAI. Interprete o contexto declarado e planeje o
 que preparar aproveitando os ingredientes existentes; compre apenas complementos
 quando fizer sentido. O campo contexto.idioma_resposta define o idioma de todos
 os textos livres: en = inglês; pt-BR = português brasileiro. Preserve os nomes
@@ -218,7 +218,7 @@ async def run_agent(
     prompt = envelope.model_dump(mode="json", exclude={"contexto": {"localizacao"}})
     prompt["localizacao_disponivel"] = context.localizacao is not None
     agent = Agent(
-        name="Despensa Reversa", model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+        name="CompletAI", model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
         instructions=AGENT_INSTRUCTIONS + (
             "\nIDIOMA DESTA EXECUÇÃO: inglês (en). Escreva mensagem, justificativas, títulos e limitações em inglês, mesmo quando a mensagem do aplicativo estiver em português. Preserve nomes comerciais observados e IDs."
             if context.idioma_resposta == "en" else

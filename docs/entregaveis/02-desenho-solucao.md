@@ -1,6 +1,6 @@
 # 02 — Desenho de Solução
 
-Como a Despensa Reversa resolve o problema, do contexto do consumidor até os
+Como a CompletAI resolve o problema, do contexto do consumidor até os
 produtos reais do iFood Mercado.
 
 ## Princípio

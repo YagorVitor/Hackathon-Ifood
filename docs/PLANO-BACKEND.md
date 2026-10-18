@@ -1,4 +1,4 @@
-# PLANO DO BACK-END — Despensa Reversa
+# PLANO DO BACK-END — CompletAI
 
 **Branch:** `feature/backend` · **Escopo:** somente back-end (FastAPI + Pydantic + OAuth + adapter MCP iFood + regras + contrato com o agente) · **Data:** 17/10/2026, ~18h (Brasília)
 

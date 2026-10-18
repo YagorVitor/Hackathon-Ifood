@@ -36,7 +36,7 @@ function apply() {
   root.dataset.contrast = current.highContrast ? 'high' : 'normal'
   root.dataset.motion = current.reduceMotion ? 'reduce' : 'system'
   root.lang = current.language === 'en' ? 'en' : 'pt-BR'
-  document.title = current.language === 'en' ? 'Despensa Reversa — your pantry, first' : 'Despensa Reversa — sua despensa, primeiro'
+  document.title = current.language === 'en' ? 'CompletAI — your pantry, first' : 'CompletAI — sua despensa, primeiro'
 }
 export function updateSettings(patch: Partial<AccessibilitySettings>): boolean {
   current = parseSettings(JSON.stringify({ ...current, ...patch }))

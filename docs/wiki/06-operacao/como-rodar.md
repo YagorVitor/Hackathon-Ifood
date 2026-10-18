@@ -109,8 +109,7 @@ fictícias (como `0,0`) devolvem lista vazia.
 4. Confirme e escolha uma opção **com faltantes**.
 5. Conecte a conta iFood (nova aba) e volte.
 6. Clique em "Usar minha localização atual" ou informe as coordenadas.
-7. Mostre os produtos com o selo "Dado do iFood (MCP)", o custo conhecido e o
-   registro de consultas.
+7. Mostre os produtos com o selo "Dado do iFood (MCP)" e o custo conhecido.
 
 > **Foto na demonstração:** funciona, mas foi validada só com imagens de teste e
 > a câmera física ainda não foi testada num aparelho. Teste antes com o aparelho

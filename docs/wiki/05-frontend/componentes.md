@@ -23,7 +23,6 @@
 | `MarketResult` | `MarketStep.tsx` | Avisos de status, produtos por faltante, custos e consultas |
 | `ProductRow` | `MarketStep.tsx` | Produto observado com selos MCP e IA |
 | `CostCard` | `MarketStep.tsx` | Subtotal, frete, total conhecido e avisos de orçamento |
-| `SearchLog` | `MarketStep.tsx` | Registro das chamadas `searchOffers` |
 | `ConnectionPill` | `App.tsx` | Estado do backend e da conta iFood |
 
 ### Avisos do `MarketResult`

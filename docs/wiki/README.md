@@ -1,6 +1,6 @@
-# Wiki — Despensa Reversa
+# Wiki — CompletAI
 
-Base de conhecimento técnica da aplicação **Despensa Reversa**, construída no
+Base de conhecimento técnica da aplicação **CompletAI**, construída no
 Hackathon SEMCOMP × iFood 2026 — *Vendendo com Agentes*.
 
 > Um agente que entende o que você já tem em casa, planeja a refeição e busca

@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Despensa Reversa — teste do iFood MCP",
+    title="CompletAI — teste do iFood MCP",
     description="Backend local mínimo para autenticar e consultar ferramentas de descoberta.",
     version="0.1.0",
     lifespan=lifespan,

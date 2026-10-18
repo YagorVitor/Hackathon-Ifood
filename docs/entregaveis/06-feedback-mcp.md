@@ -75,7 +75,7 @@ estável, para validar o caminho com produtos sem depender de onde a equipe est�
 Os mentores informaram que o iFood não tem hoje tags estruturadas de perfil
 (vegetariano, intolerância à lactose, alergias, diabetes etc.) e pediram que
 apresentássemos a ideia como sugestão para o MCP. **Isso não existe no MCP
-atual**; a Despensa Reversa mantém um perfil próprio, declarado pelo usuário.
+atual**; a CompletAI mantém um perfil próprio, declarado pelo usuário.
 
 ### B1. Problema
 

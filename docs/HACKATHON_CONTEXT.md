@@ -1,4 +1,4 @@
-Despensa Reversa — Contexto Mestre do Projeto
+CompletAI — Contexto Mestre do Projeto
 
 Hackathon iFood | SEMCOMP XXIX | 17–18/10/2026
 
@@ -37,7 +37,7 @@ Apresentação: 5 minutos de pitch e 3 minutos de perguntas.
 
 ---
 
-2. Nossa solução: Despensa Reversa
+2. Nossa solução: CompletAI
 
 Estado da proposta
 
@@ -47,7 +47,7 @@ A equipe decidiu seguir com essa proposta. Não devemos substituir o produto, ap
 
 Conceito central
 
-A Despensa Reversa é um agente inteligente de conveniência que compreende o contexto do usuário para identificar o que ele já possui, descobrir suas necessidades e transformar essas informações em decisões de compra personalizadas.
+A CompletAI é um agente inteligente de conveniência que compreende o contexto do usuário para identificar o que ele já possui, descobrir suas necessidades e transformar essas informações em decisões de compra personalizadas.
 
 O princípio do produto é:
 
@@ -570,7 +570,7 @@ A narrativa deve mostrar uma mudança de paradigma:
 
 Comércio tradicional: o consumidor procura um produto.
 
-Despensa Reversa: o agente compreende o contexto do consumidor e identifica se, quando e o que vale comprar.
+CompletAI: o agente compreende o contexto do consumidor e identifica se, quando e o que vale comprar.
 
 A demonstração deve comunicar:
 
@@ -590,7 +590,7 @@ Separar claramente MVP funcional de roadmap futuro.
 
 14. Instruções imediatas para o Codex
 
-Você é o engenheiro de software colaborando com a equipe da Despensa Reversa.
+Você é o engenheiro de software colaborando com a equipe da CompletAI.
 
 Sua prioridade é ajudar a desenvolver uma solução funcional, original, confiável e tecnicamente defensável dentro do prazo do hackathon.
 

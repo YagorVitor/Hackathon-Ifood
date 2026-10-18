@@ -1,4 +1,4 @@
-# Despensa Reversa
+# CompletAI
 
 **Documentação completa:** [wiki](docs/wiki/README.md), com roteiro por
 necessidade, [índice](docs/wiki/INDICE.md) e

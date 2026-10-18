@@ -1,4 +1,4 @@
-# Backend e agente — Despensa Reversa
+# Backend e agente — CompletAI
 
 Implementação incremental na branch `feature/backend`. FastAPI + Pydantic +
 OpenAI Agents SDK + MCP oficial do iFood. Um processo local para o MVP: o backend

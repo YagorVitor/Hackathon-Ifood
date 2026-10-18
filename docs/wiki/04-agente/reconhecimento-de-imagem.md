@@ -10,7 +10,7 @@ a rota está em `backend/app/main.py`.
 | Item | Valor |
 |---|---|
 | Rota | `POST /api/context/parse-image` |
-| Nome do agente | `Captura da Despensa Reversa` |
+| Nome do agente | `Captura da CompletAI` |
 | Modelo | `OPENAI_MODEL` (padrão `gpt-4.1-mini`); precisa aceitar imagens |
 | Ferramentas | **Nenhuma** (sem MCP, sem busca, sem compra) |
 | Saída | `ImageExtraction` → convertida em `AgentOutput` por `finalize` |

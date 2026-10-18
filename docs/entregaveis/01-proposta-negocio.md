@@ -1,6 +1,6 @@
 # 01 — Proposta de Negócio
 
-**Despensa Reversa** · Hackathon SEMCOMP × iFood 2026 — Vendendo com Agentes
+**CompletAI** · Hackathon SEMCOMP × iFood 2026 — Vendendo com Agentes
 
 > "Antes de descobrir o que você quer comprar, entendemos o que você realmente precisa."
 
@@ -27,7 +27,7 @@ aproveitar melhor o que já compraram.
 
 ## Proposta de valor
 
-A Despensa Reversa é um agente de conveniência que **transforma informações
+A CompletAI é um agente de conveniência que **transforma informações
 desestruturadas sobre a vida do consumidor em necessidades de compra estruturadas
 e acionáveis**.
 

@@ -1,4 +1,4 @@
-# Roteiro de pitch — Despensa Reversa
+# Roteiro de pitch — CompletAI
 
 **Duração-alvo:** 5 minutos. **Formato da banca:** 5 minutos de apresentação + 3 minutos de perguntas.  
 **Deck:** `Despensa-Reversa-Pitch-Banca.pptx`  
@@ -6,7 +6,7 @@
 
 ## 0:00–0:25 — Abertura
 
-“Quando abrimos um app de mercado, normalmente começamos procurando produtos. Mas muitas vezes a dúvida vem antes: o que dá para preparar com o que já existe em casa? A Despensa Reversa começa pela despensa. Ela entende o contexto, ajuda a escolher uma refeição e só consulta o iFood Mercado para complementar o que falta.”
+“Quando abrimos um app de mercado, normalmente começamos procurando produtos. Mas muitas vezes a dúvida vem antes: o que dá para preparar com o que já existe em casa? A CompletAI começa pela despensa. Ela entende o contexto, ajuda a escolher uma refeição e só consulta o iFood Mercado para complementar o que falta.”
 
 ## 0:25–1:05 — Problema e proposta de valor
 
@@ -38,7 +38,7 @@
 
 ## 4:25–5:00 — Fechamento
 
-“A Despensa Reversa muda o ponto de partida da compra. Primeiro entende o que a pessoa já tem; depois recomenda a ação mais útil, inclusive não comprar. Hoje temos fluxo de interface e agente, OAuth no backend, entrada por texto e foto, confirmação humana e consulta ao MCP para ofertas. O próximo marco é validar a busca com uma região autorizada e demonstrar o resultado real. Obrigado.”
+“A CompletAI muda o ponto de partida da compra. Primeiro entende o que a pessoa já tem; depois recomenda a ação mais útil, inclusive não comprar. Hoje temos fluxo de interface e agente, OAuth no backend, entrada por texto e foto, confirmação humana e consulta ao MCP para ofertas. O próximo marco é validar a busca com uma região autorizada e demonstrar o resultado real. Obrigado.”
 
 ## Perguntas prováveis da banca
 

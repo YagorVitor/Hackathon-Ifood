@@ -14,7 +14,7 @@ Para começar a ler, use a [Home](README.md).
 
 | Página | Arquivo | Links para | Citada por |
 |---|---|---|---|
-| [Wiki — Despensa Reversa](README.md) | `README.md` | 31 | 1 |
+| [Wiki — CompletAI](README.md) | `README.md` | 31 | 1 |
 | [Manutenção da wiki](MANUTENCAO.md) | `MANUTENCAO.md` | 31 | 2 |
 
 ### 1. Visão geral
@@ -85,7 +85,7 @@ foram omitidos, porque ela aponta para todas as páginas.
 ```mermaid
 flowchart LR
     subgraph s__["Entrada e manutenção"]
-      p_README["Wiki — Despensa Reversa"]
+      p_README["Wiki — CompletAI"]
       p_MANUTENCAO["Manutenção da wiki"]
     end
     subgraph s_01_visao_geral["1. Visão geral"]
@@ -261,7 +261,7 @@ flowchart LR
 
 ## Links de cada página
 
-### [Wiki — Despensa Reversa](README.md)
+### [Wiki — CompletAI](README.md)
 
 - **Links para:** [Produto](01-visao-geral/produto.md), [Estado atual](01-visao-geral/estado-atual.md), [Fluxo da aplicação](02-arquitetura/fluxo-da-aplicacao.md), [Como rodar](06-operacao/como-rodar.md), [Configuração](03-backend/configuracao.md), [Visão geral da arquitetura](02-arquitetura/visao-geral.md), [Decisões arquiteturais](02-arquitetura/decisoes-arquiteturais.md), [Contratos de dados](02-arquitetura/contratos-de-dados.md), [Solução de problemas](06-operacao/solucao-de-problemas.md), [Referência da API](03-backend/api-referencia.md), [Backend](03-backend/README.md), [Testes](03-backend/testes.md), [Regras de negócio](03-backend/regras-de-negocio.md), [Saída estruturada](04-agente/saida-estruturada.md), [Agente](04-agente/README.md), [Instruções e políticas](04-agente/instrucoes-e-politicas.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Integração MCP](03-backend/integracao-mcp.md), [Ferramenta `search_market_items`](04-agente/ferramenta-search-market-items.md), [Limitações e roadmap](06-operacao/limitacoes-e-roadmap.md), [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Componentes](05-frontend/componentes.md), [Segurança e privacidade](02-arquitetura/seguranca-e-privacidade.md), [Autenticação OAuth](03-backend/autenticacao-oauth.md), [Fluxo de telas](05-frontend/fluxo-de-telas.md), [Design e acessibilidade](05-frontend/design-e-acessibilidade.md), [Estado e integração com a API](05-frontend/estado-e-integracao.md), [Contexto e sessões](03-backend/contexto-e-sessoes.md), [Manutenção da wiki](MANUTENCAO.md), [Glossário](01-visao-geral/glossario.md), [Frontend](05-frontend/README.md)
 - **Citada por:** [Manutenção da wiki](MANUTENCAO.md)
@@ -269,178 +269,178 @@ flowchart LR
 
 ### [Manutenção da wiki](MANUTENCAO.md)
 
-- **Links para:** [Referência da API](03-backend/api-referencia.md), [Backend](03-backend/README.md), [Solução de problemas](06-operacao/solucao-de-problemas.md), [Fluxo da aplicação](02-arquitetura/fluxo-da-aplicacao.md), [Contratos de dados](02-arquitetura/contratos-de-dados.md), [Saída estruturada](04-agente/saida-estruturada.md), [Estado e integração com a API](05-frontend/estado-e-integracao.md), [Instruções e políticas](04-agente/instrucoes-e-politicas.md), [Ferramenta `search_market_items`](04-agente/ferramenta-search-market-items.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Agente](04-agente/README.md), [Configuração](03-backend/configuracao.md), [Regras de negócio](03-backend/regras-de-negocio.md), [Integração MCP](03-backend/integracao-mcp.md), [Autenticação OAuth](03-backend/autenticacao-oauth.md), [Segurança e privacidade](02-arquitetura/seguranca-e-privacidade.md), [Contexto e sessões](03-backend/contexto-e-sessoes.md), [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Como rodar](06-operacao/como-rodar.md), [Visão geral da arquitetura](02-arquitetura/visao-geral.md), [Testes](03-backend/testes.md), [Fluxo de telas](05-frontend/fluxo-de-telas.md), [Componentes](05-frontend/componentes.md), [Design e acessibilidade](05-frontend/design-e-acessibilidade.md), [Frontend](05-frontend/README.md), [Estado atual](01-visao-geral/estado-atual.md), [Limitações e roadmap](06-operacao/limitacoes-e-roadmap.md), [Produto](01-visao-geral/produto.md), [Decisões arquiteturais](02-arquitetura/decisoes-arquiteturais.md), [Glossário](01-visao-geral/glossario.md), [Wiki — Despensa Reversa](README.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Limitações e roadmap](06-operacao/limitacoes-e-roadmap.md)
+- **Links para:** [Referência da API](03-backend/api-referencia.md), [Backend](03-backend/README.md), [Solução de problemas](06-operacao/solucao-de-problemas.md), [Fluxo da aplicação](02-arquitetura/fluxo-da-aplicacao.md), [Contratos de dados](02-arquitetura/contratos-de-dados.md), [Saída estruturada](04-agente/saida-estruturada.md), [Estado e integração com a API](05-frontend/estado-e-integracao.md), [Instruções e políticas](04-agente/instrucoes-e-politicas.md), [Ferramenta `search_market_items`](04-agente/ferramenta-search-market-items.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Agente](04-agente/README.md), [Configuração](03-backend/configuracao.md), [Regras de negócio](03-backend/regras-de-negocio.md), [Integração MCP](03-backend/integracao-mcp.md), [Autenticação OAuth](03-backend/autenticacao-oauth.md), [Segurança e privacidade](02-arquitetura/seguranca-e-privacidade.md), [Contexto e sessões](03-backend/contexto-e-sessoes.md), [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Como rodar](06-operacao/como-rodar.md), [Visão geral da arquitetura](02-arquitetura/visao-geral.md), [Testes](03-backend/testes.md), [Fluxo de telas](05-frontend/fluxo-de-telas.md), [Componentes](05-frontend/componentes.md), [Design e acessibilidade](05-frontend/design-e-acessibilidade.md), [Frontend](05-frontend/README.md), [Estado atual](01-visao-geral/estado-atual.md), [Limitações e roadmap](06-operacao/limitacoes-e-roadmap.md), [Produto](01-visao-geral/produto.md), [Decisões arquiteturais](02-arquitetura/decisoes-arquiteturais.md), [Glossário](01-visao-geral/glossario.md), [Wiki — CompletAI](README.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Limitações e roadmap](06-operacao/limitacoes-e-roadmap.md)
 - **Arquivos do repositório citados:** `backend/README.md`, `frontend/README.md`, `docs/entregaveis/README.md`, `docs/AVALIACAO-ENTREGAVEIS.md`, `docs/contracts/`, `docs/wiki/INDICE.md`
 
 ### [Estado atual](01-visao-geral/estado-atual.md)
 
 - **Links para:** [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Limitações e roadmap](06-operacao/limitacoes-e-roadmap.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Produto](01-visao-geral/produto.md), [Limitações e roadmap](06-operacao/limitacoes-e-roadmap.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Produto](01-visao-geral/produto.md), [Limitações e roadmap](06-operacao/limitacoes-e-roadmap.md)
 - **Arquivos do repositório citados:** `docs/IMPLEMENTACAO-AGENTE.md`, `docs/AVALIACAO-ENTREGAVEIS.md`
 
 ### [Glossário](01-visao-geral/glossario.md)
 
 - **Links para:** [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Produto](01-visao-geral/produto.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md)
 
 ### [Produto](01-visao-geral/produto.md)
 
 - **Links para:** [Estado atual](01-visao-geral/estado-atual.md), [Fluxo da aplicação](02-arquitetura/fluxo-da-aplicacao.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Glossário](01-visao-geral/glossario.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Glossário](01-visao-geral/glossario.md)
 - **Arquivos do repositório citados:** `docs/HACKATHON_CONTEXT.md`
 
 ### [Contratos de dados](02-arquitetura/contratos-de-dados.md)
 
 - **Links para:** [Saída estruturada](04-agente/saida-estruturada.md), [Regras de negócio](03-backend/regras-de-negocio.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Backend](03-backend/README.md), [Referência da API](03-backend/api-referencia.md), [Regras de negócio](03-backend/regras-de-negocio.md), [Saída estruturada](04-agente/saida-estruturada.md), [Estado e integração com a API](05-frontend/estado-e-integracao.md), [Limitações e roadmap](06-operacao/limitacoes-e-roadmap.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Backend](03-backend/README.md), [Referência da API](03-backend/api-referencia.md), [Regras de negócio](03-backend/regras-de-negocio.md), [Saída estruturada](04-agente/saida-estruturada.md), [Estado e integração com a API](05-frontend/estado-e-integracao.md), [Limitações e roadmap](06-operacao/limitacoes-e-roadmap.md)
 - **Arquivos do repositório citados:** `backend/app/contracts.py`, `frontend/src/types.ts`, `docs/contracts/`
 
 ### [Decisões arquiteturais](02-arquitetura/decisoes-arquiteturais.md)
 
 - **Links para:** [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Visão geral da arquitetura](02-arquitetura/visao-geral.md), [Segurança e privacidade](02-arquitetura/seguranca-e-privacidade.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Visão geral da arquitetura](02-arquitetura/visao-geral.md), [Limitações e roadmap](06-operacao/limitacoes-e-roadmap.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Visão geral da arquitetura](02-arquitetura/visao-geral.md), [Limitações e roadmap](06-operacao/limitacoes-e-roadmap.md)
 - **Arquivos do repositório citados:** `docs/entregaveis/03-racional-experiencia.md`
 
 ### [Fluxo da aplicação](02-arquitetura/fluxo-da-aplicacao.md)
 
 - **Links para:** [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Fluxo de telas](05-frontend/fluxo-de-telas.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Autenticação OAuth](03-backend/autenticacao-oauth.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Produto](01-visao-geral/produto.md), [Visão geral da arquitetura](02-arquitetura/visao-geral.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Fluxo de telas](05-frontend/fluxo-de-telas.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Produto](01-visao-geral/produto.md), [Visão geral da arquitetura](02-arquitetura/visao-geral.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Fluxo de telas](05-frontend/fluxo-de-telas.md)
 
 ### [Segurança e privacidade](02-arquitetura/seguranca-e-privacidade.md)
 
 - **Links para:** [Autenticação OAuth](03-backend/autenticacao-oauth.md), [Contexto e sessões](03-backend/contexto-e-sessoes.md), [Instruções e políticas](04-agente/instrucoes-e-politicas.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Decisões arquiteturais](02-arquitetura/decisoes-arquiteturais.md), [Autenticação OAuth](03-backend/autenticacao-oauth.md), [Contexto e sessões](03-backend/contexto-e-sessoes.md), [Instruções e políticas](04-agente/instrucoes-e-politicas.md), [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Decisões arquiteturais](02-arquitetura/decisoes-arquiteturais.md), [Autenticação OAuth](03-backend/autenticacao-oauth.md), [Contexto e sessões](03-backend/contexto-e-sessoes.md), [Instruções e políticas](04-agente/instrucoes-e-politicas.md), [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md)
 
 ### [Visão geral da arquitetura](02-arquitetura/visao-geral.md)
 
 - **Links para:** [Fluxo da aplicação](02-arquitetura/fluxo-da-aplicacao.md), [Decisões arquiteturais](02-arquitetura/decisoes-arquiteturais.md), [Backend](03-backend/README.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Decisões arquiteturais](02-arquitetura/decisoes-arquiteturais.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Decisões arquiteturais](02-arquitetura/decisoes-arquiteturais.md)
 
 ### [Backend](03-backend/README.md)
 
 - **Links para:** [Referência da API](03-backend/api-referencia.md), [Configuração](03-backend/configuracao.md), [Contratos de dados](02-arquitetura/contratos-de-dados.md), [Contexto e sessões](03-backend/contexto-e-sessoes.md), [Agente](04-agente/README.md), [Regras de negócio](03-backend/regras-de-negocio.md), [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Integração MCP](03-backend/integracao-mcp.md), [Autenticação OAuth](03-backend/autenticacao-oauth.md), [Como rodar](06-operacao/como-rodar.md), [Testes](03-backend/testes.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Visão geral da arquitetura](02-arquitetura/visao-geral.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Visão geral da arquitetura](02-arquitetura/visao-geral.md)
 - **Arquivos do repositório citados:** `backend/`, `backend/README.md`
 
 ### [Referência da API](03-backend/api-referencia.md)
 
 - **Links para:** [Contratos de dados](02-arquitetura/contratos-de-dados.md), [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Estado e integração com a API](05-frontend/estado-e-integracao.md), [Solução de problemas](06-operacao/solucao-de-problemas.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Backend](03-backend/README.md), [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Estado e integração com a API](05-frontend/estado-e-integracao.md), [Solução de problemas](06-operacao/solucao-de-problemas.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Backend](03-backend/README.md), [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Estado e integração com a API](05-frontend/estado-e-integracao.md), [Solução de problemas](06-operacao/solucao-de-problemas.md)
 
 ### [Autenticação OAuth](03-backend/autenticacao-oauth.md)
 
 - **Links para:** [Integração MCP](03-backend/integracao-mcp.md), [Segurança e privacidade](02-arquitetura/seguranca-e-privacidade.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Fluxo da aplicação](02-arquitetura/fluxo-da-aplicacao.md), [Segurança e privacidade](02-arquitetura/seguranca-e-privacidade.md), [Backend](03-backend/README.md), [Configuração](03-backend/configuracao.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Fluxo da aplicação](02-arquitetura/fluxo-da-aplicacao.md), [Segurança e privacidade](02-arquitetura/seguranca-e-privacidade.md), [Backend](03-backend/README.md), [Configuração](03-backend/configuracao.md)
 - **Arquivos do repositório citados:** `backend/app/oauth.py`, `docs/entregaveis/06-feedback-mcp.md`
 
 ### [Configuração](03-backend/configuracao.md)
 
 - **Links para:** [Como rodar](06-operacao/como-rodar.md), [Autenticação OAuth](03-backend/autenticacao-oauth.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Backend](03-backend/README.md), [Como rodar](06-operacao/como-rodar.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Backend](03-backend/README.md), [Como rodar](06-operacao/como-rodar.md)
 - **Arquivos do repositório citados:** `backend/.env.example`
 
 ### [Contexto e sessões](03-backend/contexto-e-sessoes.md)
 
 - **Links para:** [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Segurança e privacidade](02-arquitetura/seguranca-e-privacidade.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Segurança e privacidade](02-arquitetura/seguranca-e-privacidade.md), [Backend](03-backend/README.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Segurança e privacidade](02-arquitetura/seguranca-e-privacidade.md), [Backend](03-backend/README.md)
 - **Arquivos do repositório citados:** `backend/app/context.py`
 
 ### [Integração MCP](03-backend/integracao-mcp.md)
 
 - **Links para:** [Regras de negócio](03-backend/regras-de-negocio.md), [Ferramenta `search_market_items`](04-agente/ferramenta-search-market-items.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Backend](03-backend/README.md), [Autenticação OAuth](03-backend/autenticacao-oauth.md), [Ferramenta `search_market_items`](04-agente/ferramenta-search-market-items.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Backend](03-backend/README.md), [Autenticação OAuth](03-backend/autenticacao-oauth.md), [Ferramenta `search_market_items`](04-agente/ferramenta-search-market-items.md)
 - **Arquivos do repositório citados:** `backend/app/ifood_mcp.py`, `docs/entregaveis/06-feedback-mcp.md`
 
 ### [Regras de negócio](03-backend/regras-de-negocio.md)
 
 - **Links para:** [Saída estruturada](04-agente/saida-estruturada.md), [Contratos de dados](02-arquitetura/contratos-de-dados.md), [Testes](03-backend/testes.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Contratos de dados](02-arquitetura/contratos-de-dados.md), [Backend](03-backend/README.md), [Integração MCP](03-backend/integracao-mcp.md), [Testes](03-backend/testes.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Ferramenta `search_market_items`](04-agente/ferramenta-search-market-items.md), [Saída estruturada](04-agente/saida-estruturada.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Contratos de dados](02-arquitetura/contratos-de-dados.md), [Backend](03-backend/README.md), [Integração MCP](03-backend/integracao-mcp.md), [Testes](03-backend/testes.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Ferramenta `search_market_items`](04-agente/ferramenta-search-market-items.md), [Saída estruturada](04-agente/saida-estruturada.md)
 - **Arquivos do repositório citados:** `backend/app/recommendations.py`
 
 ### [Testes](03-backend/testes.md)
 
 - **Links para:** [Regras de negócio](03-backend/regras-de-negocio.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Backend](03-backend/README.md), [Regras de negócio](03-backend/regras-de-negocio.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Backend](03-backend/README.md), [Regras de negócio](03-backend/regras-de-negocio.md)
 - **Arquivos do repositório citados:** `backend/tests/test_agent.py`, `backend/tests/test_vision.py`
 
 ### [Agente](04-agente/README.md)
 
 - **Links para:** [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Instruções e políticas](04-agente/instrucoes-e-politicas.md), [Ferramenta `search_market_items`](04-agente/ferramenta-search-market-items.md), [Saída estruturada](04-agente/saida-estruturada.md), [Limitações e roadmap](06-operacao/limitacoes-e-roadmap.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Backend](03-backend/README.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Backend](03-backend/README.md)
 - **Arquivos do repositório citados:** `backend/app/agent.py`
 
 ### [Ciclo de execução](04-agente/ciclo-de-execucao.md)
 
 - **Links para:** [Saída estruturada](04-agente/saida-estruturada.md), [Regras de negócio](03-backend/regras-de-negocio.md), [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Ferramenta `search_market_items`](04-agente/ferramenta-search-market-items.md), [Instruções e políticas](04-agente/instrucoes-e-politicas.md), [Fluxo da aplicação](02-arquitetura/fluxo-da-aplicacao.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Fluxo da aplicação](02-arquitetura/fluxo-da-aplicacao.md), [Contexto e sessões](03-backend/contexto-e-sessoes.md), [Testes](03-backend/testes.md), [Agente](04-agente/README.md), [Ferramenta `search_market_items`](04-agente/ferramenta-search-market-items.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Fluxo da aplicação](02-arquitetura/fluxo-da-aplicacao.md), [Contexto e sessões](03-backend/contexto-e-sessoes.md), [Testes](03-backend/testes.md), [Agente](04-agente/README.md), [Ferramenta `search_market_items`](04-agente/ferramenta-search-market-items.md)
 - **Arquivos do repositório citados:** `backend/app/agent.py`
 
 ### [Ferramenta `search_market_items`](04-agente/ferramenta-search-market-items.md)
 
 - **Links para:** [Integração MCP](03-backend/integracao-mcp.md), [Regras de negócio](03-backend/regras-de-negocio.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Integração MCP](03-backend/integracao-mcp.md), [Agente](04-agente/README.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Instruções e políticas](04-agente/instrucoes-e-politicas.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Integração MCP](03-backend/integracao-mcp.md), [Agente](04-agente/README.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Instruções e políticas](04-agente/instrucoes-e-politicas.md)
 - **Arquivos do repositório citados:** `backend/app/agent.py`
 
 ### [Instruções e políticas](04-agente/instrucoes-e-politicas.md)
 
 - **Links para:** [Ferramenta `search_market_items`](04-agente/ferramenta-search-market-items.md), [Saída estruturada](04-agente/saida-estruturada.md), [Segurança e privacidade](02-arquitetura/seguranca-e-privacidade.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Segurança e privacidade](02-arquitetura/seguranca-e-privacidade.md), [Agente](04-agente/README.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Saída estruturada](04-agente/saida-estruturada.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Segurança e privacidade](02-arquitetura/seguranca-e-privacidade.md), [Agente](04-agente/README.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Saída estruturada](04-agente/saida-estruturada.md)
 - **Arquivos do repositório citados:** `backend/app/agent.py`
 
 ### [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md)
 
 - **Links para:** [Referência da API](03-backend/api-referencia.md), [Componentes](05-frontend/componentes.md), [Segurança e privacidade](02-arquitetura/seguranca-e-privacidade.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Estado atual](01-visao-geral/estado-atual.md), [Glossário](01-visao-geral/glossario.md), [Decisões arquiteturais](02-arquitetura/decisoes-arquiteturais.md), [Fluxo da aplicação](02-arquitetura/fluxo-da-aplicacao.md), [Backend](03-backend/README.md), [Referência da API](03-backend/api-referencia.md), [Agente](04-agente/README.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Componentes](05-frontend/componentes.md), [Fluxo de telas](05-frontend/fluxo-de-telas.md), [Limitações e roadmap](06-operacao/limitacoes-e-roadmap.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Estado atual](01-visao-geral/estado-atual.md), [Glossário](01-visao-geral/glossario.md), [Decisões arquiteturais](02-arquitetura/decisoes-arquiteturais.md), [Fluxo da aplicação](02-arquitetura/fluxo-da-aplicacao.md), [Backend](03-backend/README.md), [Referência da API](03-backend/api-referencia.md), [Agente](04-agente/README.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Componentes](05-frontend/componentes.md), [Fluxo de telas](05-frontend/fluxo-de-telas.md), [Limitações e roadmap](06-operacao/limitacoes-e-roadmap.md)
 - **Arquivos do repositório citados:** `backend/app/vision.py`
 
 ### [Saída estruturada](04-agente/saida-estruturada.md)
 
 - **Links para:** [Regras de negócio](03-backend/regras-de-negocio.md), [Contratos de dados](02-arquitetura/contratos-de-dados.md), [Instruções e políticas](04-agente/instrucoes-e-politicas.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Contratos de dados](02-arquitetura/contratos-de-dados.md), [Regras de negócio](03-backend/regras-de-negocio.md), [Agente](04-agente/README.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Instruções e políticas](04-agente/instrucoes-e-politicas.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Contratos de dados](02-arquitetura/contratos-de-dados.md), [Regras de negócio](03-backend/regras-de-negocio.md), [Agente](04-agente/README.md), [Ciclo de execução](04-agente/ciclo-de-execucao.md), [Instruções e políticas](04-agente/instrucoes-e-politicas.md)
 
 ### [Frontend](05-frontend/README.md)
 
 - **Links para:** [Fluxo de telas](05-frontend/fluxo-de-telas.md), [Estado e integração com a API](05-frontend/estado-e-integracao.md), [Componentes](05-frontend/componentes.md), [Design e acessibilidade](05-frontend/design-e-acessibilidade.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md)
 - **Arquivos do repositório citados:** `frontend/`
 
 ### [Componentes](05-frontend/componentes.md)
 
 - **Links para:** [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Design e acessibilidade](05-frontend/design-e-acessibilidade.md), [Fluxo de telas](05-frontend/fluxo-de-telas.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Frontend](05-frontend/README.md), [Design e acessibilidade](05-frontend/design-e-acessibilidade.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Frontend](05-frontend/README.md), [Design e acessibilidade](05-frontend/design-e-acessibilidade.md)
 
 ### [Design e acessibilidade](05-frontend/design-e-acessibilidade.md)
 
 - **Links para:** [Componentes](05-frontend/componentes.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Frontend](05-frontend/README.md), [Componentes](05-frontend/componentes.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Frontend](05-frontend/README.md), [Componentes](05-frontend/componentes.md)
 - **Arquivos do repositório citados:** `docs/entregaveis/03-racional-experiencia.md`
 
 ### [Estado e integração com a API](05-frontend/estado-e-integracao.md)
 
 - **Links para:** [Contratos de dados](02-arquitetura/contratos-de-dados.md), [Referência da API](03-backend/api-referencia.md), [Fluxo de telas](05-frontend/fluxo-de-telas.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Referência da API](03-backend/api-referencia.md), [Frontend](05-frontend/README.md), [Fluxo de telas](05-frontend/fluxo-de-telas.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Referência da API](03-backend/api-referencia.md), [Frontend](05-frontend/README.md), [Fluxo de telas](05-frontend/fluxo-de-telas.md)
 
 ### [Fluxo de telas](05-frontend/fluxo-de-telas.md)
 
 - **Links para:** [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Estado e integração com a API](05-frontend/estado-e-integracao.md), [Fluxo da aplicação](02-arquitetura/fluxo-da-aplicacao.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Fluxo da aplicação](02-arquitetura/fluxo-da-aplicacao.md), [Frontend](05-frontend/README.md), [Componentes](05-frontend/componentes.md), [Estado e integração com a API](05-frontend/estado-e-integracao.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Fluxo da aplicação](02-arquitetura/fluxo-da-aplicacao.md), [Frontend](05-frontend/README.md), [Componentes](05-frontend/componentes.md), [Estado e integração com a API](05-frontend/estado-e-integracao.md)
 
 ### [Como rodar](06-operacao/como-rodar.md)
 
 - **Links para:** [Configuração](03-backend/configuracao.md), [Solução de problemas](06-operacao/solucao-de-problemas.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Backend](03-backend/README.md), [Configuração](03-backend/configuracao.md), [Solução de problemas](06-operacao/solucao-de-problemas.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Backend](03-backend/README.md), [Configuração](03-backend/configuracao.md), [Solução de problemas](06-operacao/solucao-de-problemas.md)
 
 ### [Limitações e roadmap](06-operacao/limitacoes-e-roadmap.md)
 
 - **Links para:** [Reconhecimento de imagem](04-agente/reconhecimento-de-imagem.md), [Contratos de dados](02-arquitetura/contratos-de-dados.md), [Estado atual](01-visao-geral/estado-atual.md), [Decisões arquiteturais](02-arquitetura/decisoes-arquiteturais.md), [Manutenção da wiki](MANUTENCAO.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Estado atual](01-visao-geral/estado-atual.md), [Agente](04-agente/README.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Estado atual](01-visao-geral/estado-atual.md), [Agente](04-agente/README.md)
 - **Arquivos do repositório citados:** `docs/entregaveis/06-feedback-mcp.md`
 
 ### [Solução de problemas](06-operacao/solucao-de-problemas.md)
 
 - **Links para:** [Referência da API](03-backend/api-referencia.md), [Como rodar](06-operacao/como-rodar.md)
-- **Citada por:** [Wiki — Despensa Reversa](README.md), [Manutenção da wiki](MANUTENCAO.md), [Referência da API](03-backend/api-referencia.md), [Como rodar](06-operacao/como-rodar.md)
+- **Citada por:** [Wiki — CompletAI](README.md), [Manutenção da wiki](MANUTENCAO.md), [Referência da API](03-backend/api-referencia.md), [Como rodar](06-operacao/como-rodar.md)
 
 ## Saúde da wiki
 
