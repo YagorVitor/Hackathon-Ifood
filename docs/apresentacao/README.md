@@ -1,9 +1,12 @@
-# Materiais de apresentação
+# Apresentações
 
-Esta pasta preserva os materiais de pitch já versionados:
+## Pitch atual
+
+O [pitch em HTML da CompletAI](../pitch/index.html) é a versão atual fornecida pela equipe. A [página do pitch](../pitch/README.md) reúne o conteúdo dos oito slides, as instruções de abertura e os atalhos de apresentação.
+
+## Versões anteriores
 
 - [Apresentação PowerPoint](Despensa-Reversa-Pitch-Banca.pptx)
-- [Roteiro](Roteiro-Pitch.md)
-- [Apresentação HTML](../pitch/index.html)
+- [Roteiro anterior](Roteiro-Pitch.md)
 
-São versões anteriores e podem conter nomes, telas ou escopo que mudaram. Não devem ser usadas como referência técnica atual. Antes de apresentar, confira o conteúdo com os [entregáveis revisados](../entregaveis/README.md) e com a aplicação.
+Esses dois arquivos são preservados como histórico e podem conter nomes, telas ou escopo que mudaram. Para a avaliação atual, use o HTML acima e os [entregáveis revisados](../entregaveis/README.md).

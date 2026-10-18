@@ -17,7 +17,8 @@ Para instalar, configurar as credenciais e iniciar o projeto, use o [README prin
 
 - [Contexto do hackathon](HACKATHON_CONTEXT.md): referência original de produto e orientações dos mentores. Preservada como registro das decisões iniciais; o estado implementado está nos guias acima.
 - [Entregáveis](entregaveis/README.md): os seis documentos preparados para a banca.
-- [Apresentações](apresentacao/README.md): materiais versionados e indicação de seu estado.
+- [Pitch atual](pitch/README.md): apresentação HTML com oito slides, notas e atalhos.
+- [Apresentações anteriores](apresentacao/README.md): PowerPoint e roteiro preservados como histórico.
 
 ## Como manter
 

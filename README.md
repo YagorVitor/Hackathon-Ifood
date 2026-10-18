@@ -4,6 +4,19 @@ A CompletAI ajuda a decidir o que preparar ou comprar a partir de uma ocasião, 
 
 O projeto foi desenvolvido para o hackathon SEMCOMP × iFood, com o tema **Vendendo com Agentes**.
 
+## Pitch
+
+### Da intenção de compra ao carrinho no iFood
+
+Oito slides apresentam a CompletAI, com uma demonstração baseada em foto real, a arquitetura com OpenAI Agents SDK e o uso do MCP oficial do iFood.
+
+| Apresentação | Guia |
+|---|---|
+| [**Pitch em HTML**](docs/pitch/index.html) | [**Como apresentar e atalhos**](docs/pitch/README.md) |
+| Foto incorporada, notas e modo de tela cheia | Navegação por teclado e cronômetro |
+
+Para assistir, baixe o HTML ou abra `docs/pitch/index.html` no navegador após clonar o projeto. No GitHub, o arquivo é exibido como código.
+
 ## Como funciona
 
 1. O usuário conta o que precisa e pode enviar uma foto dos alimentos.
