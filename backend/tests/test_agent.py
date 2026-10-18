@@ -127,6 +127,15 @@ class RulesTests(unittest.TestCase):
         for state in ['ASKED','ANSWERED','DECLINED']:
             self.assertFalse(finalize(draft(pergunta_tags=True),context(tags_declaradas=DeclaredTags(estado=state)),[],[],[]).pergunta_tags)
 
+    def test_quantity_shortfall_preserves_replenishment_without_guessing_units(self):
+        option = MealOption(titulo='Omelete', estrategia='COMPLETE_WITH_MARKET', usa=['ovo'],
+            faltantes=['ovo'], justificativa='Precisa de três ovos.',
+            necessidades_quantidade=[dict(nome='ovo', quantidade=3, unidade='unidade')])
+        for quantity, unit, expected in [(1, 'unidade', ['ovo']), (3, 'unidade', []), (1, 'kg', []), (None, None, [])]:
+            ctx = UserContext(inventario_confirmado=[dict(nome='ovo', quantidade=quantity, unidade=unit)])
+            output = finalize(draft(opcoes=[option]), ctx, [], [], [])
+            self.assertEqual(output.opcoes[0].faltantes, expected)
+
     def test_optional_complements_do_not_become_missing_ingredients(self):
         option=MealOption(titulo='Arroz pronto',estrategia='USE_WHAT_I_HAVE',usa=['arroz'],faltantes=[],
             justificativa='Aproveitar a despensa.',complementos_opcionais=[

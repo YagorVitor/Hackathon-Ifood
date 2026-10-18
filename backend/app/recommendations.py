@@ -145,7 +145,16 @@ def finalize(draft: AgentDraft, context: UserContext, observed: list[ObservedPro
             complements.append(complement)
         option.complementos_opcionais = complements
         option.usa = [name for name in option.usa if normalized(name) in inventory]
-        option.faltantes = list(dict.fromkeys(name for name in option.faltantes + unknown if normalized(name) not in inventory))
+        # Só mantém reposição do mesmo ingrediente quando há déficit comparável.
+        shortages = set()
+        for need in option.necessidades_quantidade:
+            available = [v for v in context.inventario_confirmado if v.confirmado and normalized(v.nome) == normalized(need.nome)]
+            if available and all(v.quantidade is not None and v.unidade and normalized(v.unidade) == normalized(need.unidade) for v in available):
+                if sum(v.quantidade for v in available) < need.quantidade:
+                    shortages.add(normalized(need.nome))
+        option.faltantes = list(dict.fromkeys(name for name in option.faltantes + unknown if normalized(name) not in inventory or normalized(name) in shortages))
+        if shortages:
+            limitations.append("A quantidade necessária para a receita é uma estimativa; confira a reposição antes de comprar.")
         if option.estrategia == "USE_WHAT_I_HAVE" and option.faltantes:
             option.estrategia = "COMPLETE_WITH_MARKET"
     registry = {p.referencia: p for p in observed}
@@ -192,7 +201,8 @@ def finalize(draft: AgentDraft, context: UserContext, observed: list[ObservedPro
     )
 
 
-_EN_NOTICES = {'Ingredientes ainda não confirmados foram tratados como faltantes.': 'Ingredients not yet confirmed were '
+_EN_NOTICES = {
+ 'A quantidade necessária para a receita é uma estimativa; confira a reposição antes de comprar.': 'The quantity required for the recipe is an estimate; review replenishment before purchasing.','Ingredientes ainda não confirmados foram tratados como faltantes.': 'Ingredients not yet confirmed were '
                                                                       'treated as missing.',
  'Seleção sem evidência ou sem vínculo com um faltante foi descartada.': 'Selections without evidence or '
                                                                          'without a link to a missing item '

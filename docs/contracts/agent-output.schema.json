@@ -61,6 +61,44 @@
       "title": "CostSummary",
       "type": "object"
     },
+    "IngredientRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "nome": {
+          "maxLength": 160,
+          "minLength": 1,
+          "strip_whitespace": true,
+          "title": "Nome",
+          "type": "string"
+        },
+        "quantidade": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Quantidade"
+        },
+        "unidade": {
+          "maxLength": 160,
+          "minLength": 1,
+          "strip_whitespace": true,
+          "title": "Unidade",
+          "type": "string"
+        }
+      },
+      "required": [
+        "nome",
+        "quantidade",
+        "unidade"
+      ],
+      "title": "IngredientRequirement",
+      "type": "object"
+    },
     "MealOption": {
       "additionalProperties": false,
       "properties": {
@@ -79,6 +117,14 @@
           ],
           "title": "Estrategia",
           "type": "string"
+        },
+        "necessidades_quantidade": {
+          "items": {
+            "$ref": "#/$defs/IngredientRequirement"
+          },
+          "maxItems": 80,
+          "title": "Necessidades Quantidade",
+          "type": "array"
         },
         "usa": {
           "items": {

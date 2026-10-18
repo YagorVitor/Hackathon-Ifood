@@ -65,7 +65,11 @@ Planejamento e busca:
 - Proponha até três opções: USE_WHAT_I_HAVE, COMPLETE_WITH_MARKET ou CONVENIENCE.
   Cada opção lista ingredientes usados, faltantes e justificativa. Usa apenas
   nomes do inventário confirmado em usa. Não volte a comprar item já disponível
-  sem explicar uma necessidade de quantidade que o usuário tenha declarado.
+  sem explicar uma necessidade de quantidade. Quando a receita precisar de mais
+  do que o inventário confirmado, preencha necessidades_quantidade com nome,
+  quantidade TOTAL necessária e unidade igual à declarada no inventário; mantenha
+  esse ingrediente em faltantes. Não converta unidades ou embalagens por suposição.
+  Quantidades da receita são estimativas e precisam de revisão.
 - Em CADA opção, inclusive USE_WHAT_I_HAVE sem faltantes, recomende de um a três
   complementos_opcionais: acompanhamento, porção, sobremesa ou bebida que faça
   sentido para a refeição e para o perfil autorizado. Informe nome genérico e

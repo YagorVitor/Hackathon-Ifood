@@ -65,6 +65,7 @@ export interface OptionalComplement {
 export interface MealOption {
   titulo: string
   estrategia: Strategy
+  necessidades_quantidade?: { nome: string; quantidade: DecimalValue; unidade: string }[]
   usa: string[]
   faltantes: string[]
   justificativa: string

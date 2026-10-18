@@ -119,9 +119,16 @@ class OptionalComplement(Contract):
     provenance: Literal["INFERRED"] = "INFERRED"
 
 
+class IngredientRequirement(Contract):
+    nome: ShortText
+    quantidade: Decimal = Field(gt=0, allow_inf_nan=False)
+    unidade: ShortText
+
+
 class MealOption(Contract):
     titulo: ShortText
     estrategia: Literal["USE_WHAT_I_HAVE", "COMPLETE_WITH_MARKET", "CONVENIENCE"]
+    necessidades_quantidade: list[IngredientRequirement] = Field(default_factory=list, max_length=80)
     usa: list[ShortText] = Field(default_factory=list, max_length=80)
     faltantes: list[ShortText] = Field(default_factory=list, max_length=30)
     justificativa: str = Field(max_length=1500)
