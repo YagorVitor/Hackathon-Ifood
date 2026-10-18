@@ -6,10 +6,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field, ValidationError
 
-from . import ifood_mcp
+from . import cart, ifood_mcp
 from .agent import run_agent
 from .context import ConversationStore
-from .contracts import AgentRequest, AgentResponse, SearchCriteria, UserContext
+from .contracts import (Address, AgentRequest, AgentResponse, CartConfirmRequest, CartProposal,
+    CartProposalRequest, CartResult, SearchCriteria, UserContext)
 from .recommendations import build_refinements
 from .oauth import IfoodOAuth
 from .settings import Settings
@@ -20,6 +21,7 @@ from .vision import ImageParseRequest, MAX_REQUEST_BYTES, extract_image, prepare
 async def lifespan(app: FastAPI):
     app.state.ifood_oauth = IfoodOAuth()
     app.state.conversations = ConversationStore()
+    app.state.cart = cart.CartStore()
     yield
 
 
@@ -135,6 +137,8 @@ async def agent_test(payload: AgentRequest, request: Request) -> AgentResponse:
         except Exception as exc:
             raise HTTPException(502, "O agente não produziu uma resposta válida. Tente novamente.") from exc
         store.commit(session_id, envelope, execution.output)
+        # Só estes snapshots do MCP podem entrar numa proposta de carrinho.
+        request.app.state.cart.remember(execution.output.produtos)
         return AgentResponse(
             response=execution.output.mensagem, mcpToolCalled=execution.mcp_called,
             tool="searchOffers" if execution.mcp_called else None,
@@ -179,3 +183,53 @@ async def forget_agent_session(session_id: str, request: Request) -> dict[str, b
     async with store.lock:
         store.delete(session_id)
     return {"deleted": True}
+
+
+@app.get("/api/addresses", response_model=list[Address])
+async def list_addresses(request: Request) -> list[Address]:
+    settings = Settings.from_env()
+    token = await request.app.state.ifood_oauth.access_token(settings)
+    response = await ifood_mcp.call_tool(mcp_url=settings.mcp_url, access_token=token, name="listAddresses", candidates=[{}])
+    return cart.parse_addresses(response)
+
+
+@app.post("/api/cart/proposal", response_model=CartProposal)
+async def cart_proposal(payload: CartProposalRequest, request: Request) -> CartProposal:
+    return request.app.state.cart.propose(payload)
+
+
+@app.post("/api/cart/confirm", response_model=CartResult)
+async def cart_confirm(payload: CartConfirmRequest, request: Request) -> CartResult:
+    store = request.app.state.cart
+    proposal = store.begin(payload)
+    if isinstance(proposal, CartResult):
+        return proposal
+    try:
+        settings = Settings.from_env()
+        token = await request.app.state.ifood_oauth.access_token(settings)
+        try:
+            created = await ifood_mcp.call_tool(
+                mcp_url=settings.mcp_url, access_token=token, name="createCart",
+                candidates=cart.create_cart_arguments(proposal),
+            )
+        except HTTPException as exc:
+            if exc.__cause__ is not None:
+                # Falha de transporte após o envio: o carrinho pode ter sido criado.
+                raise HTTPException(502, "Não foi possível confirmar a criação do carrinho. Confira o app do iFood antes de tentar de novo.") from exc
+            raise
+        cart_id = cart.cart_id_of(created)
+        try:
+            snapshot = await ifood_mcp.call_tool(
+                mcp_url=settings.mcp_url, access_token=token, name="getCart", candidates=[{"cartId": cart_id}],
+            )
+            result = cart.build_result(proposal, cart_id, snapshot, [])
+        except HTTPException:
+            # O carrinho já existe; não repetir createCart por causa de uma leitura.
+            result = cart.build_result(proposal, cart_id, created, [
+                "getCart não respondeu; os dados exibidos são os devolvidos por createCart.",
+            ])
+    except BaseException:
+        store.release(proposal.id)
+        raise
+    store.finish(result)
+    return result

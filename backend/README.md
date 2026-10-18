@@ -126,12 +126,30 @@ MCP autenticada em 17/10/2026, sem produtos, tokens ou dados pessoais.
 Contratos exportados: `../docs/contracts/agent-request.schema.json` e
 `agent-response.schema.json`. O OpenAPI está em `/docs`.
 
+## Carrinho
+
+Fluxo determinístico, fora do agente (`app/cart.py`):
+
+1. `GET /api/addresses` → `listAddresses` (o `createCart` exige `addressId`).
+2. `POST /api/cart/proposal` `{merchant_id, address_id, linhas:[{item_id, quantidade}]}`:
+   aceita apenas produtos observados pelo MCP numa busca recente (30 min), de uma
+   única loja; nome e preço vêm do snapshot do backend. Devolve `snapshot_hash`
+   e expira em 10 min.
+3. `POST /api/cart/confirm` `{proposal_id, snapshot_hash, confirm:true}` →
+   `createCart` (sem retry automático) → `getCart`. Repetir a confirmação devolve
+   o mesmo carrinho. Os totais exibidos são os do `getCart`.
+
+Os argumentos são validados contra o `inputSchema` anunciado; os formatos de
+resposta do Cart ainda não foram verificados em runtime e são lidos de forma
+tolerante. Exige os escopos de endereço e carrinho em `IFOOD_SCOPES`.
+
 ## Limites do MVP
 
 OAuth e perfis ainda são de um protótipo local de **um usuário**: tokens globais
 em memória e session_id opaco, sem isolamento multiusuário por cookie. Não expor
-publicamente como está. Não há carrinho, checkout, escrita no MCP, perfil no
-servidor iFood ou persistência em disco de conversas. Tracing
+publicamente como está. A única escrita no MCP é `createCart`, feita pelo backend
+(nunca pelo agente) após confirmação explícita; não há entrega, pagamento,
+`submitOrder`, perfil no servidor iFood ou persistência em disco de conversas. Tracing
 do SDK está desativado nesta versão para não exportar contexto sensível.
 
 Os filtros alimentares são classificação de catálogo; não comprovam ingredientes,

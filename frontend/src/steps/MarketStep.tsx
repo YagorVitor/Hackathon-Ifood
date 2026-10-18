@@ -9,7 +9,7 @@ import { IngredientLine, StrategyTag } from './OptionsStep'
 export type AuthState = 'checking' | 'yes' | 'no' | 'error'
 
 export function MarketStep({
-  option, auth, onConnect, onRecheck, location, onLocation, onConsult, result, budgetCents, tools, loading, error, onBack, onRestart,
+  option, auth, onConnect, onRecheck, location, onLocation, onConsult, result, budgetCents, tools, loading, error, onBack, onRestart, onCart,
 }: {
   option: MealOption
   auth: AuthState
@@ -25,6 +25,7 @@ export function MarketStep({
   error: ApiError | null
   onBack: () => void
   onRestart: () => void
+  onCart: (products: SelectedProduct[]) => void
 }) {
   const ready = auth === 'yes' && location !== null
 
@@ -79,7 +80,7 @@ export function MarketStep({
         </Notice>
       )}
 
-      {result && !loading && <MarketResult result={result} budgetCents={budgetCents} />}
+      {result && !loading && <MarketResult result={result} budgetCents={budgetCents} onCart={onCart} />}
 
       {!loading && (
         <div className="space-y-2">
@@ -101,7 +102,7 @@ export function MarketStep({
           <ul className="mt-2 flex flex-wrap gap-1.5">
             {tools.map((t) => <li key={t.name} className="rounded-md bg-surface-2 px-2 py-1 font-mono text-xs">{t.name}</li>)}
           </ul>
-          <p className="mt-2 text-ink-muted">O agente só tem acesso a <code className="font-mono">searchOffers</code>, em modo de leitura.</p>
+          <p className="mt-2 text-ink-muted">O agente só tem acesso a <code className="font-mono">searchOffers</code>, em modo de leitura. O carrinho é criado pelo backend, só depois da sua confirmação.</p>
         </details>
       )}
     </div>
@@ -207,7 +208,7 @@ function parseSigned(raw: string): number | null {
   return n === null || Number.isNaN(n) ? null : neg ? -n : n
 }
 
-function MarketResult({ result, budgetCents }: { result: AgentResponse; budgetCents: number | null }) {
+function MarketResult({ result, budgetCents, onCart }: { result: AgentResponse; budgetCents: number | null; onCart: (products: SelectedProduct[]) => void }) {
   const { data } = result
   const searched = data.buscas.length > 0
   const failed = searched && data.buscas.every((b) => b.status === 'error')
@@ -277,6 +278,7 @@ function MarketResult({ result, budgetCents }: { result: AgentResponse; budgetCe
             })}
           </ul>
           {cost && <CostCard cost={cost} budgetCents={budgetCents} stores={new Set(products.map((p) => p.merchant_id)).size} />}
+          {products.length > 0 && <Button icon="cart" onClick={() => onCart(products)}>Montar carrinho com estes itens</Button>}
         </Card>
       ))}
 
@@ -286,8 +288,8 @@ function MarketResult({ result, budgetCents }: { result: AgentResponse; budgetCe
       <Card className="space-y-2 border-dashed">
         <p className="flex items-center gap-2 font-bold"><Icon name="info" /> Próximo passo</p>
         <p className="text-sm text-ink-muted">
-          Criar o carrinho e finalizar a compra ainda não estão disponíveis nesta versão. Nada foi adicionado a um
-          carrinho e nenhum pedido foi feito. Use esta lista para decidir se vale a pena comprar.
+          Se fizer sentido comprar, monte o carrinho: você ajusta quantidades e endereço e revisa tudo antes de
+          confirmar. Nada foi adicionado a um carrinho até agora e nenhum pedido é feito por aqui.
         </p>
       </Card>
     </section>

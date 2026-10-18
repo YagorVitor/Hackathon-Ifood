@@ -1,6 +1,6 @@
 // Cliente das rotas realmente implementadas em backend/app/main.py.
 // Tudo passa pelo proxy do Vite (/api, /auth, /health -> :8000); nenhuma credencial no frontend.
-import type { AgentRequest, AgentResponse, McpTool } from './types'
+import type { Address, AgentRequest, AgentResponse, CartProposal, CartProposalRequest, CartResult, McpTool } from './types'
 
 export type ApiErrorKind = 'network' | 'auth' | 'validation' | 'unavailable' | 'timeout' | 'failed' | 'not_found'
 
@@ -51,6 +51,8 @@ function toApiError(status: number, body: unknown, emptyBody: boolean): ApiError
       return new ApiError('validation', text ?? 'Escolha uma imagem JPEG, PNG ou WebP.', status)
     case 401:
       return new ApiError('auth', text ?? 'Conecte sua conta iFood para continuar.', status)
+    case 409:
+      return new ApiError('validation', text ?? 'Os dados mudaram desde a revisão. Confira e tente de novo.', status)
     case 404:
       return new ApiError('not_found', text ?? 'Recurso não encontrado.', status)
     case 503:
@@ -84,5 +86,16 @@ export const api = {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image_data_url, message }),
     }, AGENT_TIMEOUT_MS),
+  addresses: () => request<Address[]>('/api/addresses', {}, 30_000),
+  cartProposal: (payload: CartProposalRequest) =>
+    request<CartProposal>('/api/cart/proposal', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    }),
+  // createCart + getCart no MCP; o backend nunca repete a escrita sozinho.
+  confirmCart: (proposal: CartProposal) =>
+    request<CartResult>('/api/cart/confirm', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ proposal_id: proposal.id, snapshot_hash: proposal.snapshot_hash, confirm: true }),
+    }, 60_000),
   loginUrl: '/auth/login',
 }

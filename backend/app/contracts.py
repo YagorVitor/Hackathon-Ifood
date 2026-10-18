@@ -197,3 +197,89 @@ class AgentResponse(Contract):
     tool: Literal["searchOffers"] | None
     session_id: str | None
     data: AgentOutput
+
+
+McpId = Annotated[str, Field(min_length=1, max_length=300)]
+Token = Annotated[str, Field(pattern=r"^[A-Za-z0-9_-]{32}$")]
+
+
+class Address(Contract):
+    """Endereço salvo na conta iFood (listAddresses); exigido por createCart."""
+    id: str
+    rotulo: str | None = None
+    endereco: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    ultimo_usado: bool = False
+    provenance: Literal["MCP"] = "MCP"
+
+
+class CartLineRequest(Contract):
+    item_id: McpId
+    quantidade: int = Field(ge=1, le=100)
+
+
+class CartProposalRequest(Contract):
+    """Uma loja por carrinho: createCart exige um único estabelecimento."""
+    merchant_id: McpId
+    address_id: McpId
+    linhas: list[CartLineRequest] = Field(min_length=1, max_length=15)
+
+
+class CartLine(Contract):
+    item_id: str
+    nome: str
+    preco_unitario_centavos: Cents | None
+    quantidade: int
+    subtotal_centavos: int | None
+    quantidade_provenance: Literal["DECLARED"] = "DECLARED"
+    provenance: Literal["MCP"] = "MCP"
+
+
+class CartProposal(Contract):
+    id: str
+    merchant_id: str
+    loja: str | None
+    address_id: str
+    linhas: list[CartLine]
+    subtotal_conhecido_centavos: int
+    precos_completos: bool
+    frete_observado_centavos: Cents | None
+    minimo_pedido_centavos: Cents | None
+    snapshot_hash: str
+    expira_em_segundos: int
+    provenance: Literal["ESTIMATED"] = "ESTIMATED"
+
+
+class CartConfirmRequest(Contract):
+    proposal_id: Token
+    snapshot_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    confirm: Literal[True]
+
+
+class CartItemSnapshot(Contract):
+    item_id: str | None = None
+    nome: str | None = None
+    quantidade: int | None = None
+    preco_centavos: Cents | None = None
+
+
+class CartTotals(Contract):
+    subtotal_centavos: Cents | None = None
+    entrega_centavos: Cents | None = None
+    desconto_centavos: Cents | None = None
+    total_centavos: Cents | None = None
+
+
+class CartResult(Contract):
+    """Totais vêm do iFood (getCart); o pedido não é enviado nesta versão."""
+    cart_id: str
+    proposal_id: str
+    merchant_id: str
+    loja: str | None
+    itens: list[CartItemSnapshot]
+    totais: CartTotals
+    avisos: list[str]
+    limitacoes: list[str]
+    pedido_enviado: Literal[False] = False
+    provenance: Literal["MCP"] = "MCP"

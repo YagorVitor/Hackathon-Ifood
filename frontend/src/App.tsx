@@ -4,9 +4,10 @@ import { Icon } from './components/icons'
 import { Button, Notice, PROVENANCE, Badge, focusRing } from './components/ui'
 import { LIMITS, buildContext, emptyFields, emptyTags, fromRecognized, parseNumber, fromRecognizedContext } from './flow'
 import type { DeclaredFields, DraftItem } from './flow'
-import type { AgentResponse, DeclaredTags, Location, McpTool, MealOption, UserContext } from './types'
+import type { AgentResponse, DeclaredTags, Location, McpTool, MealOption, SelectedProduct, UserContext } from './types'
 import { photoDataUrl } from './components/PhotoInput'
 import { CaptureStep } from './steps/CaptureStep'
+import { CartStep } from './steps/CartStep'
 import { DoneStep } from './steps/DoneStep'
 import { MarketStep } from './steps/MarketStep'
 import type { AuthState } from './steps/MarketStep'
@@ -14,12 +15,12 @@ import { OptionsStep } from './steps/OptionsStep'
 import { ReviewStep } from './steps/ReviewStep'
 import { TagsStep } from './steps/TagsStep'
 
-// Sequência de docs/HACKATHON_CONTEXT.md §10: contar → conferir → (perfil, se o agente perguntar) → sugestões → Mercado.
-type Stage = 'capture' | 'review' | 'tags' | 'options' | 'market' | 'done'
+// Sequência de docs/HACKATHON_CONTEXT.md §10: contar → conferir → (perfil, se o agente perguntar) → sugestões → Mercado → carrinho.
+type Stage = 'capture' | 'review' | 'tags' | 'options' | 'market' | 'cart' | 'done'
 type Busy = null | 'capture' | 'plan' | 'market'
 
-const STEPS = ['Sua despensa', 'Sugestões do agente', 'Só o que falta'] as const
-const STEP_OF: Record<Stage, number> = { capture: 0, review: 0, tags: 0, options: 1, market: 2, done: 2 }
+const STEPS = ['Sua despensa', 'Sugestões do agente', 'Só o que falta', 'Carrinho'] as const
+const STEP_OF: Record<Stage, number> = { capture: 0, review: 0, tags: 0, options: 1, market: 2, cart: 3, done: 2 }
 
 const asApiError = (e: unknown) => (e instanceof ApiError ? e : new ApiError('failed', 'Erro inesperado. Tente novamente.'))
 
@@ -37,6 +38,7 @@ export default function App() {
   const [plan, setPlan] = useState<AgentResponse | null>(null)
   const [chosen, setChosen] = useState<MealOption | null>(null)
   const [market, setMarket] = useState<AgentResponse | null>(null)
+  const [cartProducts, setCartProducts] = useState<SelectedProduct[]>([])
   const [location, setLocation] = useState<Location | null>(null)
   const [busy, setBusy] = useState<Busy>(null)
   const [error, setError] = useState<ApiError | null>(null)
@@ -63,7 +65,7 @@ export default function App() {
 
   // O login iFood termina em outra aba (callback no backend); ao voltar, conferimos de novo.
   useEffect(() => {
-    if (stage !== 'market' || auth === 'yes') return
+    if ((stage !== 'market' && stage !== 'cart') || auth === 'yes') return
     const onFocus = () => { if (document.visibilityState === 'visible') refreshAuth() }
     window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onFocus)
@@ -195,6 +197,7 @@ export default function App() {
     setPlan(null)
     setChosen(null)
     setMarket(null)
+    setCartProducts([])
     go('capture')
   }
 
@@ -273,6 +276,13 @@ export default function App() {
             option={chosen} auth={auth} onConnect={() => window.open(api.loginUrl, '_blank', 'noopener')} onRecheck={refreshAuth}
             location={location} onLocation={(next) => { autoSearchAttempted.current = false; setLocation(next) }} onConsult={consultMarket} result={market} budgetCents={budgetCents}
             tools={tools} loading={busy === 'market'} error={error} onBack={() => go('options')} onRestart={restart}
+            onCart={(products) => { setCartProducts(products); go('cart') }}
+          />
+        )}
+        {stage === 'cart' && chosen && cartProducts.length > 0 && (
+          <CartStep
+            option={chosen} products={cartProducts} auth={auth} onConnect={() => window.open(api.loginUrl, '_blank', 'noopener')}
+            onRecheck={refreshAuth} onBack={() => go('market')} onRestart={restart}
           />
         )}
         {stage === 'done' && chosen && <DoneStep option={chosen} onBack={() => go('options')} onRestart={restart} />}
@@ -298,7 +308,7 @@ export default function App() {
                 <ol className="sidebar-how">
                   <li><span>01</span><div><b>Conte o que tem</b><p>Ingredientes e o que você quer preparar.</p></div></li>
                   <li><span>02</span><div><b>Encontre uma ideia</b><p>Confira os itens e escolha uma sugestão.</p></div></li>
-                  <li><span>03</span><div><b>Complete se precisar</b><p>Busque só o que falta no iFood Mercado.</p></div></li>
+                  <li><span>03</span><div><b>Complete se precisar</b><p>Busque só o que falta e monte o carrinho no iFood Mercado.</p></div></li>
                 </ol>
               )}
               <div className="sidebar-bottom"><Icon name="leaf" className="size-4" /><span>Mais aproveitamento.<br />Compras com mais sentido.</span></div>
@@ -311,13 +321,13 @@ export default function App() {
           <div className="footer-intro"><Icon name="bowl" className="size-5" /><span>Despensa Reversa</span><span className="footer-caption">Da sua despensa à próxima refeição.</span></div>
           <details>
             <summary className={`cursor-pointer ${focusRing}`}>Como funciona e de onde vêm os dados?</summary>
-            <p className="mt-3">Conte o que tem, confira o que o agente entendeu e escolha uma sugestão. Se precisar completar a refeição, o agente busca os faltantes no iFood Mercado com a localização que você autorizar.</p>
+            <p className="mt-3">Conte o que tem, confira o que o agente entendeu e escolha uma sugestão. Se precisar completar a refeição, o agente busca os faltantes no iFood Mercado com a localização que você autorizar, e você pode montar o carrinho com eles.</p>
             <ul className="mt-4 grid gap-3 sm:grid-cols-2">
               {(Object.keys(PROVENANCE) as (keyof typeof PROVENANCE)[]).map((p) => (
                 <li key={p} className="space-y-1"><Badge p={p} /><p>{PROVENANCE[p].hint}</p></li>
               ))}
             </ul>
-            <p className="mt-4">Nesta versão, a consulta ao Mercado ajuda a montar sua lista. Carrinho e pedidos ainda não estão disponíveis.</p>
+            <p className="mt-4">O carrinho só é criado na sua conta iFood depois que você revisa e confirma. Entrega, pagamento e envio do pedido continuam no app do iFood.</p>
           </details>
         </footer>
       </div>

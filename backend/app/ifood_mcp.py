@@ -103,6 +103,36 @@ async def _search_groceries_once(
         ) from exc
 
 
+async def call_tool(*, mcp_url: str, access_token: str, name: str, candidates: list[dict[str, Any]]) -> dict[str, Any]:
+    """Chamada única, sem retry: createCart não é idempotente.
+
+    Usa o primeiro conjunto de argumentos aceito pelo inputSchema anunciado;
+    o schema real prevalece sobre os exemplos da documentação.
+    """
+    http_client, transport = await _connected_client(mcp_url, access_token)
+    try:
+        async with http_client:
+            async with Client(transport) as client:
+                available = await client.list_tools()
+                tool = next((tool for tool in available.tools if tool.name == name), None)
+                if tool is None:
+                    raise HTTPException(
+                        status_code=502,
+                        detail=f"O MCP conectado não anunciou a ferramenta {name}. Confira os escopos de endereço e carrinho em IFOOD_SCOPES.",
+                    )
+                validator = Draft202012Validator(tool.input_schema)
+                arguments = next((args for args in candidates if validator.is_valid(args)), None)
+                if arguments is None:
+                    raise HTTPException(502, f"Os argumentos não correspondem ao schema anunciado de {name}.")
+                result = await client.call_tool(name, arguments)
+                return {"tool": name, "isError": result.is_error, "result": _tool_result_payload(result)}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logging.getLogger(__name__).warning("MCP %s falhou (%s)", name, type(exc).__name__)
+        raise HTTPException(status_code=502, detail=f"A chamada {name} ao MCP do iFood falhou.") from exc
+
+
 def _transient(exc: BaseException | None) -> bool:
     if isinstance(exc, (httpx2.TransportError, TimeoutError, ConnectionError)):
         return True

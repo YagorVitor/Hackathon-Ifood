@@ -134,3 +134,58 @@ export interface McpTool {
   name: string
   description: string | null
 }
+
+// Carrinho: rotas /api/addresses e /api/cart/* (backend/app/cart.py).
+export interface Address {
+  id: string
+  rotulo: string | null
+  endereco: string | null
+  latitude: number | null
+  longitude: number | null
+  ultimo_usado: boolean
+  provenance: 'MCP'
+}
+
+export interface CartProposalRequest {
+  merchant_id: string
+  address_id: string
+  linhas: { item_id: string; quantidade: number }[]
+}
+
+export interface CartLine {
+  item_id: string
+  nome: string
+  preco_unitario_centavos: number | null
+  quantidade: number
+  subtotal_centavos: number | null
+  quantidade_provenance: 'DECLARED'
+  provenance: 'MCP'
+}
+
+export interface CartProposal {
+  id: string
+  merchant_id: string
+  loja: string | null
+  address_id: string
+  linhas: CartLine[]
+  subtotal_conhecido_centavos: number
+  precos_completos: boolean
+  frete_observado_centavos: number | null
+  minimo_pedido_centavos: number | null
+  snapshot_hash: string
+  expira_em_segundos: number
+  provenance: 'ESTIMATED'
+}
+
+export interface CartResult {
+  cart_id: string
+  proposal_id: string
+  merchant_id: string
+  loja: string | null
+  itens: { item_id: string | null; nome: string | null; quantidade: number | null; preco_centavos: number | null }[]
+  totais: { subtotal_centavos: number | null; entrega_centavos: number | null; desconto_centavos: number | null; total_centavos: number | null }
+  avisos: string[]
+  limitacoes: string[]
+  pedido_enviado: false
+  provenance: 'MCP'
+}
