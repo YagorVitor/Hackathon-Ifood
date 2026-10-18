@@ -1,5 +1,6 @@
 import os
 import asyncio
+from uuid import UUID
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -242,7 +243,7 @@ async def cart_confirm(payload: CartConfirmRequest, request: Request) -> CartRes
             snapshot = await ifood_mcp.call_tool(
                 mcp_url=settings.mcp_url, access_token=token, name="getCart", candidates=[{"cartId": cart_id}],
             )
-            result = cart.build_result(proposal, cart_id, snapshot, [])
+            result = cart.build_result(proposal, cart_id, snapshot, [], created=created)
         except HTTPException:
             # O carrinho já existe; não repetir createCart por causa de uma leitura.
             result = cart.build_result(proposal, cart_id, created, [
@@ -253,3 +254,17 @@ async def cart_confirm(payload: CartConfirmRequest, request: Request) -> CartRes
         raise
     store.finish(result)
     return result
+
+
+@app.get("/api/cart/{cart_id}")
+async def inspect_cart(cart_id: UUID, request: Request, response: Response) -> dict[str, object]:
+    """Consulta um carrinho existente na conta OAuth, sem chamar createCart."""
+    response.headers["Cache-Control"] = "no-store"
+    settings = Settings.from_env()
+    token = await request.app.state.ifood_oauth.access_token(settings)
+    identifier = str(cart_id)
+    snapshot = await ifood_mcp.call_tool(
+        mcp_url=settings.mcp_url, access_token=token, name="getCart",
+        candidates=[{"cartId": identifier}],
+    )
+    return cart.inspect_result(snapshot, identifier)

@@ -11,6 +11,7 @@ import secrets
 import time
 from dataclasses import dataclass, field
 from typing import Any, Literal
+from urllib.parse import urlsplit
 
 from fastapi import HTTPException
 
@@ -213,8 +214,59 @@ def cart_id_of(response: dict[str, Any]) -> str:
     return cart_id
 
 
-def build_result(proposal: CartProposal, cart_id: str, snapshot: dict[str, Any] | None, notes: list[str]) -> CartResult:
+def app_deeplink_of(payload: dict[str, Any], cart_id: str) -> str | None:
+    """Só repassa link oficial retornado pelo MCP; nunca constrói um deeplink."""
+    value = payload.get("appDeeplink")
+    if not isinstance(value, str) or not value or len(value) > 2048 or any(ord(c) < 33 for c in value):
+        return None
+    try:
+        url = urlsplit(value)
+        if url.username or url.password:
+            return None
+        if url.scheme in ("ifoodapp", "ifood") and url.netloc == "cart" and url.path == f"/{cart_id}":
+            return value
+        if url.scheme == "https" and url.hostname in ("ifood.com.br", "www.ifood.com.br", "app.ifood.com.br"):
+            return value
+    except ValueError:
+        pass
+    return None
+
+
+def inspect_result(response: dict[str, Any], cart_id: str) -> dict[str, Any]:
+    """Diagnóstico somente leitura, sem repassar endereço, pagamento ou resposta bruta."""
+    payload = _unwrap(response)
+    if _text(payload, "cartId", "id") != cart_id:
+        raise HTTPException(502, "getCart não confirmou o identificador consultado.")
+    rows = payload.get("items")
+    if not isinstance(rows, list):
+        raise HTTPException(502, "getCart não retornou uma lista de itens reconhecível.")
+    items = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        quantity = row.get("quantity")
+        items.append({
+            "item_id": _text(row, "itemId", "id"),
+            "nome": _text(row, "name", "itemName", "description"),
+            "quantidade": quantity if isinstance(quantity, int) and not isinstance(quantity, bool) and 0 < quantity <= 1000 else None,
+        })
+    return {"cart_id": cart_id, "app_deeplink": app_deeplink_of(payload, cart_id),
+            "itens": items, "quantidade_linhas": len(items), "pedido_enviado": False,
+            "aviso": "Consulta getCart; a presença na sacola principal do aplicativo não foi verificada."}
+
+
+def build_result(proposal: CartProposal, cart_id: str, snapshot: dict[str, Any] | None, notes: list[str], created: dict[str, Any] | None = None) -> CartResult:
     payload = _unwrap(snapshot) if snapshot is not None else {}
+    reading = snapshot is not None and snapshot.get("tool") == "getCart"
+    same_cart = _text(payload, "cartId", "id") == cart_id
+    merchant = payload.get("merchant")
+    same_merchant = not isinstance(merchant, dict) or not merchant.get("merchantId") or merchant.get("merchantId") == proposal.merchant_id
+    identity_mismatch = reading and (not same_cart or not same_merchant)
+    link = app_deeplink_of(payload, cart_id) if not identity_mismatch else None
+    if link is None and created is not None:
+        link = app_deeplink_of(_unwrap(created), cart_id)
+    if identity_mismatch:
+        payload = {}  # Não exibir itens/totais de um carrinho sem identidade confirmada.
     totals_row = next((payload[k] for k in ("totals", "totalizers", "summary", "prices") if isinstance(payload.get(k), dict)), payload)
     items = []
     for row in payload.get("items") or []:
@@ -237,13 +289,25 @@ def build_result(proposal: CartProposal, cart_id: str, snapshot: dict[str, Any] 
         message = row if isinstance(row, str) else row.get("message") if isinstance(row, dict) else None
         if isinstance(message, str) and 0 < len(message) <= 200:
             warnings.append(message)
+    expected = sorted((line.item_id, line.quantidade) for line in proposal.linhas)
+    actual = sorted((item.item_id or "", item.quantidade or 0) for item in items)
+    verification = "unverified"
+    if reading:
+        verification = "confirmed" if not identity_mismatch and actual == expected else "mismatch"
     limitations = list(notes)
+    if verification == "unverified":
+        limitations.append("O MCP devolveu um identificador, mas não foi possível conferir o conteúdo com getCart.")
+    elif verification == "mismatch":
+        limitations.append("getCart não confirmou o mesmo carrinho com todos os itens e quantidades da proposta. Não crie outro carrinho automaticamente.")
+    if link is None:
+        limitations.append("O MCP não devolveu um link válido para abrir este carrinho; sua exibição na sacola do app não foi confirmada.")
+    limitations.append("Criar um carrinho pelo MCP não comprova que ele aparecerá automaticamente na sacola principal do aplicativo.")
     if totals.subtotal_centavos is not None and totals.subtotal_centavos != proposal.subtotal_conhecido_centavos:
         limitations.append("O subtotal do iFood difere da estimativa da busca; vale o valor do carrinho.")
     if totals.total_centavos is None:
         limitations.append("O iFood não informou o total nesta resposta; confira no app antes de pagar.")
     limitations.append("Entrega, pagamento e envio do pedido não são feitos por esta versão.")
     return CartResult(
-        cart_id=cart_id, proposal_id=proposal.id, merchant_id=proposal.merchant_id, loja=proposal.loja,
+        cart_id=cart_id, app_deeplink=link, verificacao=verification, proposal_id=proposal.id, merchant_id=proposal.merchant_id, loja=proposal.loja,
         itens=items, totais=totals, avisos=warnings, limitacoes=limitations,
     )

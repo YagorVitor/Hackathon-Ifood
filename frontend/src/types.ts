@@ -180,6 +180,8 @@ export interface CartProposal {
 
 export interface CartResult {
   cart_id: string
+  app_deeplink?: string | null
+  verificacao?: 'confirmed' | 'unverified' | 'mismatch'
   proposal_id: string
   merchant_id: string
   loja: string | null

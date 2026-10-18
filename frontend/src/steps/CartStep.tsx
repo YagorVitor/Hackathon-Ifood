@@ -133,7 +133,7 @@ export function CartStep({ option, products, address, onChangeAddress, onBack, o
         </Card>
 
         <Notice tone="info" title="O que acontece ao confirmar">
-          <p>Criamos o carrinho na sua conta iFood com estes itens e quantidades. Entrega, pagamento e envio do pedido continuam com você, no app do iFood.</p>
+          <p>Criamos o carrinho na sua conta iFood com estes itens e quantidades. Depois mostramos o resultado e o link de abertura, se o iFood o devolver. A aparição na sacola principal do app não é garantida.</p>
         </Notice>
 
         {busy === 'confirm' && <Loading label="Criando o carrinho no iFood…" detail="Depois conferimos os totais calculados pelo iFood." />}
@@ -227,15 +227,29 @@ function CartCreated({ result, address, onBack, onRestart }: { result: CartResul
   const t = result.totais
   return (
     <div className="space-y-4">
-      <StageTitle kicker="Carrinho pronto no iFood">Agora é só finalizar no iFood.</StageTitle>
-      <Notice tone="success" role="status" title="Carrinho criado na sua conta iFood">
-        <p>Abra o app do iFood para escolher a entrega, pagar e enviar o pedido. Nenhum pedido foi feito por aqui.</p>
+      <StageTitle kicker="Resultado do MCP">{result.verificacao === 'confirmed' ? 'Itens conferidos no carrinho.' : 'O carrinho precisa de conferência.'}</StageTitle>
+      <Notice tone={result.verificacao === 'confirmed' ? 'success' : 'warn'} role="status"
+        title={result.verificacao === 'confirmed' ? 'Carrinho consultado no MCP do iFood' : 'O MCP retornou um carrinho, mas os itens não foram confirmados'}>
+        <p>{result.verificacao === 'confirmed' ? 'O iFood retornou os itens e quantidades da sua proposta.' : 'Não conseguimos confirmar todos os itens e quantidades com getCart. Evite criar outro carrinho antes de conferir este.'} Nenhum pedido foi enviado.</p>
+        <p className="mt-2">Não confirmamos que este carrinho aparece automaticamente na sacola principal do aplicativo.</p>
       </Notice>
+      {result.app_deeplink ? (
+        <Card className="space-y-3">
+          <a href={result.app_deeplink} className={`inline-flex min-h-11 items-center gap-2 rounded-xl bg-tomato px-4 py-3 font-bold text-white ${focusRing}`}>
+            <Icon name="external" className="size-4" />Abrir este carrinho no iFood
+          </a>
+          <p className="text-sm text-ink-muted">Link retornado pelo MCP para este carrinho. Abra no celular com o iFood instalado e a mesma conta autorizada aqui. Se o app não abrir este carrinho, a transferência ainda não foi confirmada.</p>
+        </Card>
+      ) : (
+        <Notice tone="warn" title="Sem link para abrir o carrinho">
+          O MCP não retornou um link válido. Abrir o app por conta própria não garante encontrar este carrinho na sacola.
+        </Notice>
+      )}
 
       <Card className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="flex items-center gap-2 font-bold"><Icon name="store" className="size-4" />{result.loja ?? 'Loja não informada'}</p>
-          <Badge p="MCP" label="Valores calculados pelo iFood" />
+          <Badge p="MCP" label="Resposta do MCP iFood" />
         </div>
         {result.itens.length > 0 && (
           <ul className="space-y-2">
@@ -251,7 +265,7 @@ function CartCreated({ result, address, onBack, onRestart }: { result: CartResul
           {t.subtotal_centavos !== null && <DotRow label="Subtotal" value={brl(t.subtotal_centavos)} />}
           {t.entrega_centavos !== null && <DotRow label="Entrega" value={brl(t.entrega_centavos)} />}
           {t.desconto_centavos !== null && t.desconto_centavos > 0 && <DotRow label="Descontos" value={`− ${brl(t.desconto_centavos)}`} />}
-          <DotRow label="Total" value={t.total_centavos === null ? 'confira no app' : brl(t.total_centavos)} strong />
+          <DotRow label="Total" value={t.total_centavos === null ? 'não informado pelo MCP' : brl(t.total_centavos)} strong />
         </dl>
         {address && (
           <p className="flex items-start gap-2 text-sm text-ink-muted">
@@ -271,7 +285,8 @@ function CartCreated({ result, address, onBack, onRestart }: { result: CartResul
       <details className="rounded-2xl border border-line bg-surface p-4 text-sm">
         <summary className={`cursor-pointer font-bold ${focusRing}`}>Detalhes técnicos da integração</summary>
         <p className="mt-2 text-ink-muted">
-          Criado com <code className="font-mono">createCart</code> e conferido com <code className="font-mono">getCart</code> após a sua confirmação.
+          Identificador retornado por <code className="font-mono">createCart</code>.
+          {result.verificacao === 'confirmed' ? ' Itens e quantidades conferidos com getCart.' : result.verificacao === 'mismatch' ? ' getCart retornou conteúdo divergente ou identidade não confirmada.' : ' Conteúdo não confirmado por getCart.'}
           Identificador: <code className="font-mono break-all">{result.cart_id}</code>
         </p>
       </details>

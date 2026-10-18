@@ -275,6 +275,8 @@ class CartTotals(Contract):
 class CartResult(Contract):
     """Totais vêm do iFood (getCart); o pedido não é enviado nesta versão."""
     cart_id: str
+    app_deeplink: str | None = None
+    verificacao: Literal["confirmed", "unverified", "mismatch"] = "unverified"
     proposal_id: str
     merchant_id: str
     loja: str | None
