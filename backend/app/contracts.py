@@ -102,6 +102,16 @@ class RecognizedIngredient(Contract):
     confirmado: Literal[False] = False
 
 
+class RecognizedContext(Contract):
+    """Detalhes extraídos do texto, sujeitos à revisão antes de virar contexto."""
+    objetivo: ShortText | None = None
+    pessoas: int | None = Field(default=None, ge=1, le=100)
+    tempo_min: int | None = Field(default=None, ge=1, le=1440)
+    orcamento_centavos: Cents | None = None
+    provenance: Literal["INFERRED"] = "INFERRED"
+    confirmado: Literal[False] = False
+
+
 class MealOption(Contract):
     titulo: ShortText
     estrategia: Literal["USE_WHAT_I_HAVE", "COMPLETE_WITH_MARKET", "CONVENIENCE"]
@@ -122,6 +132,7 @@ class AgentDraft(Contract):
     """O modelo escolhe referências; não fornece nomes, IDs, preços ou totais."""
     mensagem: str = Field(max_length=3000)
     pergunta_tags: bool = False
+    contexto_reconhecido: RecognizedContext = Field(default_factory=RecognizedContext)
     ingredientes_reconhecidos: list[RecognizedIngredient] = Field(default_factory=list, max_length=80)
     opcoes: list[MealOption] = Field(default_factory=list, max_length=3)
     selecoes: list[ProductSelection] = Field(default_factory=list, max_length=15)
@@ -171,6 +182,7 @@ class AgentOutput(Contract):
     contract_version: Literal["1"] = "1"
     mensagem: str
     pergunta_tags: bool
+    contexto_reconhecido: RecognizedContext = Field(default_factory=RecognizedContext)
     ingredientes_reconhecidos: list[RecognizedIngredient]
     opcoes: list[MealOption]
     produtos: list[SelectedProduct]

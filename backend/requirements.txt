@@ -4,3 +4,4 @@ mcp>=2.3,<3
 httpx2>=2.13,<3
 openai-agents>=0.24,<0.25
 jsonschema>=4.23,<5
+pillow>=12,<14

@@ -119,6 +119,21 @@ class RulesTests(unittest.TestCase):
         for state in ['ASKED','ANSWERED','DECLINED']:
             self.assertFalse(finalize(draft(pergunta_tags=True),context(tags_declaradas=DeclaredTags(estado=state)),[],[],[]).pergunta_tags)
 
+    def test_recognized_context_is_unconfirmed_and_does_not_change_declared_budget(self):
+        ctx = context(orcamento_centavos=1000)
+        result = finalize(draft(contexto_reconhecido=dict(
+            objetivo='jantar', pessoas=2, tempo_min=30, orcamento_centavos=3500,
+        )), ctx, [], [], [])
+        self.assertEqual(result.contexto_reconhecido.pessoas, 2)
+        self.assertEqual(result.contexto_reconhecido.orcamento_centavos, 3500)
+        self.assertFalse(result.contexto_reconhecido.confirmado)
+        self.assertEqual(result.contexto_reconhecido.provenance, 'INFERRED')
+        self.assertEqual(ctx.orcamento_centavos, 1000)
+        self.assertEqual(result.produtos, [])
+        for value in [dict(pessoas=0), dict(tempo_min=1441), dict(orcamento_centavos=35.5), dict(alergias=['leite'])]:
+            with self.assertRaises(ValidationError):
+                draft(contexto_reconhecido=value)
+
     def test_sdk_strict_output_schema(self):
         schema=AgentOutputSchema(AgentDraft).json_schema()
         self.assertFalse(schema['additionalProperties'])

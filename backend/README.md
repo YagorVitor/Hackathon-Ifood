@@ -131,7 +131,7 @@ Contratos exportados: `../docs/contracts/agent-request.schema.json` e
 OAuth e perfis ainda são de um protótipo local de **um usuário**: tokens globais
 em memória e session_id opaco, sem isolamento multiusuário por cookie. Não expor
 publicamente como está. Não há carrinho, checkout, escrita no MCP, perfil no
-servidor iFood, upload de imagem ou persistência em disco de conversas. Tracing
+servidor iFood ou persistência em disco de conversas. Tracing
 do SDK está desativado nesta versão para não exportar contexto sensível.
 
 Os filtros alimentares são classificação de catálogo; não comprovam ingredientes,
@@ -139,3 +139,27 @@ ausência de contaminação cruzada nem adequação clínica. Erros/catálogo va
 tratados explicitamente. Não são feitas compras.
 
 Resultados da verificação real e pendências: [IMPLEMENTACAO-AGENTE.md](../docs/IMPLEMENTACAO-AGENTE.md).
+
+
+## Entrada por fotografia
+
+`POST /api/context/parse-image` aceita JSON com `image_data_url` (data URL base64
+JPEG, PNG ou WebP) e `message` opcional (até 4000 caracteres). O limite é 5 MiB
+para o arquivo; o corpo JSON também é limitado antes de ser interpretado.
+O schema está em `docs/contracts/image-request.schema.json` e no OpenAPI.
+
+A validação Pillow limita imagens a 20 MP e rejeita animações/arquivos inválidos,
+corrige a orientação EXIF, remove metadados e reduz o lado a 2048 px. Todo o
+processamento ocorre em memória; não utiliza UploadFile/arquivos temporários.
+O modelo configurado em OPENAI_MODEL deve aceitar visão (padrão gpt-4.1-mini).
+O Agents SDK envia `input_image`, com armazenamento/tracing desabilitados e sem
+ferramentas comerciais. O resultado é AgentResponse, sem sessão ou chamada MCP.
+Ingredientes são INFERRED/confirmado=false e quantidade/unidade ficam null.
+Sem texto complementar, o contexto reconhecido também fica vazio.
+
+Erros: 413 tamanho/resolução, 415 formato/animação, 422 dados inválidos, 503 chave
+não configurada, 504 timeout, 502 falha de análise. Erros nunca devolvem base64.
+Uma imagem ilegível/sem alimentos pode produzir uma lista vazia para correção ou
+nova captura. Uma análise bem-sucedida não comprova validade ou segurança.
+
+Referência: [OpenAI — imagens e visão](https://developers.openai.com/api/docs/guides/images-vision).

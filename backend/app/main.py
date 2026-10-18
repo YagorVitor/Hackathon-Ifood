@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from . import ifood_mcp
 from .agent import run_agent
@@ -13,6 +13,7 @@ from .contracts import AgentRequest, AgentResponse, SearchCriteria, UserContext
 from .recommendations import build_refinements
 from .oauth import IfoodOAuth
 from .settings import Settings
+from .vision import ImageParseRequest, MAX_REQUEST_BYTES, extract_image, prepare_image
 
 
 @asynccontextmanager
@@ -139,6 +140,37 @@ async def agent_test(payload: AgentRequest, request: Request) -> AgentResponse:
             tool="searchOffers" if execution.mcp_called else None,
             session_id=session_id, data=execution.output,
         )
+
+
+@app.post('/api/context/parse-image', response_model=AgentResponse, openapi_extra={
+    'requestBody': {'required': True, 'content': {'application/json': {'schema': ImageParseRequest.model_json_schema()}}},
+})
+async def parse_image(request: Request) -> AgentResponse:
+    if request.headers.get('content-type', '').split(';')[0].strip() != 'application/json':
+        raise HTTPException(415, 'Envie a imagem como JSON.')
+    # Leitura limitada antes do parse; UploadFile poderia gravar fotos em disco.
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > MAX_REQUEST_BYTES:
+            raise HTTPException(413, 'A imagem deve ter no máximo 5 MB.')
+        body.extend(chunk)
+    try:
+        payload = ImageParseRequest.model_validate_json(bytes(body))
+    except ValidationError:
+        # Não devolver errors()/input: podem conter a fotografia em base64.
+        raise HTTPException(422, 'Imagem ou texto inválido. Use JPEG, PNG ou WebP de até 5 MB.') from None
+    if not os.getenv('OPENAI_API_KEY'):
+        raise HTTPException(503, 'A análise de imagens está indisponível no momento.')
+    try:
+        image = await asyncio.to_thread(prepare_image, payload.image_data_url)
+        output = await asyncio.wait_for(extract_image(image, payload.message), timeout=90)
+    except HTTPException:
+        raise
+    except TimeoutError as exc:
+        raise HTTPException(504, 'A análise da foto demorou demais. Tente novamente ou descreva os ingredientes.') from exc
+    except Exception as exc:
+        raise HTTPException(502, 'Não foi possível analisar a foto. Tente outra imagem ou descreva os ingredientes.') from exc
+    return AgentResponse(response=output.mensagem, mcpToolCalled=False, tool=None, session_id=None, data=output)
 
 
 @app.delete("/api/agent/sessions/{session_id}")

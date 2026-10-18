@@ -17,6 +17,9 @@
           "title": "Pergunta Tags",
           "type": "boolean"
         },
+        "contexto_reconhecido": {
+          "$ref": "#/$defs/RecognizedContext"
+        },
         "ingredientes_reconhecidos": {
           "items": {
             "$ref": "#/$defs/RecognizedIngredient"
@@ -192,6 +195,83 @@
         "justificativa"
       ],
       "title": "MealOption",
+      "type": "object"
+    },
+    "RecognizedContext": {
+      "additionalProperties": false,
+      "description": "Detalhes extraídos do texto, sujeitos à revisão antes de virar contexto.",
+      "properties": {
+        "objetivo": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "minLength": 1,
+              "strip_whitespace": true,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Objetivo"
+        },
+        "pessoas": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pessoas"
+        },
+        "tempo_min": {
+          "anyOf": [
+            {
+              "maximum": 1440,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tempo Min"
+        },
+        "orcamento_centavos": {
+          "anyOf": [
+            {
+              "maximum": 100000000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Orcamento Centavos"
+        },
+        "provenance": {
+          "const": "INFERRED",
+          "default": "INFERRED",
+          "title": "Provenance",
+          "type": "string"
+        },
+        "confirmado": {
+          "const": false,
+          "default": false,
+          "title": "Confirmado",
+          "type": "boolean"
+        }
+      },
+      "title": "RecognizedContext",
       "type": "object"
     },
     "RecognizedIngredient": {

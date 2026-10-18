@@ -168,7 +168,8 @@ def finalize(draft: AgentDraft, context: UserContext, observed: list[ObservedPro
     costs = [calculate_costs(products, context, i) for i in range(len(options)) if any(p.opcao_indice == i for p in products)]
     return AgentOutput(
         mensagem=message, pergunta_tags=question,
-        ingredientes_reconhecidos=draft.ingredientes_reconhecidos, opcoes=options,
+        ingredientes_reconhecidos=draft.ingredientes_reconhecidos,
+        contexto_reconhecido=draft.contexto_reconhecido, opcoes=options,
         produtos=products, buscas=searches, custos=costs,
         limitacoes=list(dict.fromkeys(limitations)),
     )

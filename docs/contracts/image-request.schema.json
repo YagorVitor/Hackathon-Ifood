@@ -1,0 +1,22 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "message": {
+      "default": "",
+      "maxLength": 4000,
+      "title": "Message",
+      "type": "string"
+    },
+    "image_data_url": {
+      "maxLength": 7023276,
+      "minLength": 1,
+      "title": "Image Data Url",
+      "type": "string"
+    }
+  },
+  "required": [
+    "image_data_url"
+  ],
+  "title": "ImageParseRequest",
+  "type": "object"
+}
