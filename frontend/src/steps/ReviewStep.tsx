@@ -36,8 +36,8 @@ export function ReviewStep({
   const add = () => {
     const nome = newName.trim()
     if (!nome) return setAddError('Digite o nome do ingrediente.')
-    if (items.some((i) => normalized(i.nome) === normalized(nome))) return setAddError(`"${nome}" já está na lista.`)
-    if (items.length >= LIMITS.items) return setAddError(`Limite de ${LIMITS.items} ingredientes.`)
+    if (items.some((i) => normalized(i.nome) === normalized(nome))) return setAddError(t('"{item}" já está na lista.', { item: nome }))
+    if (items.length >= LIMITS.items) return setAddError(t('Limite de {count} ingredientes.', { count: LIMITS.items }))
     onItems([...items, { key: newKey(), nome, quantidade: '', unidade: '', origem: 'DECLARED' }])
     setNewName('')
     setAddError(null)
@@ -79,7 +79,7 @@ export function ReviewStep({
           <h3 className="text-lg font-bold">{t("O que você tem")}</h3>
           <p className="text-sm text-ink-muted">
             {inferredCount > 0
-              ? photoBased ? t("Possíveis ingredientes reconhecidos na foto. Confira os nomes: a imagem não comprova quantidade, validade ou segurança.") : 'Reconhecidos pela IA. Confira os nomes; quantidade e unidade são opcionais.'
+              ? photoBased ? t("Possíveis ingredientes reconhecidos na foto. Confira os nomes: a imagem não comprova quantidade, validade ou segurança.") : t('Reconhecidos pela IA. Confira os nomes; quantidade e unidade são opcionais.')
               : t("Confira a lista. Quantidade e unidade são opcionais.")}
           </p>
         </div>
@@ -139,14 +139,14 @@ export function ReviewStep({
             <input id="new-item" className={inputCls} placeholder={t("Adicionar ingrediente")} value={newName} maxLength={LIMITS.text}
               aria-invalid={!!addError} aria-describedby={addError ? 'new-item-err' : undefined}
               onChange={(e) => { setNewName(e.target.value); setAddError(null) }} disabled={loading} />
-            {addError && <p id="new-item-err" className="mt-1 text-sm font-semibold text-tomato">{addError}</p>}
+            {addError && <p id="new-item-err" className="mt-1 text-sm font-semibold text-tomato">{t(addError)}</p>}
           </div>
           <Button type="submit" variant="secondary" icon="plus" full={false} disabled={loading}>{t("Adicionar")}</Button>
         </form>
       </Card>
 
       <details className="preferences-disclosure objective-disclosure" open={Object.keys(fieldErrors).length ? true : undefined}>
-        <summary><span className="objective-summary"><span className="flex items-center gap-2"><Icon name="bowl" className="size-5" />{t(" Seu pedido")}</span><span className="objective-preview">{[fields.objetivo, fields.pessoas && `${fields.pessoas} pessoas`, fields.tempo && `${fields.tempo} min`, fields.orcamento && `até R$ ${fields.orcamento}`].filter(Boolean).join(' · ') || t("Objetivo, pessoas, tempo e orçamento são opcionais.")}</span></span><span className="optional-label">{t("Ajustar +")}</span></summary>
+        <summary><span className="objective-summary"><span className="flex items-center gap-2"><Icon name="bowl" className="size-5" />{t(" Seu pedido")}</span><span className="objective-preview">{[fields.objetivo, fields.pessoas && t('{count} pessoas', { count: fields.pessoas }), fields.tempo && `${fields.tempo} min`, fields.orcamento && t('até R$ {amount}', { amount: fields.orcamento })].filter(Boolean).join(' · ') || t("Objetivo, pessoas, tempo e orçamento são opcionais.")}</span></span><span className="optional-label">{t("Ajustar +")}</span></summary>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {field('objetivo', t("Objetivo"), { placeholder: 'ex.: jantar' })}
           {field('pessoas', t("Pessoas"), { inputMode: 'numeric', placeholder: 'ex.: 2' })}

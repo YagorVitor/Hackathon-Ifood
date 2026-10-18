@@ -425,5 +425,10 @@ export const en: Record<string, string> = {
   "A quantidade deve ser um número maior que zero (ou deixe em branco).": "Quantity must be greater than zero (or leave blank).",
   "Latitude": "Latitude",
   "Longitude": "Longitude",
-  "Processando seu pedido. Aguarde.": "Processing your request. Please wait."
+  "Processando seu pedido. Aguarde.": "Processing your request. Please wait.",
+  "Reconhecidos pela IA. Confira os nomes; quantidade e unidade são opcionais.": "Recognised by AI. Check the names; quantity and unit are optional.",
+  "{count} pessoas": "{count} people",
+  "até R$ {amount}": "up to R$ {amount}",
+  "\"{item}\" já está na lista.": "\"{item}\" is already in the list.",
+  "Limite de {count} ingredientes.": "Limit of {count} ingredients."
 }

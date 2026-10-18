@@ -219,7 +219,11 @@ async def run_agent(
     prompt["localizacao_disponivel"] = context.localizacao is not None
     agent = Agent(
         name="Despensa Reversa", model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
-        instructions=AGENT_INSTRUCTIONS, tools=[search_market_items], output_type=AgentDraft,
+        instructions=AGENT_INSTRUCTIONS + (
+            "\nIDIOMA DESTA EXECUÇÃO: inglês (en). Escreva mensagem, justificativas, títulos e limitações em inglês, mesmo quando a mensagem do aplicativo estiver em português. Preserve nomes comerciais observados e IDs."
+            if context.idioma_resposta == "en" else
+            "\nIDIOMA DESTA EXECUÇÃO: português brasileiro (pt-BR)."
+        ), tools=[search_market_items], output_type=AgentDraft,
         model_settings=ModelSettings(max_tokens=2200, parallel_tool_calls=False, store=False),
     )
     result = await Runner.run(

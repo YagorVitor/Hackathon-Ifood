@@ -30,6 +30,7 @@ class LanguageTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn('"en"', prompt)
             self.assertEqual(len(agent.tools), 1)
             self.assertIn('Preserve os nomes', agent.instructions)
+            self.assertIn('IDIOMA DESTA EXECUÇÃO: inglês (en)', agent.instructions)
             return SimpleNamespace(final_output=AgentDraft(mensagem='Review your ingredients.'))
         with patch('app.agent.Runner.run', side_effect=runner):
             result = await run_agent(AgentEnvelope(mensagem_usuario='Rice', contexto=UserContext(idioma_resposta='en')), mcp_url='https://example.invalid', get_access_token=AsyncMock(side_effect=AssertionError('OAuth must stay lazy')))

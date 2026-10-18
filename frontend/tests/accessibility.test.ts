@@ -7,6 +7,7 @@ import { DEFAULT_SETTINGS, getSettings, parseSettings, updateSettings } from '..
 import { t } from '../src/accessibility/i18n'
 import { appendTranscript, finalTranscripts, recognitionConstructor, speechChunks } from '../src/accessibility/speech'
 import { CaptureStep } from '../src/steps/CaptureStep'
+import { ReviewStep } from '../src/steps/ReviewStep'
 import { OptionsStep } from '../src/steps/OptionsStep'
 import { SpeakButton } from '../src/components/SpeakButton'
 import { buildContext, emptyFields, emptyTags } from '../src/flow'
@@ -95,4 +96,13 @@ test('normal text and semantic text meet 4.5:1 contrast in both base themes', ()
       assert.ok(contrast >= 4.5, `${fg}/${bg}: ${contrast}`)
     }
   }
+})
+
+test('review translates inferred ingredient guidance and people summary', () => {
+  updateSettings({ language: 'en' })
+  const html = renderToStaticMarkup(createElement(ReviewStep, { photoBased: false, text: 'rice', agentMessage: '', items: [{ key: 'rice', nome: 'rice', quantidade: '', unidade: '', origem: 'INFERRED' }], onItems() {}, fields: { ...emptyFields, pessoas: '2' }, onFields() {}, onConfirm() {}, onEditText() {}, loading: false, error: null, onProfile() {} }))
+  assert.match(html, /Recognised by AI. Check the names/)
+  assert.match(html, /2 people/)
+  assert.doesNotMatch(html, /2 pessoas|Reconhecidos pela IA/)
+  updateSettings(DEFAULT_SETTINGS)
 })
