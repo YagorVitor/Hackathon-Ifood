@@ -23,6 +23,16 @@ frontend: OAuth do iFood e chave da OpenAI vivem só no backend.
 
 ## Fluxo (docs/HACKATHON_CONTEXT.md §4 e §10)
 
+A tela inicial oferece `Conectar conta iFood`, também disponível no cabeçalho.
+É opcional para organizar a despensa e obter ideias; a conexão só é exigida para
+consultar o Mercado. O login abre outra aba e preserva texto, foto e revisão.
+Ao retornar a qualquer etapa, o app consulta `/auth/status` novamente. Enquanto
+um login solicitado estiver pendente, verifica o status a cada três segundos
+com a aba visível, por até cinco minutos. Há também verificação manual.
+O callback confirma a conexão e orienta a voltar ao app, sem mostrar ferramentas técnicas.
+Isso não cria um cadastro próprio nem importa perfil, restrições ou endereços.
+Veja [AUTENTICACAO-IFOOD.md](../docs/AUTENTICACAO-IFOOD.md).
+
 1. **Sua despensa** — texto livre, foto pela câmera ou upload (JPEG/PNG/WebP, até 5 MB). A foto tem prévia e pode ser removida antes do envio. O agente extrai ingredientes e `contexto_reconhecido`
    (objetivo, pessoas, tempo e orçamento explicitamente mencionados), todos ainda `INFERRED`.
    A pessoa confere uma revisão compacta; nomes e quantidades podem ser corrigidos.
