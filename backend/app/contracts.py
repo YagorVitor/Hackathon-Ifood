@@ -172,6 +172,7 @@ class CostSummary(Contract):
 
 
 class SearchEvidence(Contract):
+    vertical: Literal["RESTAURANT", "GROCERIES", "LIQUORSTORE", "DRUGSTORE", "PETSTORE", "SHOPPING"] | None = None
     query: str
     restricoes_aplicadas: list[ItemRestriction]
     status: Literal["success", "empty", "error"]

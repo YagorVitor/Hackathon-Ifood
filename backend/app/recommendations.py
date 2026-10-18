@@ -76,6 +76,8 @@ def observe_products(response: dict[str, Any], start: int = 0) -> tuple[list[Obs
         merchant = row.get("merchant")
         if not isinstance(merchant, dict):
             merchant = {}
+        if merchant.get("isOpen") is False:
+            continue
         ids = (row.get("itemId"), merchant.get("merchantId"), row.get("itemName"))
         if not all(isinstance(v, str) and 0 < len(v) <= 300 for v in ids):
             rejected = True

@@ -62,9 +62,21 @@ Planejamento e busca:
   retorne somente essa opção e procure seus faltantes, sem criar novas alternativas.
 - Se a pessoa quer apenas ideias e não precisa comprar, não chame ferramentas.
 - Busque somente se a pessoa pedir busca/compra, escolher uma opção com faltantes
-  ou solicitar explicitamente consultar o iFood Mercado. Sem localização válida,
+  ou solicitar explicitamente consultar o iFood. Sem localização válida,
   peça a localização pela aplicação. Nunca infira coordenadas da conversa.
-- search_market_items recebe só o termo descritivo. No máximo três buscas focadas;
+- Mercado é adequado para ingredientes e reposição (merchant_type=GROCERIES).
+  Para refeição pronta, lanche ou acompanhamento pronto, considere CONVENIENCE
+  e restaurantes (merchant_type=RESTAURANT), preservando objetivo e restrições.
+  Quando a necessidade puder ser atendida em várias verticais, omita merchant_type:
+  a busca considera o catálogo iFood sem limitar a categoria. Não limite sempre
+  a conveniência a produtos de supermercado. Não force compra quando há preparo
+  viável com a despensa. Outras verticais só para necessidades explícitas pertinentes.
+- A ferramenta filtra parceiros abertos via onlyOpen=true. Nunca conclua que todas
+  as lojas fecharam pelo relógio: use os resultados reais do destino. Resposta vazia
+  em uma vertical amplia automaticamente a mesma busca para o catálogo geral,
+  dentro do limite de consultas. Não relaxe preferências nem troque um ingrediente
+  por uma refeição pronta sem uma nova opção escolhida pela pessoa.
+- search_market_items recebe o termo descritivo e merchant_type opcional. No máximo três buscas focadas;
   repetições idênticas usam cache. Filtros declarados são aplicados pelo backend
   em refinements.itemRestrictions e outros campos anunciados pelo MCP.
 - Os filtros estruturados são os do contexto, não invente filtros aplicados.
@@ -117,8 +129,8 @@ async def run_agent(
     tool_lock = asyncio.Lock()
 
     @function_tool
-    async def search_market_items(query: str) -> str:
-        """Busca um ingrediente ou produto no iFood Mercado, somente leitura.
+    async def search_market_items(query: str, merchant_type: ifood_mcp.MerchantType | None = None) -> str:
+        """Busca no iFood, somente leitura. Sem merchant_type, consulta todas as verticais.
 
         Passe conteúdo descritivo, sem preço, frete ou distância. Os filtros
         estruturados declarados no contexto são aplicados pela aplicação.
@@ -130,7 +142,7 @@ async def run_agent(
         if context.localizacao is None:
             return '{"error":"MISSING_LOCATION: solicite a localização na aplicação antes da busca."}'
         async with tool_lock:
-            cache_key = query.casefold()
+            cache_key = f"{merchant_type or 'ALL'}:{query.casefold()}"
             if cache_key in cached:
                 return cached[cache_key]
             if len(searches) >= MAX_MARKET_SEARCHES_PER_RUN:
@@ -141,32 +153,45 @@ async def run_agent(
                 auth_error = exc
                 return '{"error":"AUTH_REQUIRED: conecte a conta iFood antes de buscar."}'
             mcp_called = True
-            try:
-                response = await ifood_mcp.search_groceries(
-                    mcp_url=mcp_url, access_token=token, query=query,
-                    latitude=context.localizacao.latitude,
-                    longitude=context.localizacao.longitude,
-                    refinements=refinements,
-                )
-                products, error = observe_products(response, start=len(observed))
-                observed.extend(products)
-                if error:
-                    notes.append(error)
-                status = "success" if products else ("error" if error else "empty")
-                if status == "empty":
-                    notes.append(f"Nenhum produto utilizável encontrado para {query}.")
-            except HTTPException:
-                products, status = [], "error"
-                notes.append("A consulta ao MCP falhou; não há dados comerciais confirmados para essa busca.")
-            searches.append(SearchEvidence(
-                query=query, restricoes_aplicadas=refinements.get("itemRestrictions", []),
-                status=status, quantidade_resultados=len(products),
-            ))
+
+            async def lookup(vertical: ifood_mcp.MerchantType | None) -> tuple[list[ObservedProduct], str]:
+                nonlocal auth_error
+                try:
+                    response = await ifood_mcp.search_items(
+                        mcp_url=mcp_url, access_token=token, query=query,
+                        latitude=context.localizacao.latitude,
+                        longitude=context.localizacao.longitude,
+                        refinements=refinements, merchant_type=vertical,
+                    )
+                    products, error = observe_products(response, start=len(observed))
+                    observed.extend(products)
+                    if error:
+                        notes.append(error)
+                    status = "success" if products else ("error" if error else "empty")
+                    if status == "empty":
+                        notes.append(f"Nenhum produto utilizável encontrado para {query} ({vertical or 'todas as verticais'}).")
+                except HTTPException as exc:
+                    if exc.status_code in (401, 403):
+                        auth_error = exc
+                    products, status = [], "error"
+                    notes.append("A consulta ao MCP falhou; não há dados comerciais confirmados para essa busca.")
+                searches.append(SearchEvidence(
+                    query=query, vertical=vertical, restricoes_aplicadas=refinements.get("itemRestrictions", []),
+                    status=status, quantidade_resultados=len(products),
+                ))
+                return products, status
+
+            products, status = await lookup(merchant_type)
+            expanded = status == "empty" and merchant_type is not None and len(searches) < MAX_MARKET_SEARCHES_PER_RUN
+            if expanded:
+                products, status = await lookup(None)
             cached[cache_key] = json.dumps({
                 "status": status,
                 "produtos": [p.model_dump(mode="json") for p in products],
-                "refinements_aplicados": refinements,
-                "aviso": "Observações MCP; ausência de alérgenos e total final não verificados.",
+                "vertical_solicitada": merchant_type,
+                "busca_ampliada": expanded,
+                "refinements_aplicados": {**refinements, "onlyOpen": True},
+                "aviso": "Observações MCP; ausência de alérgenos, disponibilidade final e total não verificados.",
             }, ensure_ascii=False)
             return cached[cache_key]
 

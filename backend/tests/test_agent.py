@@ -158,7 +158,7 @@ class AgentTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(json.loads(reply)['status'],'success')
             return NS(final_output=draft(opcoes=[meal()],selecoes=[choose()]))
         ctx=context(localizacao=Location(latitude=12.345678,longitude=0),tags_declaradas=DeclaredTags(preferencias=['VEGAN']))
-        with patch('app.agent.Runner.run',side_effect=fake),patch('app.agent.ifood_mcp.search_groceries',new=AsyncMock(return_value=catalogue())) as search:
+        with patch('app.agent.Runner.run',side_effect=fake),patch('app.agent.ifood_mcp.search_items',new=AsyncMock(return_value=catalogue())) as search:
             result=await run_agent(AgentEnvelope(mensagem_usuario='Busque complemento',contexto=ctx),mcp_url='https://example.invalid',get_access_token=AsyncMock(return_value='SECRET_TOKEN'))
         self.assertTrue(result.mcp_called)
         self.assertEqual(search.await_args.kwargs['refinements']['itemRestrictions'],['VEGAN'])
@@ -170,7 +170,7 @@ class AgentTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn('MISSING_LOCATION',text)
             return NS(final_output=draft(mensagem='Informe a localização.'))
         token=AsyncMock()
-        with patch('app.agent.Runner.run',side_effect=fake),patch('app.agent.ifood_mcp.search_groceries',new=AsyncMock()) as search:
+        with patch('app.agent.Runner.run',side_effect=fake),patch('app.agent.ifood_mcp.search_items',new=AsyncMock()) as search:
             result=await run_agent(AgentEnvelope(mensagem_usuario='Busque'),mcp_url='https://example.invalid',get_access_token=token)
         self.assertFalse(result.mcp_called)
         token.assert_not_awaited()
@@ -183,7 +183,7 @@ class AgentTests(unittest.IsolatedAsyncioTestCase):
                 for q in ['cebola','CEBOLA','tomate','cenoura','alho']))
             self.assertTrue(any('Limite' in text for text in replies))
             return NS(final_output=draft())
-        with patch('app.agent.Runner.run',side_effect=fake),patch('app.agent.ifood_mcp.search_groceries',new=AsyncMock(return_value=catalogue())) as search:
+        with patch('app.agent.Runner.run',side_effect=fake),patch('app.agent.ifood_mcp.search_items',new=AsyncMock(return_value=catalogue())) as search:
             result=await run_agent(AgentEnvelope(mensagem_usuario='Busque',contexto=context(localizacao=Location(latitude=0,longitude=0))),mcp_url='https://example.invalid',get_access_token=AsyncMock(return_value='test'))
         self.assertEqual(search.await_count,3)
         self.assertEqual(len(result.output.buscas),3)
@@ -273,11 +273,11 @@ class RegressionTests(unittest.IsolatedAsyncioTestCase):
     async def test_only_transport_failures_are_retried_once(self):
         failure=HTTPException(502,'Falha de transporte')
         failure.__cause__=httpx2.ConnectError('synthetic test transport')
-        with patch('app.ifood_mcp._search_groceries_once',new=AsyncMock(side_effect=[failure,catalogue()])) as read:
+        with patch('app.ifood_mcp._search_items_once',new=AsyncMock(side_effect=[failure,catalogue()])) as read:
             result=await ifood_mcp.search_groceries(mcp_url='https://example.invalid',access_token='test',query='tomate',latitude=0,longitude=0)
             self.assertFalse(result['isError'])
             self.assertEqual(read.await_count,2)
-        with patch('app.ifood_mcp._search_groceries_once',new=AsyncMock(side_effect=HTTPException(502,'Schema inválido'))) as read:
+        with patch('app.ifood_mcp._search_items_once',new=AsyncMock(side_effect=HTTPException(502,'Schema inválido'))) as read:
             with self.assertRaises(HTTPException): await ifood_mcp.search_groceries(mcp_url='https://example.invalid',access_token='test',query='tomate',latitude=0,longitude=0)
             self.assertEqual(read.await_count,1)
 
@@ -290,5 +290,63 @@ class RegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(next_envelope.historico_resumido,[])
         self.assertEqual(store._sessions[sid].history,[])
         self.assertFalse(store._sessions[sid].context.consentimento_dados_sensiveis)
+
+class MarketplaceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_general_restaurant_and_grocery_queries_use_live_schema_and_open_filter(self):
+        client=AsyncMock()
+        client.list_tools.return_value=NS(tools=[NS(name='searchOffers',input_schema=SCHEMA)])
+        client.call_tool.return_value=NS(is_error=False,structured_content=dict(results=[]))
+        manager=AsyncMock(); manager.__aenter__.return_value=client
+        with patch('app.ifood_mcp._connected_client',new=AsyncMock(return_value=(AsyncMock(),object()))),patch('app.ifood_mcp.Client',return_value=manager):
+            for vertical in (None,'RESTAURANT','GROCERIES','PETSTORE'):
+                await ifood_mcp.search_items(mcp_url='https://example.invalid',access_token='test',query='produto',latitude=0,longitude=0,merchant_type=vertical,refinements={'itemRestrictions':['VEGAN']})
+                args=client.call_tool.await_args.args[1]
+                self.assertEqual(args.get('merchantType'),vertical)
+                self.assertEqual('merchantType' in args,vertical is not None)
+                self.assertTrue(args['refinements']['onlyOpen'])
+                self.assertEqual(args['refinements']['itemRestrictions'],['VEGAN'])
+                self.assertTrue(Draft202012Validator(SCHEMA).is_valid(args))
+
+    async def test_empty_vertical_expands_once_preserving_filters_and_cache(self):
+        async def fake(agent,prompt,**kwargs):
+            invoke=agent.tools[0].on_invoke_tool
+            for _ in range(2):
+                reply=json.loads(await invoke(ToolContext(context=None,tool_name='search_market_items',tool_call_id='test',tool_arguments='{}'),json.dumps({'query':'petisco','merchant_type':'RESTAURANT'})))
+                self.assertTrue(reply['busca_ampliada'])
+                self.assertEqual(reply['status'],'success')
+            return NS(final_output=draft())
+        ctx=context(localizacao=Location(latitude=0,longitude=0),tags_declaradas=DeclaredTags(preferencias=['VEGAN']))
+        with patch('app.agent.Runner.run',side_effect=fake),patch('app.agent.ifood_mcp.search_items',new=AsyncMock(side_effect=[dict(isError=False,result=dict(results=[])),catalogue()])) as search:
+            result=await run_agent(AgentEnvelope(mensagem_usuario='Busque',contexto=ctx),mcp_url='https://example.invalid',get_access_token=AsyncMock(return_value='test'))
+        self.assertEqual(search.await_count,2)
+        self.assertEqual([c.kwargs['merchant_type'] for c in search.await_args_list],['RESTAURANT',None])
+        self.assertEqual(search.await_args_list[0].kwargs['refinements'],search.await_args_list[1].kwargs['refinements'])
+        self.assertEqual([b.vertical for b in result.output.buscas],['RESTAURANT',None])
+        self.assertEqual([b.status for b in result.output.buscas],['empty','success'])
+
+    async def test_error_does_not_expand_and_is_not_reclassified_as_closed(self):
+        async def fake(agent,prompt,**kwargs):
+            reply=json.loads(await agent.tools[0].on_invoke_tool(ToolContext(context=None,tool_name='search_market_items',tool_call_id='test',tool_arguments='{}'),json.dumps({'query':'petisco','merchant_type':'RESTAURANT'})))
+            self.assertFalse(reply['busca_ampliada'])
+            self.assertEqual(reply['status'],'error')
+            return NS(final_output=draft())
+        with patch('app.agent.Runner.run',side_effect=fake),patch('app.agent.ifood_mcp.search_items',new=AsyncMock(side_effect=HTTPException(502,'offline'))) as search:
+            result=await run_agent(AgentEnvelope(mensagem_usuario='Busque',contexto=context(localizacao=Location(latitude=0,longitude=0))),mcp_url='https://example.invalid',get_access_token=AsyncMock(return_value='test'))
+        self.assertEqual(search.await_count,1)
+        self.assertEqual(result.output.buscas[0].status,'error')
+
+    async def test_expansion_cannot_exceed_global_query_budget(self):
+        async def fake(agent,prompt,**kwargs):
+            for q in ('cebola','tomate','cenoura'):
+                await agent.tools[0].on_invoke_tool(ToolContext(context=None,tool_name='search_market_items',tool_call_id='test',tool_arguments='{}'),json.dumps({'query':q,'merchant_type':'GROCERIES'}))
+            return NS(final_output=draft())
+        with patch('app.agent.Runner.run',side_effect=fake),patch('app.agent.ifood_mcp.search_items',new=AsyncMock(return_value=dict(isError=False,result=dict(results=[])))) as search:
+            result=await run_agent(AgentEnvelope(mensagem_usuario='Busque',contexto=context(localizacao=Location(latitude=0,longitude=0))),mcp_url='https://example.invalid',get_access_token=AsyncMock(return_value='test'))
+        self.assertEqual(search.await_count,3)
+        self.assertEqual(len(result.output.buscas),3)
+
+    async def test_explicitly_closed_merchants_are_not_commercial_evidence(self):
+        response=catalogue(); response['result']['results'][0]['merchant']['isOpen']=False
+        self.assertEqual(observe_products(response),([],None))
 
 if __name__=='__main__': unittest.main()

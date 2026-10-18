@@ -3,7 +3,7 @@
 import json
 import asyncio
 import logging
-from typing import Any
+from typing import Any, Literal
 
 import httpx2
 from fastapi import HTTPException
@@ -53,7 +53,10 @@ def _tool_result_payload(result: Any) -> Any:
     return payload
 
 
-async def _search_groceries_once(
+MerchantType = Literal["RESTAURANT", "GROCERIES", "LIQUORSTORE", "DRUGSTORE", "PETSTORE", "SHOPPING"]
+
+
+async def _search_items_once(
     *,
     mcp_url: str,
     access_token: str,
@@ -61,6 +64,7 @@ async def _search_groceries_once(
     latitude: float,
     longitude: float,
     refinements: dict[str, Any] | None = None,
+    merchant_type: MerchantType | None = None,
 ) -> Any:
     http_client, transport = await _connected_client(mcp_url, access_token)
     try:
@@ -76,15 +80,15 @@ async def _search_groceries_once(
                 arguments = {
                         "query": query,
                         "resultKind": "ITEM",
-                        "merchantType": "GROCERIES",
                         "userLocation": {
                             "latitude": latitude,
                             "longitude": longitude,
                         },
                         "pageSize": 5,
                     }
-                if refinements:
-                    arguments["refinements"] = refinements
+                if merchant_type is not None:
+                    arguments["merchantType"] = merchant_type
+                arguments["refinements"] = {**(refinements or {}), "onlyOpen": True}
                 if not Draft202012Validator(tool.input_schema).is_valid(arguments):
                     raise HTTPException(502, "Os argumentos não correspondem ao schema anunciado de searchOffers.")
                 result = await client.call_tool("searchOffers", arguments)
@@ -97,10 +101,7 @@ async def _search_groceries_once(
         raise
     except Exception as exc:
         logging.getLogger(__name__).warning("MCP searchOffers falhou (%s)", type(exc).__name__)
-        raise HTTPException(
-            status_code=502,
-            detail="A chamada searchOffers ao MCP do iFood falhou.",
-        ) from exc
+        raise tool_failure("searchOffers", exc) from exc
 
 
 def tool_failure(name: str, exc: Exception) -> HTTPException:
@@ -168,21 +169,34 @@ def _transient(exc: BaseException | None) -> bool:
     return False
 
 
-async def search_groceries(
+async def search_items(
     *, mcp_url: str, access_token: str, query: str, latitude: float,
     longitude: float, refinements: dict[str, Any] | None = None,
+    merchant_type: MerchantType | None = None,
 ) -> Any:
     """No máximo um retry de transporte para esta operação exclusivamente de leitura."""
     for attempt in range(2):
         try:
-            return await _search_groceries_once(
+            return await _search_items_once(
                 mcp_url=mcp_url, access_token=access_token, query=query,
-                latitude=latitude, longitude=longitude, refinements=refinements,
+                latitude=latitude, longitude=longitude, refinements=refinements, merchant_type=merchant_type,
             )
         except HTTPException as exc:
             if attempt or not _transient(exc.__cause__):
                 raise
             await asyncio.sleep(0.2)
+
+
+async def search_groceries(
+    *, mcp_url: str, access_token: str, query: str, latitude: float,
+    longitude: float, refinements: dict[str, Any] | None = None,
+) -> Any:
+    """Compatibilidade com a rota explícita de Mercado; o agente usa search_items."""
+    return await search_items(
+        mcp_url=mcp_url, access_token=access_token, query=query,
+        latitude=latitude, longitude=longitude, refinements=refinements,
+        merchant_type="GROCERIES",
+    )
 
 
 async def search_groceries_text(
