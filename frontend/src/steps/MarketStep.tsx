@@ -3,15 +3,14 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { ApiError } from '../api'
 import { Icon } from '../components/icons'
-import { AgentNote, Badge, Button, Card, Limitations, Loading, Notice, StageTitle, brl, focusRing, inputCls } from '../components/ui'
+import { AgentNote, Badge, Button, Card, Loading, Notice, StageTitle, brl, focusRing, inputCls } from '../components/ui'
 import { normalized, parseNumber } from '../flow'
-import type { AgentResponse, CostSummary, Location, McpTool, MealOption, SelectedProduct, OptionalComplement } from '../types'
-import { OptionalComplements } from '../components/OptionalComplements'
+import type { AgentResponse, CostSummary, Location, MealOption, SelectedProduct } from '../types'
 import { IngredientLine, StrategyTag } from './OptionsStep'
 import type { AuthState } from '../hooks/useIfoodConnection'
 
 export function MarketStep({
-  option, auth, onConnect, onRecheck, location, onLocation, onConsult, result, budgetCents, tools, loading, error, onBack, onRestart, onCart, addressPicker, cartEnabled, onConvenience, onComplement, onExploreComplements,
+  option, auth, onConnect, onRecheck, location, onLocation, onConsult, result, budgetCents, loading, error, onBack, onRestart, onCart, addressPicker, cartEnabled, onConvenience,
 }: {
   option: MealOption
   auth: AuthState
@@ -22,7 +21,6 @@ export function MarketStep({
   onConsult: () => void
   result: AgentResponse | null
   budgetCents: number | null
-  tools: McpTool[] | null
   loading: boolean
   error: ApiError | null
   onBack: () => void
@@ -30,8 +28,6 @@ export function MarketStep({
   onCart: (products: SelectedProduct[]) => void
   addressPicker: ReactNode
   cartEnabled: boolean
-  onComplement: (complement: OptionalComplement) => void
-  onExploreComplements: () => void
   onConvenience: () => void
 }) {
   const ready = auth === 'yes' && location !== null
@@ -84,7 +80,6 @@ export function MarketStep({
         </Card>
       )}
 
-      <OptionalComplements option={option} onChoose={onComplement} onExplore={onExploreComplements} disabled={loading} />
 
       {loading && <Loading label={t("Consultando o iFood…")} detail={t("O agente consulta parceiros abertos para o seu destino. Pode levar até um minuto.")} />}
       {error && !loading && (
@@ -118,15 +113,7 @@ export function MarketStep({
         </div>
       )}
 
-      {auth === 'yes' && tools && tools.length > 0 && (
-        <details className="rounded-2xl border border-line bg-surface p-4 text-sm">
-          <summary className={`cursor-pointer font-bold ${focusRing}`}>{t("Detalhes técnicos da integração")}</summary>
-          <ul className="mt-2 flex flex-wrap gap-1.5">
-            {tools.map((t) => <li key={t.name} className="rounded-md bg-surface-2 px-2 py-1 font-mono text-xs">{t.name}</li>)}
-          </ul>
-          <p className="mt-2 text-ink-muted">{t("O agente só tem acesso a ")}<code className="font-mono">searchOffers</code>{t(", em modo de leitura. O carrinho é criado pelo backend, só depois da sua confirmação.")}</p>
-        </details>
-      )}
+
     </div>
   )
 }
@@ -290,7 +277,6 @@ function MarketResult({ result, budgetCents, onCart, cartEnabled }: { result: Ag
         </Card>
       ))}
 
-      <Limitations items={data.limitacoes} />
 
       <Card className="space-y-2 border-dashed">
         <p className="flex items-center gap-2 font-bold"><Icon name="info" />{t(" Próximo passo")}</p>

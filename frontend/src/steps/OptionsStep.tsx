@@ -3,7 +3,7 @@ import { SpeakButton } from '../components/SpeakButton'
 import type { ApiError } from '../api'
 import { Icon } from '../components/icons'
 import type { IconName } from '../components/icons'
-import { AgentNote, Button, Card, Limitations, Loading, Notice, StageTitle, focusRing } from '../components/ui'
+import { AgentNote, Button, Card, Loading, Notice, StageTitle, focusRing } from '../components/ui'
 import type { MealOption, Strategy } from '../types'
 
 export const STRATEGY: Record<Strategy, { label: string; icon: IconName; cls: string }> = {
@@ -23,10 +23,9 @@ export function StrategyTag({ s }: { s: Strategy }) {
   )
 }
 
-export function OptionsStep({ message, options, limitations, onChoose, onEditItems, onEditTags, onRetry, loading, error }: {
+export function OptionsStep({ message, options, onChoose, onEditItems, onEditTags, onRetry, loading, error }: {
   message: string
   options: MealOption[]
-  limitations: string[]
   onChoose: (o: MealOption) => void
   onEditItems: () => void
   onEditTags: () => void
@@ -99,7 +98,6 @@ export function OptionsStep({ message, options, limitations, onChoose, onEditIte
               ))}
             </ul>
           )}
-          <Limitations items={limitations} />
         </>
       )}
     </div>

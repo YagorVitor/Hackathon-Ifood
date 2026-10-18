@@ -7,7 +7,7 @@ import { Icon } from './components/icons'
 import { Button, Notice, PROVENANCE, Badge, focusRing } from './components/ui'
 import { LIMITS, buildContext, emptyFields, emptyTags, fromRecognized, parseNumber, fromRecognizedContext } from './flow'
 import type { DeclaredFields, DraftItem } from './flow'
-import type { AgentResponse, DeclaredTags, Location, McpTool, MealOption, OptionalComplement, SelectedProduct, UserContext } from './types'
+import type { AgentResponse, DeclaredTags, Location, MealOption, SelectedProduct, UserContext } from './types'
 import { photoDataUrl } from './components/PhotoInput'
 import { IfoodConnection } from './components/IfoodConnection'
 import { useUserProfile } from './hooks/useUserProfile'
@@ -53,7 +53,6 @@ export default function App() {
   const [error, setError] = useState<ApiError | null>(null)
   const [backend, setBackend] = useState<'checking' | 'up' | 'down'>('checking')
   const { auth, connectionId, setAuth, waitingForLogin, connect, refreshAuth } = useIfoodConnection()
-  const [tools, setTools] = useState<McpTool[] | null>(null)
   const delivery = useDeliveryAddress(auth === 'yes' && (stage === 'market' || stage === 'cart'), connectionId)
   const address = delivery.selected
   const searchLocation = address?.latitude != null && address.longitude != null
@@ -84,7 +83,6 @@ export default function App() {
     setMarket(null)
     setCartProducts([])
     setLocation(null)
-    setTools(null)
     setStage(current => current === 'cart' ? 'market' : current)
   }, [connectionId])
 
@@ -97,12 +95,6 @@ export default function App() {
 
   useEffect(() => { checkBackend() }, [checkBackend])
 
-  useEffect(() => {
-    if (stage !== 'market' || auth !== 'yes' || tools !== null) return
-    let cancelled = false
-    api.tools().then(value => { if (!cancelled) setTools(value) }).catch(() => { if (!cancelled) setTools([]) })
-    return () => { cancelled = true }
-  }, [stage, auth, tools, connectionId])
 
   const mounted = useRef(false)
   useEffect(() => {
@@ -203,21 +195,6 @@ export default function App() {
     profile.save(t, false, profile.remember)
     setPlan(null)
     void runPlan(t, false)
-  }
-
-  function chooseComplement(complement: OptionalComplement) {
-    const parent = chosen?.titulo ?? 'sua refeição'
-    invalidateSearch()
-    choose({ titulo: `Complemento opcional: ${complement.nome}`, estrategia: 'CONVENIENCE',
-      usa: [], faltantes: [complement.nome], justificativa: `${complement.justificativa} Opcional para acompanhar ${parent}.`,
-      complementos_opcionais: [], provenance: 'INFERRED' })
-  }
-
-  function exploreComplements() {
-    if (!chosen) return
-    const request = `A refeição escolhida é ${JSON.stringify(chosen)}. Quero avaliar um acompanhamento OPCIONAL no iFood, sem mudar ou invalidar a refeição. Sugira até três opções CONVENIENCE de complementos genéricos compatíveis com meu perfil autorizado. Não busque produtos ainda: vou escolher. Não recompre itens do inventário.`
-    go('options')
-    void runPlan(tags, consent, request)
   }
 
   function choose(o: MealOption) {
@@ -334,7 +311,7 @@ export default function App() {
         )}
         {stage === 'options' && plan && (
           <OptionsStep
-            message={plan.data.mensagem} options={plan.data.opcoes} limitations={plan.data.limitacoes}
+            message={plan.data.mensagem} options={plan.data.opcoes}
             onChoose={choose} onEditItems={() => go('review')} onEditTags={openProfile}
             onRetry={() => void runPlan()} loading={busy === 'plan'} error={error}
           />
@@ -347,8 +324,7 @@ export default function App() {
             addressPicker={<DeliveryAddressPicker state={delivery.state} selected={address} disabled={busy !== null}
               onReconnect={connect}
               onSelect={(id) => { invalidateSearch(); delivery.select(id) }} onReload={() => { invalidateSearch(); delivery.reload() }} />}
-            tools={tools} loading={busy === 'market'} error={error} onBack={() => go('options')} onRestart={restart}
-            onComplement={chooseComplement} onExploreComplements={exploreComplements}
+            loading={busy === 'market'} error={error} onBack={() => go('options')} onRestart={restart}
             onCart={(products) => { setCartProducts(products); go('cart') }}
             onConvenience={() => { go('options'); void runPlan(tags, consent, `Não encontrei complementos adequados para a opção escolhida: ${JSON.stringify(chosen)}. Sugira até três alternativas CONVENIENCE de refeições ou acompanhamentos prontos no iFood que atendam meu objetivo, preferências e restrições. Não faça buscas ainda; vou escolher uma alternativa. Pedido original: ${text}`) }}
           />
@@ -360,7 +336,7 @@ export default function App() {
             onBack={() => go('market')} onRestart={restart}
           />
         )}
-        {stage === 'done' && chosen && <DoneStep option={chosen} onComplement={chooseComplement} onExplore={exploreComplements} onBack={() => go('options')} onRestart={restart} />}
+        {stage === 'done' && chosen && <DoneStep option={chosen} onBack={() => go('options')} onRestart={restart} />}
           </main>
           <aside className="context-sidebar" aria-label={t("Resumo da sua despensa")}>
             <div className="sidebar-card">

@@ -2,7 +2,7 @@ import { t } from '../accessibility/i18n'
 import { useEffect, useMemo, useState } from 'react'
 import { ApiError, api } from '../api'
 import { Icon } from '../components/icons'
-import { Badge, Button, Card, Chip, Limitations, Loading, Notice, StageTitle, brl, focusRing } from '../components/ui'
+import { Badge, Button, Card, Chip, Loading, Notice, StageTitle, brl, focusRing } from '../components/ui'
 import type { Address, CartProposal, CartResult, MealOption, SelectedProduct } from '../types'
 import { StrategyTag } from './OptionsStep'
 
@@ -239,14 +239,12 @@ function CartCreated({ result, address, onBack, onRestart }: { result: CartResul
         <p>{result.verificacao === 'confirmed' ? t("O iFood retornou os itens e quantidades da sua proposta.") : t("Não conseguimos confirmar todos os itens e quantidades com getCart. Evite criar outro carrinho antes de conferir este.")}{t(" Nenhum pedido foi enviado.")}</p>
         <p className="mt-2">{t("Não confirmamos que este carrinho aparece automaticamente na sacola principal do aplicativo.")}</p>
       </Notice>
-      {result.app_deeplink ? (
+      {result.app_deeplink && (
         <Card className="space-y-3">
           <a href={result.app_deeplink} className={`inline-flex min-h-11 items-center gap-2 rounded-xl bg-tomato px-4 py-3 font-bold text-white ${focusRing}`}>
             <Icon name="external" className="size-4" />{t("Abrir este carrinho no iFood ")}</a>
           <p className="text-sm text-ink-muted">{t("Link retornado pelo MCP para este carrinho. Abra no celular com o iFood instalado e a mesma conta autorizada aqui. Se o app não abrir este carrinho, a transferência ainda não foi confirmada.")}</p>
         </Card>
-      ) : (
-        <Notice tone="warn" title={t("Sem link para abrir o carrinho")}>{t(" O MCP não retornou um link válido. Abrir o app por conta própria não garante encontrar este carrinho na sacola. ")}</Notice>
       )}
 
       <Card className="space-y-4">
@@ -283,14 +281,6 @@ function CartCreated({ result, address, onBack, onRestart }: { result: CartResul
           <ul className="list-disc space-y-1 pl-4">{result.avisos.map((a) => <li key={a}>{a}</li>)}</ul>
         </Notice>
       )}
-      <Limitations items={result.limitacoes} />
-
-      <details className="rounded-2xl border border-line bg-surface p-4 text-sm">
-        <summary className={`cursor-pointer font-bold ${focusRing}`}>{t("Detalhes técnicos da integração")}</summary>
-        <p className="mt-2 text-ink-muted">{t(" Identificador retornado por ")}<code className="font-mono">createCart</code>.
-          {result.verificacao === 'confirmed' ? t(" Itens e quantidades conferidos com getCart.") : result.verificacao === 'mismatch' ? t(" getCart retornou conteúdo divergente ou identidade não confirmada.") : t(" Conteúdo não confirmado por getCart.")}{t(" Identificador: ")}<code className="font-mono break-all">{result.cart_id}</code>
-        </p>
-      </details>
 
       <div className="space-y-2">
         <Button variant="secondary" icon="back" onClick={onBack}>{t("Voltar aos produtos")}</Button>

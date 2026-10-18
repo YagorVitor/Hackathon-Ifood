@@ -73,13 +73,13 @@ test('failed persistence does not silently claim profile was saved', () => {
   assert.equal(loadProfile().remember, false)
 })
 
-test('a complete meal still offers an optional complement without creating missing ingredients', () => {
+test('a complete meal does not show the removed optional accompaniment section', () => {
   const option = { titulo: 'Arroz', estrategia: 'USE_WHAT_I_HAVE' as const, usa: ['arroz'], faltantes: [], justificativa: 'Aproveitar a despensa.', provenance: 'INFERRED' as const,
     complementos_opcionais: [{ nome: 'Salada', justificativa: 'Para acompanhar.', provenance: 'INFERRED' as const }] }
   const noop = () => {}
-  const html = renderToStaticMarkup(createElement(DoneStep, { option, onBack: noop, onRestart: noop, onComplement: noop, onExplore: noop }))
+  const html = renderToStaticMarkup(createElement(DoneStep, { option, onBack: noop, onRestart: noop }))
   assert.ok(html.includes('Nenhuma compra necessária'))
-  assert.ok(html.includes('Salada'))
-  assert.ok(html.includes('Buscar este complemento'))
+  assert.ok(!html.includes('Se quiser acompanhar'))
+  assert.ok(!html.includes('Sugerir um acompanhamento opcional'))
   assert.deepEqual(option.faltantes, [])
 })

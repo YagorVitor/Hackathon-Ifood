@@ -1,11 +1,10 @@
 import { t } from '../accessibility/i18n'
 import { SpeakButton } from '../components/SpeakButton'
 import { Badge, Button, Card, Notice, StageTitle } from '../components/ui'
-import type { MealOption, OptionalComplement } from '../types'
-import { OptionalComplements } from '../components/OptionalComplements'
+import type { MealOption } from '../types'
 import { IngredientLine, StrategyTag } from './OptionsStep'
 
-export function DoneStep({ option, onBack, onRestart, onComplement, onExplore }: { option: MealOption; onComplement: (complement: OptionalComplement) => void; onExplore: () => void; onBack: () => void; onRestart: () => void }) {
+export function DoneStep({ option, onBack, onRestart }: { option: MealOption; onBack: () => void; onRestart: () => void }) {
   return (
     <div className="space-y-4">
       <StageTitle kicker={t("Tudo começa com o que você tem")}>{t("Dá para fazer com o que você tem")}</StageTitle>
@@ -20,7 +19,6 @@ export function DoneStep({ option, onBack, onRestart, onComplement, onExplore }:
         <IngredientLine label={t("Você vai usar")} items={option.usa} tone="have" />
       </Card>
       <Notice tone="success" role="status" title={t("Nenhuma compra necessária")}>{t(" Esta sugestão aproveita os ingredientes que você confirmou. Confira validade e conservação antes de preparar. ")}</Notice>
-      <OptionalComplements option={option} onChoose={onComplement} onExplore={onExplore} />
       <div className="space-y-2">
         <Button variant="secondary" icon="back" onClick={onBack}>{t("Voltar às sugestões")}</Button>
         <Button variant="ghost" icon="plus" onClick={onRestart}>{t("Começar uma nova consulta")}</Button>
